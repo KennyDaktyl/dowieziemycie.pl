@@ -32,7 +32,7 @@ export async function SiteHeader() {
           <div className="font-heading flex items-center gap-2 text-[17px] font-bold tracking-tight sm:text-[19px]">
             <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-amber shadow-[0_0_12px_2px_var(--color-amber)]" />
             <span className="truncate">
-              dowiezmy<span className="text-amber">cię</span>
+              dowieziemycie<span className="text-amber">.pl</span>
             </span>
           </div>
           <div className="font-label ml-[17px] -mt-0.5 truncate text-[10.5px] tracking-[0.08em] text-muted sm:text-[11.5px]">

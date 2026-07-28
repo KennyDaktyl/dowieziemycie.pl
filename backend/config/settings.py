@@ -22,7 +22,11 @@ def env_list(name, default=""):
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-dev-key-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# Daphne only ever binds to 127.0.0.1 (see the systemd unit) — always trust it
+# regardless of what DJANGO_ALLOWED_HOSTS is set to, so the frontend's
+# server-side fetches to http://127.0.0.1:<port> can never get DisallowedHost'd
+# by an env value that forgot to list it explicitly.
+ALLOWED_HOSTS = list({*env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1"), "127.0.0.1", "localhost"})
 
 # Behind an nginx reverse proxy that terminates TLS — without this Django thinks
 # every request is plain HTTP (nginx talks to it over http://127.0.0.1), which

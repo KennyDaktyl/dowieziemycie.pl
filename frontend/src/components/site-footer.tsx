@@ -12,7 +12,7 @@ export async function SiteFooter() {
           <div>
             <div className="font-heading mb-2.5 flex items-center gap-2 text-[19px] font-bold">
               <span className="h-[9px] w-[9px] rounded-full bg-amber shadow-[0_0_12px_2px_var(--color-amber)]" />
-              dowiezmy<span className="text-amber">cię</span>
+              dowieziemycie<span className="text-amber">.pl</span>
             </div>
             <p className="text-[13.5px] leading-[1.7] text-muted">
               {t("tagline")}
