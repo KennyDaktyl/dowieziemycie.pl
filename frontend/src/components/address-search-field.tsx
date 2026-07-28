@@ -9,6 +9,7 @@ export function AddressSearchField({
   value,
   onTextChange,
   onSelect,
+  onClear,
   onFocus,
   placeholder,
 }: {
@@ -16,6 +17,7 @@ export function AddressSearchField({
   value: string;
   onTextChange: (text: string) => void;
   onSelect: (suggestion: AddressSuggestion) => void;
+  onClear?: () => void;
   onFocus?: () => void;
   placeholder?: string;
 }) {
@@ -47,20 +49,37 @@ export function AddressSearchField({
       <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
         {label}
       </label>
-      <input
-        type="text"
-        value={value}
-        placeholder={placeholder}
-        onFocus={() => {
-          setOpen(true);
-          onFocus?.();
-        }}
-        onChange={(e) => {
-          onTextChange(e.target.value);
-          setOpen(true);
-        }}
-        className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
-      />
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          placeholder={placeholder}
+          onFocus={() => {
+            setOpen(true);
+            onFocus?.();
+          }}
+          onChange={(e) => {
+            onTextChange(e.target.value);
+            setOpen(true);
+          }}
+          className="w-full rounded-lg border border-line bg-panel-2 px-3 py-[11px] pr-9 text-[14.5px] text-text outline-none focus:border-amber"
+        />
+        {value && (
+          <button
+            type="button"
+            aria-label="Wyczyść"
+            onClick={() => {
+              onTextChange("");
+              onClear?.();
+              setSuggestions([]);
+              setOpen(false);
+            }}
+            className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted transition-colors hover:text-text"
+          >
+            ✕
+          </button>
+        )}
+      </div>
       {open && suggestions.length > 0 && (
         <ul className="absolute top-full z-20 mt-1 w-full overflow-hidden rounded-lg border border-line bg-panel-2 shadow-lg">
           {suggestions.map((s) => (

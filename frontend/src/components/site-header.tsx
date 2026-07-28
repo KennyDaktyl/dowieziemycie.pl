@@ -28,7 +28,7 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-bg/82 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6">
-        <div className="min-w-0">
+        <Link href="/" className="min-w-0">
           <div className="font-heading flex items-center gap-2 text-[17px] font-bold tracking-tight sm:text-[19px]">
             <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-amber shadow-[0_0_12px_2px_var(--color-amber)]" />
             <span className="truncate">
@@ -38,7 +38,7 @@ export async function SiteHeader() {
           <div className="font-label ml-[17px] -mt-0.5 truncate text-[10.5px] tracking-[0.08em] text-muted sm:text-[11.5px]">
             {t("subtitle")}
           </div>
-        </div>
+        </Link>
 
         <nav className="hidden shrink-0 gap-6 text-[14.5px] whitespace-nowrap text-muted xl:flex">
           {navLinks.map((link) =>

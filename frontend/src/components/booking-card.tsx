@@ -203,6 +203,7 @@ export function BookingCard() {
                 onTextChange={setPickupText}
                 onFocus={() => setActiveField("pickup")}
                 onSelect={(s) => handleSelectSuggestion("pickup", s)}
+                onClear={() => setPickup(null)}
               />
               <button
                 type="button"
@@ -220,6 +221,7 @@ export function BookingCard() {
               onTextChange={setDropoffText}
               onFocus={() => setActiveField("dropoff")}
               onSelect={(s) => handleSelectSuggestion("dropoff", s)}
+              onClear={() => setDropoff(null)}
             />
           </div>
         </div>

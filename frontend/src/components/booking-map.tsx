@@ -42,6 +42,21 @@ function ClickToPlace({ onPick }: { onPick: (pos: LatLng) => void }) {
   return null;
 }
 
+// The map's container height depends on sibling content (e.g. the driver-ETA
+// card appearing/disappearing changes the grid row it row-spans into) —
+// Leaflet caches its own size and doesn't notice, leaving stale gray tile
+// area until something nudges it. ResizeObserver keeps it in sync.
+function InvalidateSizeOnResize() {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    const observer = new ResizeObserver(() => map.invalidateSize());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map]);
+  return null;
+}
+
 function FitBounds({ points }: { points: LatLng[] }) {
   const map = useMap();
   const key = points.map((p) => `${p.lat},${p.lng}`).join("|");
@@ -100,6 +115,7 @@ export function BookingMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ClickToPlace onPick={handlePick} />
+        <InvalidateSizeOnResize />
         <FitBounds points={fitPoints} />
         {routeLine && (
           <Polyline positions={routeLine} pathOptions={{ color: "#f5a623", weight: 4, opacity: 0.85 }} />
