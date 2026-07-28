@@ -59,16 +59,19 @@ export async function FleetSection() {
           )}
         </div>
         <div className="flex h-[260px] items-center justify-center rounded-2xl border border-line bg-gradient-to-br from-panel-2 to-panel">
-          {vehicles[0]?.cover_photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={vehicles[0].cover_photo}
-              alt={vehicles[0].name}
-              className="h-full w-full rounded-2xl object-cover"
-            />
-          ) : (
-            <VanIcon />
-          )}
+          {(() => {
+            const photo = vehicles[0]?.cover_photo ?? vehicles[0]?.photos[0]?.image;
+            return photo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={photo}
+                alt={vehicles[0].name}
+                className="h-full w-full rounded-2xl object-cover"
+              />
+            ) : (
+              <VanIcon />
+            );
+          })()}
         </div>
       </div>
       {vehicles.length === 0 && <p className="mt-4 text-[13px] text-muted">{t("empty")}</p>}
