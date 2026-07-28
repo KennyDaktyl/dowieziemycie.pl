@@ -3,14 +3,11 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.bookings.models import Booking
 from apps.bookings.routing import get_route_details
 
+from .dispatch import driver_reference_point
 from .models import Driver, Vehicle
 from .serializers import DriverEtaRequestSerializer, DriverLiveStatusSerializer, VehicleSerializer
-
-BUSY_STATUSES = {Driver.Status.JADACY_PO_KLIENTA, Driver.Status.W_KURSIE}
-ACTIVE_BOOKING_STATUSES = [Booking.Status.KIEROWCA_W_DRODZE, Booking.Status.W_TRAKCIE]
 
 
 class DriverLiveStatusListView(generics.ListAPIView):
@@ -65,39 +62,27 @@ class DriverEtaView(APIView):
         return Response({"available": True, **best})
 
     def _eta_for_driver(self, driver, pickup_lat, pickup_lng):
-        if driver.status in BUSY_STATUSES:
-            active_booking = (
-                Booking.objects.filter(assigned_driver=driver, status__in=ACTIVE_BOOKING_STATUSES)
-                .order_by("-created_at")
-                .first()
-            )
-            if active_booking and active_booking.dropoff_lat is not None:
-                leg1 = get_route_details(
-                    driver.current_lat, driver.current_lng,
-                    active_booking.dropoff_lat, active_booking.dropoff_lng,
-                )
-                leg2 = get_route_details(
-                    active_booking.dropoff_lat, active_booking.dropoff_lng,
-                    pickup_lat, pickup_lng,
-                )
-                return {
-                    "driver_status": driver.status,
-                    "eta_minutes": round(leg1.duration_min + leg2.duration_min),
-                    "legs": [
-                        {
-                            "leg_type": "to_current_dropoff",
-                            "distance_km": leg1.distance_km,
-                            "duration_min": round(leg1.duration_min),
-                        },
-                        {
-                            "leg_type": "dropoff_to_new_pickup",
-                            "distance_km": leg2.distance_km,
-                            "duration_min": round(leg2.duration_min),
-                        },
-                    ],
-                }
-            # Busy status but no matching active booking on record — best effort direct leg.
-
+        ref_lat, ref_lng, is_dropoff_based = driver_reference_point(driver)
+        if is_dropoff_based:
+            leg1 = get_route_details(driver.current_lat, driver.current_lng, ref_lat, ref_lng)
+            leg2 = get_route_details(ref_lat, ref_lng, pickup_lat, pickup_lng)
+            return {
+                "driver_status": driver.status,
+                "eta_minutes": round(leg1.duration_min + leg2.duration_min),
+                "legs": [
+                    {
+                        "leg_type": "to_current_dropoff",
+                        "distance_km": leg1.distance_km,
+                        "duration_min": round(leg1.duration_min),
+                    },
+                    {
+                        "leg_type": "dropoff_to_new_pickup",
+                        "distance_km": leg2.distance_km,
+                        "duration_min": round(leg2.duration_min),
+                    },
+                ],
+            }
+        # Free, or busy with no matching active booking on record — best effort direct leg.
         leg = get_route_details(driver.current_lat, driver.current_lng, pickup_lat, pickup_lng)
         return {
             "driver_status": driver.status,

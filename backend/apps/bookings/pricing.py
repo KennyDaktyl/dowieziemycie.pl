@@ -12,7 +12,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.utils import timezone
 
-from .models import PricingTier
+from .models import LocalFarePolicy, PricingTier
 from .routing import get_route_distance_km
 
 
@@ -22,6 +22,27 @@ class PriceEstimate:
     is_reserved: bool
     price: Decimal | None
     tier: PricingTier | None
+    pricing_mode: str  # "local" | "tier"
+
+
+def _local_fare_price(distance_km, pickup_lat, pickup_lng):
+    """If a free (or soon-to-be-free) driver is already close to the pickup
+    point, price the whole trip like a local taxi run instead of looking up
+    the Kraków-corridor tier table — see LocalFarePolicy's docstring."""
+    policy = LocalFarePolicy.objects.filter(is_active=True).first()
+    if not policy:
+        return None
+
+    # Imported here, not at module level — apps.fleet.dispatch imports
+    # apps.bookings.models, so importing it back at module load time would
+    # be a real circular import; safe once both apps are fully loaded.
+    from apps.fleet.dispatch import nearest_driver_distance_km
+
+    driver_distance_km = nearest_driver_distance_km(pickup_lat, pickup_lng)
+    if driver_distance_km is None or driver_distance_km > float(policy.proximity_threshold_km):
+        return None
+
+    return max(Decimal(str(distance_km)) * policy.price_per_km, policy.minimum_fare)
 
 
 def estimate_price(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_at, distance_km=None) -> PriceEstimate:
@@ -33,9 +54,15 @@ def estimate_price(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_a
     lead_time = scheduled_at - timezone.now()
     is_reserved = lead_time >= timedelta(hours=settings.ADVANCE_BOOKING_THRESHOLD_HOURS)
 
+    local_price = _local_fare_price(distance_km, pickup_lat, pickup_lng)
+    if local_price is not None:
+        return PriceEstimate(
+            distance_km=distance_km, is_reserved=is_reserved, price=local_price, tier=None, pricing_mode="local",
+        )
+
     tier = PricingTier.find_matching(distance_km)
     price = None
     if tier:
         price = tier.price_reserved if is_reserved else tier.price_on_demand
 
-    return PriceEstimate(distance_km=distance_km, is_reserved=is_reserved, price=price, tier=tier)
+    return PriceEstimate(distance_km=distance_km, is_reserved=is_reserved, price=price, tier=tier, pricing_mode="tier")

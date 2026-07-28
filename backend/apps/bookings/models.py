@@ -47,6 +47,38 @@ class PricingTier(models.Model):
         )
 
 
+class LocalFarePolicy(models.Model):
+    """Singleton. Gate for switching a booking from the flat distance-tier
+    price list to a taxi-style per-km fare.
+
+    The tier table (`PricingTier`) is tuned for the Kraków-commute pattern —
+    a proper dispatch toward the city. But when a free driver (or one about
+    to be free — see their active booking's dropoff) is already close to the
+    pickup point, a short local hop near their base (e.g. Rybna→Czernichów)
+    shouldn't cost the same as a 25 km trip into Kraków. In that case we
+    price the whole trip at `price_per_km` (floored at `minimum_fare`)
+    instead of looking up a tier.
+    """
+
+    proximity_threshold_km = models.DecimalField(
+        max_digits=5, decimal_places=1, default=10.0,
+        help_text=(
+            "Jeśli najbliższy znany kierowca (wolny, albo kończący bieżący kurs) jest "
+            "bliżej niż X km od miejsca odbioru, stosujemy taryfę lokalną zamiast cennika."
+        ),
+    )
+    price_per_km = models.DecimalField(max_digits=5, decimal_places=2, default=4.00)
+    minimum_fare = models.DecimalField(max_digits=6, decimal_places=2, default=40.00)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Taryfa lokalna"
+        verbose_name_plural = "Taryfa lokalna"
+
+    def __str__(self):
+        return f"Taryfa lokalna · {self.price_per_km} zł/km, min. {self.minimum_fare} zł"
+
+
 class Coupon(models.Model):
     class DiscountType(models.TextChoices):
         PERCENT = "PERCENT", "Procentowy"
@@ -119,7 +151,13 @@ class Booking(models.Model):
     )
     pricing_tier = models.ForeignKey(
         PricingTier, on_delete=models.SET_NULL, null=True, blank=True,
-        help_text="Taryfa dopasowana wg dystansu w momencie rezerwacji.",
+        help_text="Taryfa dopasowana wg dystansu w momencie rezerwacji (puste przy taryfie lokalnej).",
+    )
+    pricing_mode = models.CharField(
+        max_length=10,
+        choices=[("tier", "Cennik odległościowy"), ("local", "Taryfa lokalna")],
+        default="tier",
+        help_text="Jak wyliczono cenę: cennik odległościowy czy taryfa lokalna (bliski kierowca).",
     )
     is_reserved = models.BooleanField(
         default=True,

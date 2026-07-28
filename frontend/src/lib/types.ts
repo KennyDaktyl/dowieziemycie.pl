@@ -39,6 +39,7 @@ export interface RouteEstimate {
   geometry: [number, number][];
   is_reserved: boolean;
   price: number | null;
+  pricing_mode: "tier" | "local";
 }
 
 export interface DriverEtaLeg {

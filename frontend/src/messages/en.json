@@ -42,6 +42,7 @@
     "footnote": "Book ahead for a lower price.",
     "km": "KM",
     "min": "min",
+    "localFare": "Local fare — a driver is already nearby",
     "success": "Ride booked!",
     "error": "Couldn't book the ride. Please try again."
   },

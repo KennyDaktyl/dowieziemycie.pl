@@ -42,6 +42,7 @@
     "footnote": "Rezerwacja z wyprzedzeniem = niższa cena.",
     "km": "KM",
     "min": "min",
+    "localFare": "Taryfa lokalna — kierowca jest już blisko",
     "success": "Kurs zarezerwowany!",
     "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie."
   },

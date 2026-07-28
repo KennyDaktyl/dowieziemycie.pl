@@ -354,7 +354,11 @@ export function BookingCard() {
             </div>
             {pickup && dropoff && estimate && estimate.price != null && (
               <div className="mt-2 border-t border-line pt-2 text-[11.5px] text-muted">
-                {estimate.is_reserved ? tTiers("reserved") : tTiers("onDemand")}
+                {estimate.pricing_mode === "local"
+                  ? t("localFare")
+                  : estimate.is_reserved
+                    ? tTiers("reserved")
+                    : tTiers("onDemand")}
               </div>
             )}
           </div>

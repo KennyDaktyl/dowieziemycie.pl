@@ -27,7 +27,7 @@ class BookingSerializer(serializers.ModelSerializer):
             "id", "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "status", "distance_km", "is_reserved",
-            "price", "coupon_code", "created_at",
+            "price", "pricing_mode", "coupon_code", "created_at",
         ]
         read_only_fields = fields
 
@@ -81,6 +81,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             customer=self.context["request"].user,
             distance_km=estimate.distance_km,
             pricing_tier=estimate.tier,
+            pricing_mode=estimate.pricing_mode,
             is_reserved=estimate.is_reserved,
             price=price,
             coupon=coupon if isinstance(coupon, Coupon) else None,

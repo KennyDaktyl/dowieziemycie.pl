@@ -49,6 +49,7 @@ class RouteEstimateView(APIView):
             "geometry": route.geometry,
             "is_reserved": estimate.is_reserved,
             "price": estimate.price,
+            "pricing_mode": estimate.pricing_mode,
         })
 
 
