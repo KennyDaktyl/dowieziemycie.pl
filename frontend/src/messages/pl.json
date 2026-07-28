@@ -1,0 +1,146 @@
+{
+  "Metadata": {
+    "title": "dowieziemycie.pl — Bezpieczne, komfortowe przejazdy pod Krakowem, 24/7",
+    "description": "Bezpieczny, komfortowy transfer Kraków–Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia i Przeginia Narodowa, o każdej porze dnia. Rezerwacja online, śledzenie kierowcy na żywo — zarezerwuj z wyprzedzeniem dla najlepszej ceny."
+  },
+  "Header": {
+    "subtitle": "TWÓJ SĄSIAD Z BUSEM",
+    "speaksEnglish": "We speak English",
+    "call": "Zadzwoń",
+    "login": "Zaloguj się",
+    "myTrips": "Moje kursy",
+    "logout": "Wyloguj"
+  },
+  "Nav": {
+    "coverage": "Wyceny",
+    "howItWorks": "Jak to działa",
+    "routes": "Kierunki",
+    "tracking": "Kierowca na żywo",
+    "blog": "Blog",
+    "pricing": "Cennik"
+  },
+  "BookingForm": {
+    "from": "Skąd",
+    "to": "Dokąd",
+    "fromPlaceholder": "Wpisz adres odbioru...",
+    "toPlaceholder": "Wpisz adres docelowy...",
+    "useMyLocation": "Użyj mojej lokalizacji",
+    "locating": "Ustalanie pozycji…",
+    "mapCaption": "Zaznacz adresy na mapie — kliknij, przeciągnij pinezkę albo wyszukaj powyżej",
+    "date": "Data",
+    "time": "Godzina",
+    "passengers": "Liczba osób",
+    "priceLabel": "Cena kursu",
+    "priceSub": "zaliczka przez BLIK rezerwuje auto",
+    "customQuote": "Wycena indywidualna",
+    "estimating": "Liczenie trasy…",
+    "reserved": "Rezerwacja z wyprzedzeniem",
+    "onDemand": "Zamówienie na już",
+    "couponCode": "Kod rabatowy (opcjonalnie)",
+    "submit": "Zarezerwuj kurs",
+    "submitLoginFirst": "Zaloguj się, aby zarezerwować",
+    "footnote": "Rezerwacja z wyprzedzeniem = niższa cena.",
+    "km": "KM",
+    "success": "Kurs zarezerwowany!",
+    "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie."
+  },
+  "StatusLegend": {
+    "eyebrow": "Panel klienta",
+    "title": "Widzisz dokładnie, co się dzieje z kursem",
+    "description": "Zanim jeszcze wsiądziesz, wiesz gdzie jest auto i za ile minut podjedzie pod Twoje drzwi — w Rybnej, Liszkach czy Czernichowie, o każdej porze.",
+    "offline": "Postój",
+    "offlineDesc": "Kierowca w bazie, nieaktywny",
+    "available": "Aktywny",
+    "availableDesc": "Wolny, gotowy do kursu",
+    "enRoute": "W drodze do Ciebie",
+    "enRouteDesc": "Widzisz auto na mapie i licznik minut",
+    "busy": "Zajęty",
+    "busyDesc": "W trakcie innego kursu"
+  },
+  "PricingTiers": {
+    "eyebrow": "Przykładowe wyceny",
+    "title": "Jasna cena, zależna od odległości",
+    "description": "Realny dystans trasy liczymy automatycznie. Zarezerwuj z wyprzedzeniem dla niższej ceny — zamówienie na już też jest możliwe, w wyższej taryfie.",
+    "upTo": "Do {km} km",
+    "reserved": "Rezerwacja z wyprzedzeniem",
+    "onDemand": "Zamówienie na już",
+    "beyond": "Dalej niż {km} km — wycena indywidualna"
+  },
+  "HowItWorks": {
+    "eyebrow": "Proces",
+    "title": "Jak to działa",
+    "step1Title": "Zamawiasz i wpłacasz zaliczkę",
+    "step1Body": "Wybierasz skąd i dokąd, płacisz BLIK-iem. Im wcześniej zarezerwujesz, tym niższa cena — kurs na już też jest możliwy.",
+    "step2Title": "Śledzisz kierowcę na mapie",
+    "step2Body": "Widzisz dokładną pozycję auta na żywo i realny czas dojazdu. Zero niepewności, czy ktoś w ogóle przyjedzie.",
+    "step3Title": "Wsiadasz — bezpiecznie i na czas",
+    "step3Body": "Cena ustalona przy rezerwacji się nie zmienia. Bez negocjacji na miejscu, o każdej porze dnia i nocy."
+  },
+  "Routes": {
+    "eyebrow": "Kierunki, które obsługujemy",
+    "title": "Lokalny transport wokół Krakowa",
+    "description": "Stałe kursy do gmin Czernichów, Liszki, Alwernia i Krzeszowice — codziennie, o każdej porze dnia i nocy.",
+    "priceFrom": "od {price} zł",
+    "customQuote": "Wycena indywidualna",
+    "cta": "Zobacz szczegóły →"
+  },
+  "RoutePage": {
+    "backToHome": "← Wszystkie kierunki",
+    "exampleTitle": "Przykładowa cena",
+    "exampleFrom": "Trasa z Rynku Głównego w Krakowie, rezerwacja z wyprzedzeniem",
+    "exampleDistance": "{km} km",
+    "bookCta": "Zarezerwuj ten kurs",
+    "otherRoutes": "Inne obsługiwane kierunki"
+  },
+  "Fleet": {
+    "eyebrow": "Flota",
+    "title": "Nasza flota",
+    "description": "Komfortowe auto, jeden standard. Miejsce na całą rodzinę albo grupę znajomych wracających z jednej imprezy.",
+    "seats": "Miejsc",
+    "availability": "Dostępność",
+    "fixedRange": "Stała cena",
+    "empty": "Flota będzie widoczna tutaj, gdy tylko dodamy auto w panelu admina."
+  },
+  "LiveMap": {
+    "caption": "Nasz kierowca na żywo",
+    "pageDescription": "Zanim zamówisz kurs, zobacz gdzie aktualnie jest nasze auto.",
+    "noActiveDriver": "Aktualnie żaden kierowca nie jest aktywny",
+    "vehicleUnknown": "Bus"
+  },
+  "Footer": {
+    "tagline": "Twój sąsiad z busem — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",
+    "tagline2": "24/7, także w nocy i w niedziele.",
+    "rights": "© {year} dowieziemycie.pl",
+    "adminPanel": "Panel administracyjny"
+  },
+  "Auth": {
+    "title": "Zaloguj się numerem telefonu",
+    "phoneLabel": "Numer telefonu",
+    "phonePlaceholder": "+48 500 000 000",
+    "requestCode": "Wyślij kod SMS",
+    "codeLabel": "Kod z SMS-a",
+    "codePlaceholder": "123456",
+    "verifyCode": "Zaloguj się",
+    "changePhone": "Zmień numer",
+    "codeSentTo": "Kod wysłany na {phone}",
+    "errorRequest": "Nie udało się wysłać kodu. Sprawdź numer i spróbuj ponownie.",
+    "errorVerify": "Nieprawidłowy lub wygasły kod."
+  },
+  "Panel": {
+    "title": "Moje kursy",
+    "empty": "Nie masz jeszcze żadnych kursów.",
+    "bookNow": "Zarezerwuj pierwszy kurs",
+    "from": "Skąd",
+    "to": "Dokąd",
+    "date": "Termin",
+    "price": "Cena"
+  },
+  "BookingStatus": {
+    "NOWA": "Nowa (oczekuje na potwierdzenie)",
+    "POTWIERDZONA": "Potwierdzona",
+    "KIEROWCA_W_DRODZE": "Kierowca w drodze",
+    "W_TRAKCIE": "W trakcie kursu",
+    "ZAKONCZONA": "Zakończona",
+    "ANULOWANA": "Anulowana"
+  }
+}

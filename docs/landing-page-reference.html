@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dowiezmycie.pl — Twój sąsiad z busem, 24/7 za 149 zł</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B0F16;
+    --bg-panel: #121A24;
+    --bg-panel-2: #1A2530;
+    --amber: #F5A623;
+    --amber-dim: #8a5f1c;
+    --green: #3ECF8E;
+    --text: #EDEEF2;
+    --muted: #8B96A3;
+    --line: rgba(237,238,242,0.09);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px;}
+  .eyebrow{
+    font-family:'Barlow Condensed',sans-serif;
+    text-transform:uppercase;
+    letter-spacing:0.16em;
+    font-weight:600;
+    font-size:13px;
+    color:var(--amber);
+  }
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;font-weight:600;letter-spacing:-0.01em;}
+
+  /* ---------- HEADER ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(11,15,22,0.82);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;max-width:1180px;margin:0 auto;}
+  .logo{display:flex;align-items:center;gap:8px;font-family:'Space Grotesk';font-weight:700;font-size:19px;letter-spacing:-0.01em;}
+  .logo-dot{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 12px 2px var(--amber);}
+  .nav-links{display:flex;gap:32px;font-size:14.5px;color:var(--muted);}
+  .nav-links a{color:var(--muted);text-decoration:none;transition:color .15s;}
+  .nav-links a:hover{color:var(--text);}
+  .nav-cta{
+    background:var(--amber);color:#1a1305;font-weight:600;font-size:14px;
+    padding:9px 18px;border-radius:6px;text-decoration:none;
+    box-shadow:0 0 0 rgba(245,166,35,0);transition:box-shadow .2s, transform .15s;
+  }
+  .nav-cta:hover{box-shadow:0 4px 20px rgba(245,166,35,0.35);transform:translateY(-1px);}
+  @media(max-width:860px){.nav-links{display:none;}}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:64px 0 40px;}
+  .hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:start;}
+  @media(max-width:960px){.hero-grid{grid-template-columns:1fr;gap:40px;}}
+
+  .hero h1{font-size:52px;line-height:1.03;margin:18px 0 20px;}
+  .hero h1 span{color:var(--amber);}
+  .hero p.lead{color:var(--muted);font-size:16.5px;line-height:1.6;max-width:480px;margin-bottom:32px;}
+  @media(max-width:520px){.hero h1{font-size:38px;}}
+
+  /* booking card */
+  .booking{
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+  }
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+  .field{display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:11.5px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-family:'Barlow Condensed';font-weight:600;}
+  .field select, .field input{
+    background:var(--bg-panel-2);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);padding:11px 12px;font-size:14.5px;font-family:'Inter';outline:none;
+  }
+  .field select:focus, .field input:focus{border-color:var(--amber);}
+  .route-line{display:flex;align-items:center;gap:8px;margin:2px 0 14px;}
+  .route-line .dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+  .route-line .dash{flex:1;height:1px;background:repeating-linear-gradient(90deg,var(--muted) 0 4px, transparent 4px 8px);opacity:.5;}
+
+  .meter-row{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--bg-panel-2);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;margin:16px 0;
+  }
+  .meter-label{font-family:'Barlow Condensed';text-transform:uppercase;letter-spacing:0.1em;font-size:12px;color:var(--muted);font-weight:600;}
+  .meter-price{
+    font-family:'Space Grotesk';font-weight:700;font-size:30px;color:var(--green);
+    font-variant-numeric:tabular-nums;
+  }
+  .meter-sub{font-size:11.5px;color:var(--muted);margin-top:2px;}
+
+  .btn-primary{
+    width:100%;background:var(--amber);color:#1a1305;border:none;border-radius:9px;
+    padding:15px;font-size:15.5px;font-weight:700;font-family:'Inter';cursor:pointer;
+    transition:transform .15s, box-shadow .2s;
+  }
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(245,166,35,.3);}
+  .booking-note{font-size:12px;color:var(--muted);text-align:center;margin-top:10px;}
+
+  /* map panel */
+  .map-panel{
+    background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;
+    overflow:hidden;position:relative;
+  }
+  #mapSvg{height:340px;width:100%;display:block;background:
+      radial-gradient(circle at 75% 20%, rgba(245,166,35,0.06), transparent 55%),
+      linear-gradient(180deg, #16202B 0%, #101720 100%);}
+  .map-grid line{stroke:rgba(237,238,242,0.05);}
+  .map-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.05em;fill:var(--muted);text-transform:uppercase;}
+  .map-town-label{font-family:'Space Grotesk',sans-serif;font-size:11px;fill:var(--text);font-weight:600;}
+  #carMarker{transition:cx 1.1s linear, cy 1.1s linear;}
+  #carHalo{transition:cx 1.1s linear, cy 1.1s linear;}
+  .live-badge{
+    position:absolute;top:14px;left:14px;z-index:400;
+    background:rgba(18,26,36,0.9);backdrop-filter:blur(4px);
+    border:1px solid var(--line);border-radius:20px;
+    padding:6px 12px;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;
+  }
+  .pulse{width:8px;height:8px;border-radius:50%;background:var(--green);position:relative;}
+  .pulse::after{
+    content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--green);
+    animation:pulse 1.6s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(0.6);opacity:1;}100%{transform:scale(2.2);opacity:0;}}
+
+  .driver-card{
+    position:absolute;bottom:14px;left:14px;right:14px;z-index:400;
+    background:rgba(18,26,36,0.92);backdrop-filter:blur(6px);
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .driver-card .who{font-size:13.5px;font-weight:600;}
+  .driver-card .eta{font-family:'Space Grotesk';color:var(--amber);font-weight:700;font-size:15px;}
+  .driver-card .sub{font-size:11.5px;color:var(--muted);}
+
+  /* ---------- ZASIEG ---------- */
+  .section{padding:70px 0;border-top:1px solid var(--line);}
+  .section-head{max-width:600px;margin-bottom:40px;}
+  .section-head h2{font-size:32px;margin-top:10px;}
+  .section-head p{color:var(--muted);margin-top:12px;font-size:15.5px;line-height:1.6;}
+
+  .signs{display:flex;gap:14px;flex-wrap:wrap;}
+  .sign{
+    background:var(--bg-panel);border:1px solid var(--line);border-left:4px solid var(--green);
+    border-radius:6px;padding:14px 18px;min-width:150px;
+  }
+  .sign .town{font-family:'Space Grotesk';font-weight:700;font-size:16px;}
+  .sign .km{font-family:'Barlow Condensed';color:var(--amber);font-size:13px;letter-spacing:0.06em;margin-top:3px;}
+
+  /* ---------- JAK TO DZIAŁA ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+  @media(max-width:860px){.steps{grid-template-columns:1fr;}}
+  .step{background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:26px;}
+  .step .num{font-family:'Space Grotesk';font-size:34px;font-weight:700;color:var(--amber-dim);}
+  .step h3{font-size:17px;margin:14px 0 8px;}
+  .step p{color:var(--muted);font-size:14px;line-height:1.55;}
+
+  /* ---------- WYCIECZKI ---------- */
+  .trip-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  @media(max-width:860px){.trip-grid{grid-template-columns:1fr;}}
+  .trip-card{
+    background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;
+    padding:22px;position:relative;overflow:hidden;
+  }
+  .trip-card svg{position:absolute;top:0;right:0;opacity:.15;}
+  .trip-card h3{font-size:19px;margin-bottom:6px;}
+  .trip-card p{color:var(--muted);font-size:14px;margin-bottom:16px;}
+  .trip-price{font-family:'Space Grotesk';color:var(--green);font-weight:700;font-size:17px;}
+  .trip-link{display:inline-block;margin-top:14px;color:var(--amber);font-size:13.5px;font-weight:600;text-decoration:none;}
+
+  /* ---------- FLEET ---------- */
+  .fleet{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;}
+  @media(max-width:860px){.fleet{grid-template-columns:1fr;}}
+  .fleet-visual{
+    background:linear-gradient(135deg,var(--bg-panel-2),var(--bg-panel));
+    border:1px solid var(--line);border-radius:16px;height:260px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .fleet-specs{display:flex;gap:28px;margin-top:20px;flex-wrap:wrap;}
+  .spec .n{font-family:'Space Grotesk';font-size:26px;font-weight:700;color:var(--amber);}
+  .spec .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;font-family:'Barlow Condensed';font-weight:600;}
+
+  /* ---------- FOOTER ---------- */
+  footer{border-top:1px solid var(--line);padding:44px 0 30px;}
+  .foot-grid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;}
+  footer .muted{color:var(--muted);font-size:13.5px;line-height:1.7;}
+  footer a{color:var(--muted);text-decoration:none;}
+  .foot-bottom{margin-top:30px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div>
+      <div class="logo"><span class="logo-dot"></span>dowiezmy<span style="color:var(--amber)">cię</span></div>
+      <div style="font-family:'Barlow Condensed';font-size:11.5px;letter-spacing:.08em;color:var(--muted);margin-left:17px;margin-top:-2px;">TWÓJ SĄSIAD Z BUSEM</div>
+    </div>
+    <div class="nav-links">
+      <a href="#zasieg">Zasięg</a>
+      <a href="#jak-to-dziala">Jak to działa</a>
+      <a href="#wycieczki">Wycieczki</a>
+      <a href="#">Blog</a>
+      <a href="#">Cennik</a>
+    </div>
+    <a class="nav-cta" href="tel:+48000000000">Zadzwoń</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow">24/7 · NIEDZIELE · DO 25 KM OD KRAKOWA</span>
+      <h1>Jedna cena.<br>Każdej <span>nocy.</span></h1>
+      <p class="lead">Kraków–Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa. Gdy taxi już nie jeździ, a niedzielny autobus nie istnieje — Ty już masz kurs zamówiony i opłacony.</p>
+
+      <div class="booking">
+        <div class="field-row">
+          <div class="field">
+            <label>Skąd</label>
+            <input type="text" value="Kraków, Rynek Główny">
+          </div>
+          <div class="field">
+            <label>Dokąd</label>
+            <select>
+              <option>Rybna</option>
+              <option>Liszki</option>
+              <option>Kaszów</option>
+              <option>Czernichów</option>
+              <option>Sanka</option>
+              <option>Alwernia</option>
+              <option>Przeginia Narodowa</option>
+            </select>
+          </div>
+        </div>
+        <div class="route-line">
+          <span class="dot"></span><span class="dash"></span>
+          <span style="font-size:12px;color:var(--muted);font-family:'Barlow Condensed';letter-spacing:.05em;">18 KM</span>
+          <span class="dash"></span><span class="dot" style="background:var(--amber)"></span>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Data</label>
+            <input type="date">
+          </div>
+          <div class="field">
+            <label>Godzina</label>
+            <input type="time" value="02:30">
+          </div>
+        </div>
+
+        <div class="meter-row">
+          <div>
+            <div class="meter-label">Cena kursu</div>
+            <div class="meter-sub">zaliczka przez BLIK rezerwuje auto</div>
+          </div>
+          <div style="text-align:right">
+            <div class="meter-price" id="meterPrice">— zł</div>
+          </div>
+        </div>
+
+        <button class="btn-primary">Zarezerwuj kurs</button>
+        <div class="booking-note">Bez dopłat nocnych. Bez dopłat niedzielnych.</div>
+      </div>
+    </div>
+
+    <div class="map-panel">
+      <div class="live-badge" id="statusPill"><span class="pulse" id="statusDot"></span> <span id="statusLabel">Postój</span></div>
+
+      <svg id="mapSvg" viewBox="0 0 400 340" preserveAspectRatio="xMidYMid slice">
+        <g class="map-grid">
+          <line x1="0" y1="60" x2="400" y2="60"/><line x1="0" y1="120" x2="400" y2="120"/>
+          <line x1="0" y1="180" x2="400" y2="180"/><line x1="0" y1="240" x2="400" y2="240"/>
+          <line x1="0" y1="300" x2="400" y2="300"/>
+          <line x1="80" y1="0" x2="80" y2="340"/><line x1="160" y1="0" x2="160" y2="340"/>
+          <line x1="240" y1="0" x2="240" y2="340"/><line x1="320" y1="0" x2="320" y2="340"/>
+        </g>
+
+        <!-- Wisła -->
+        <path d="M -10 300 C 60 285, 90 255, 130 250 S 210 260, 250 235 S 330 190, 410 175"
+              fill="none" stroke="#2E5F7A" stroke-width="10" opacity="0.35" stroke-linecap="round"/>
+
+        <!-- kierunek na Kraków -->
+        <line x1="330" y1="60" x2="380" y2="20" stroke="#8B96A3" stroke-width="1.5" stroke-dasharray="3,5" opacity="0.6"/>
+        <text x="345" y="16" class="map-label">↑ Kraków</text>
+
+        <!-- trasa kursu -->
+        <path id="routePath" d="M 60 260 C 100 240, 130 225, 165 200 S 235 155, 320 100"
+              fill="none" stroke="#8B96A3" stroke-width="2" stroke-dasharray="4,6" opacity="0.55"/>
+
+        <!-- Sanka: miasto pośrednie -->
+        <circle cx="200" cy="182" r="4" fill="#8B96A3"/>
+        <text x="209" y="180" class="map-town-label">Sanka</text>
+
+        <!-- Baza: Czernichów -->
+        <circle cx="60" cy="260" r="6" fill="none" stroke="#F5A623" stroke-width="2"/>
+        <text x="42" y="282" class="map-town-label">Czernichów</text>
+        <text x="42" y="294" class="map-label">baza</text>
+
+        <!-- Klient: Rybna -->
+        <circle cx="320" cy="100" r="6" fill="#3ECF8E"/>
+        <text x="332" y="97" class="map-town-label">Rybna</text>
+        <text x="332" y="109" class="map-label">Ty</text>
+
+        <!-- Auto -->
+        <circle id="carHalo" cx="60" cy="260" r="13" fill="#8B96A3" opacity="0.25"/>
+        <circle id="carMarker" cx="60" cy="260" r="7" fill="#8B96A3" stroke="#0B0F16" stroke-width="2"/>
+      </svg>
+
+      <div class="driver-card">
+        <div>
+          <div class="who">Michał · VW T6 · KR 4X2137</div>
+          <div class="sub" id="statusSub">Baza: Czernichów</div>
+        </div>
+        <div style="text-align:right">
+          <div class="eta" id="etaVal">—</div>
+          <div class="sub" id="etaSub">status</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="panel-klienta">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Panel klienta</span>
+      <h2>Widzisz dokładnie, co się dzieje z kursem</h2>
+      <p>Zanim jeszcze wsiądziesz, wiesz gdzie jest auto i za ile minut podjedzie pod Twoje drzwi — w Rybnej, Liszkach czy Czernichowie, o każdej porze.</p>
+    </div>
+    <div class="signs" style="gap:16px;">
+      <div class="sign" style="border-left-color:#8B96A3;min-width:190px;">
+        <div class="town" style="font-size:15px;">Postój</div>
+        <div class="km" style="color:#8B96A3;">Kierowca w bazie, nieaktywny</div>
+      </div>
+      <div class="sign" style="border-left-color:#3ECF8E;min-width:190px;">
+        <div class="town" style="font-size:15px;">Aktywny</div>
+        <div class="km" style="color:#3ECF8E;">Wolny, gotowy do kursu</div>
+      </div>
+      <div class="sign" style="border-left-color:#F5A623;min-width:190px;">
+        <div class="town" style="font-size:15px;">W drodze do Ciebie</div>
+        <div class="km">Widzisz auto na mapie i licznik minut</div>
+      </div>
+      <div class="sign" style="border-left-color:#E5484D;min-width:190px;">
+        <div class="town" style="font-size:15px;">Zajęty</div>
+        <div class="km" style="color:#E5484D;">W trakcie innego kursu</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="zasieg">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Zasięg stałej ceny</span>
+      <h2>Do 25 km od Krakowa — zawsze 149 zł</h2>
+      <p>Poza tym pasem liczymy indywidualnie, ale w tych kierunkach cena się nie zmienia — o 14:00 w środę czy o 3:00 w niedzielę.</p>
+    </div>
+    <div class="signs">
+      <div class="sign"><div class="town">Rybna</div><div class="km">12 KM</div></div>
+      <div class="sign"><div class="town">Liszki</div><div class="km">15 KM</div></div>
+      <div class="sign"><div class="town">Kaszów</div><div class="km">17 KM</div></div>
+      <div class="sign"><div class="town">Czernichów</div><div class="km">20 KM</div></div>
+      <div class="sign"><div class="town">Sanka</div><div class="km">21 KM</div></div>
+      <div class="sign"><div class="town">Alwernia</div><div class="km">24 KM</div></div>
+      <div class="sign"><div class="town">Przeginia Narodowa</div><div class="km">23 KM</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="jak-to-dziala">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Proces</span>
+      <h2>Jak to działa</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="num">01</div>
+        <h3>Zamawiasz i wpłacasz zaliczkę</h3>
+        <p>Wybierasz skąd i dokąd, płacisz BLIK-iem. Kurs jest zarezerwowany — nawet jeśli zamawiasz o 23:50 na 3:00 w nocy.</p>
+      </div>
+      <div class="step">
+        <div class="num">02</div>
+        <h3>Śledzisz kierowcę na mapie</h3>
+        <p>Widzisz dokładną pozycję auta na żywo i realny czas dojazdu. Zero niepewności, czy ktoś w ogóle przyjedzie.</p>
+      </div>
+      <div class="step">
+        <div class="num">03</div>
+        <h3>Wsiadasz — cena się nie zmienia</h3>
+        <p>149 zł to 149 zł. Bez taryfy nocnej, bez dopłaty za niedzielę, bez negocjacji na miejscu.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="wycieczki">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Poza transferem</span>
+      <h2>Wycieczki z kierowcą</h2>
+      <p>Ten sam VW T6, ten sam kierowca — na dłuższe trasy z okolic Krakowa.</p>
+    </div>
+    <div class="trip-grid">
+      <div class="trip-card">
+        <h3>Auschwitz-Birkenau</h3>
+        <p>Transfer i powrót, czas na zwiedzanie w Twoim tempie.</p>
+        <div class="trip-price">od 320 zł / grupa</div>
+        <br><a class="trip-link" href="#">Zobacz trasę →</a>
+      </div>
+      <div class="trip-card">
+        <h3>Kopalnia Wieliczka</h3>
+        <p>Bez kolejek w busie — dojazd prosto pod wejście.</p>
+        <div class="trip-price">od 190 zł / grupa</div>
+        <br><a class="trip-link" href="#">Zobacz trasę →</a>
+      </div>
+      <div class="trip-card">
+        <h3>Zakopane</h3>
+        <p>Jeden dzień w Tatrach, bez pilnowania rozkładu autokaru.</p>
+        <div class="trip-price">od 480 zł / grupa</div>
+        <br><a class="trip-link" href="#">Zobacz trasę →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap fleet">
+    <div>
+      <span class="eyebrow">Flota</span>
+      <h2 style="margin-top:10px;font-size:30px;">Volkswagen T6</h2>
+      <p style="color:var(--muted);margin-top:14px;line-height:1.6;font-size:15px;">Jedno auto, jeden standard. Miejsce na całą rodzinę albo grupę znajomych wracających z jednej imprezy.</p>
+      <div class="fleet-specs">
+        <div class="spec"><div class="n">7</div><div class="l">Miejsc</div></div>
+        <div class="spec"><div class="n">24/7</div><div class="l">Dostępność</div></div>
+        <div class="spec"><div class="n">25km</div><div class="l">Stała cena</div></div>
+      </div>
+    </div>
+    <div class="fleet-visual">
+      <svg width="180" height="90" viewBox="0 0 180 90" fill="none">
+        <rect x="10" y="30" width="150" height="35" rx="8" stroke="#F5A623" stroke-width="2.5"/>
+        <rect x="25" y="15" width="90" height="20" rx="6" stroke="#F5A623" stroke-width="2.5"/>
+        <circle cx="45" cy="68" r="10" stroke="#EDEEF2" stroke-width="2.5"/>
+        <circle cx="130" cy="68" r="10" stroke="#EDEEF2" stroke-width="2.5"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="logo" style="margin-bottom:10px;"><span class="logo-dot"></span>dowiezmy<span style="color:var(--amber)">cię</span></div>
+        <p class="muted">Twój sąsiad z busem — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.<br>24/7, także w nocy i w niedziele.</p>
+      </div>
+      <div>
+        <p class="muted"><a href="tel:+48000000000">+48 000 000 000</a><br>kontakt@dowiezmycie.pl</p>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 dowiezmycie.pl</span>
+      <span>Projekt wizualny — wersja robocza</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ---- Meter price flip animation ----
+  const meterEl = document.getElementById('meterPrice');
+  let n = 0;
+  const target = 149;
+  const meterTimer = setInterval(()=>{
+    n += Math.ceil((target-n)/4) || 1;
+    if(n>=target){n=target;clearInterval(meterTimer);}
+    meterEl.textContent = n + ' zł';
+  },70);
+
+  // ---- Auto poruszające się po własnej ilustracji SVG (baza Czernichów -> Sanka -> Rybna) ----
+  const route = [
+    [60,260],[85,247],[110,231],[135,214],[165,200],
+    [190,190],[215,168],[245,150],[275,128],[300,112],[320,100]
+  ];
+  const carMarkerEl = document.getElementById('carMarker');
+  const carHaloEl = document.getElementById('carHalo');
+
+  function setCarPos(pt){
+    carMarkerEl.setAttribute('cx', pt[0]); carMarkerEl.setAttribute('cy', pt[1]);
+    carHaloEl.setAttribute('cx', pt[0]); carHaloEl.setAttribute('cy', pt[1]);
+  }
+  function setCarColor(hex){
+    carMarkerEl.setAttribute('fill', hex);
+    carHaloEl.setAttribute('fill', hex);
+  }
+
+  // ---- Maszyna stanów: Postój -> Aktywny -> W drodze do Ciebie -> Zajęty ----
+  const statusPill = document.getElementById('statusPill');
+  const statusDot = document.getElementById('statusDot');
+  const statusLabel = document.getElementById('statusLabel');
+  const statusSub = document.getElementById('statusSub');
+  const etaEl = document.getElementById('etaVal');
+  const etaSub = document.getElementById('etaSub');
+
+  const STATES = {
+    postoj:  {label:'Postój',              color:'#8B96A3', sub:'Baza: Czernichów',                dur:4000},
+    aktywny: {label:'Aktywny',             color:'#3ECF8E', sub:'Wolny, gotowy do kursu',           dur:4000},
+    wdrodze: {label:'W drodze do Ciebie',  color:'#F5A623', sub:'VW T6 · trasa do Rybnej',          dur:11000},
+    zajety:  {label:'Zajęty',              color:'#E5484D', sub:'W trakcie innego kursu',           dur:5000}
+  };
+  const order = ['postoj','aktywny','wdrodze','zajety'];
+  let stateIdx = 0;
+  let routeIdx = 0;
+  let routeTimer = null;
+
+  function setStatus(key){
+    const s = STATES[key];
+    statusLabel.textContent = s.label;
+    statusDot.style.background = s.color;
+    statusSub.textContent = s.sub;
+
+    if(key === 'wdrodze'){
+      routeIdx = 0;
+      setCarPos(route[0]);
+      setCarColor(s.color);
+      etaSub.textContent = 'do klienta';
+      moveAlongRoute();
+    } else {
+      clearInterval(routeTimer);
+      setCarPos(route[0]);
+      setCarColor(s.color);
+      etaEl.textContent = '—';
+      etaSub.textContent = key === 'postoj' ? 'w bazie' : (key === 'aktywny' ? 'bez zlecenia' : 'inny klient');
+    }
+  }
+
+  function moveAlongRoute(){
+    clearInterval(routeTimer);
+    routeTimer = setInterval(()=>{
+      routeIdx++;
+      if(routeIdx >= route.length){ clearInterval(routeTimer); etaEl.textContent = 'Na miejscu'; return; }
+      setCarPos(route[routeIdx]);
+      const remaining = route.length - 1 - routeIdx;
+      etaEl.textContent = remaining === 0 ? 'Na miejscu' : (Math.ceil(remaining*0.7)+1)+' min';
+    }, 1100);
+    etaEl.textContent = '6 min';
+  }
+
+  function cycle(){
+    const key = order[stateIdx % order.length];
+    setStatus(key);
+    setTimeout(()=>{ stateIdx++; cycle(); }, STATES[key].dur);
+  }
+  cycle();
+</script>
+
+</body>
+</html>

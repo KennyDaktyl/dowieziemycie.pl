@@ -1,0 +1,24 @@
+# Env / secrets
+.env
+
+# Python / Django
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/db.sqlite3
+backend/staticfiles/
+backend/media/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/npm-debug.log*
+
+# OSRM prepared data (large binary extracts, not source)
+osrm-data/
+
+# Editors / OS
+.DS_Store
+*.swp

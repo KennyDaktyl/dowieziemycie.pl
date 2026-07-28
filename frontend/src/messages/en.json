@@ -1,0 +1,146 @@
+{
+  "Metadata": {
+    "title": "dowieziemycie.pl — Safe, comfortable rides around Kraków, 24/7",
+    "description": "Safe, comfortable transfers between Kraków and Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia and Przeginia Narodowa, any time of day. Book online, track your driver live — book ahead for the best price."
+  },
+  "Header": {
+    "subtitle": "YOUR NEIGHBOR WITH A VAN",
+    "speaksEnglish": "We speak English",
+    "call": "Call",
+    "login": "Log in",
+    "myTrips": "My trips",
+    "logout": "Log out"
+  },
+  "Nav": {
+    "coverage": "Pricing examples",
+    "howItWorks": "How it works",
+    "routes": "Routes",
+    "tracking": "Driver, live",
+    "blog": "Blog",
+    "pricing": "Pricing"
+  },
+  "BookingForm": {
+    "from": "From",
+    "to": "To",
+    "fromPlaceholder": "Type a pickup address...",
+    "toPlaceholder": "Type a destination address...",
+    "useMyLocation": "Use my location",
+    "locating": "Locating…",
+    "mapCaption": "Mark addresses on the map — click, drag a pin, or search above",
+    "date": "Date",
+    "time": "Time",
+    "passengers": "Passengers",
+    "priceLabel": "Ride price",
+    "priceSub": "a BLIK deposit reserves the car",
+    "customQuote": "Custom quote",
+    "estimating": "Calculating route…",
+    "reserved": "Booked in advance",
+    "onDemand": "On-demand",
+    "couponCode": "Discount code (optional)",
+    "submit": "Book the ride",
+    "submitLoginFirst": "Log in to book",
+    "footnote": "Book ahead for a lower price.",
+    "km": "KM",
+    "success": "Ride booked!",
+    "error": "Couldn't book the ride. Please try again."
+  },
+  "StatusLegend": {
+    "eyebrow": "Customer panel",
+    "title": "See exactly what's happening with your ride",
+    "description": "Before you even get in, you know where the car is and how many minutes until it's at your door — in Rybna, Liszki or Czernichów, any time of day.",
+    "offline": "Idle",
+    "offlineDesc": "Driver at base, off duty",
+    "available": "Active",
+    "availableDesc": "Free, ready for a ride",
+    "enRoute": "On the way to you",
+    "enRouteDesc": "See the car on the map and a minute counter",
+    "busy": "Busy",
+    "busyDesc": "On another ride"
+  },
+  "PricingTiers": {
+    "eyebrow": "Pricing examples",
+    "title": "Clear, distance-based pricing",
+    "description": "We calculate the real route distance automatically. Book ahead for a lower price — on-demand rides are also possible, at a higher rate.",
+    "upTo": "Up to {km} km",
+    "reserved": "Booked in advance",
+    "onDemand": "On-demand",
+    "beyond": "Beyond {km} km — custom quote"
+  },
+  "HowItWorks": {
+    "eyebrow": "Process",
+    "title": "How it works",
+    "step1Title": "Book and pay a deposit",
+    "step1Body": "Pick where from and where to, pay by BLIK. The earlier you book, the lower the price — on-demand rides are possible too.",
+    "step2Title": "Track the driver on the map",
+    "step2Body": "See the car's exact live position and a real ETA. Zero uncertainty about whether anyone's actually coming.",
+    "step3Title": "Get in — safe and on time",
+    "step3Body": "The price set at booking doesn't change. No haggling on arrival, any time of day or night."
+  },
+  "Routes": {
+    "eyebrow": "Directions we cover",
+    "title": "Local transport around Kraków",
+    "description": "Regular runs to the Czernichów, Liszki, Alwernia and Krzeszowice municipalities — every day, any time of day or night.",
+    "priceFrom": "from {price} zł",
+    "customQuote": "Custom quote",
+    "cta": "See details →"
+  },
+  "RoutePage": {
+    "backToHome": "← All directions",
+    "exampleTitle": "Example price",
+    "exampleFrom": "Route from Kraków's Main Square, booked in advance",
+    "exampleDistance": "{km} km",
+    "bookCta": "Book this ride",
+    "otherRoutes": "Other directions we cover"
+  },
+  "Fleet": {
+    "eyebrow": "Fleet",
+    "title": "Our fleet",
+    "description": "A comfortable car, one standard. Room for the whole family or a group of friends heading home from the same party.",
+    "seats": "Seats",
+    "availability": "Availability",
+    "fixedRange": "Flat rate",
+    "empty": "The fleet will show up here as soon as a vehicle is added in the admin panel."
+  },
+  "LiveMap": {
+    "caption": "Our driver, live",
+    "pageDescription": "Before you book, see where our car is right now.",
+    "noActiveDriver": "No driver is currently active",
+    "vehicleUnknown": "Van"
+  },
+  "Footer": {
+    "tagline": "Your neighbor with a van — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",
+    "tagline2": "24/7, including nights and Sundays.",
+    "rights": "© {year} dowieziemycie.pl",
+    "adminPanel": "Admin panel"
+  },
+  "Auth": {
+    "title": "Log in with your phone number",
+    "phoneLabel": "Phone number",
+    "phonePlaceholder": "+1 500 000 000",
+    "requestCode": "Send SMS code",
+    "codeLabel": "SMS code",
+    "codePlaceholder": "123456",
+    "verifyCode": "Log in",
+    "changePhone": "Change number",
+    "codeSentTo": "Code sent to {phone}",
+    "errorRequest": "Couldn't send the code. Check the number and try again.",
+    "errorVerify": "Invalid or expired code."
+  },
+  "Panel": {
+    "title": "My trips",
+    "empty": "You don't have any trips yet.",
+    "bookNow": "Book your first ride",
+    "from": "From",
+    "to": "To",
+    "date": "Scheduled",
+    "price": "Price"
+  },
+  "BookingStatus": {
+    "NOWA": "New (awaiting confirmation)",
+    "POTWIERDZONA": "Confirmed",
+    "KIEROWCA_W_DRODZE": "Driver on the way",
+    "W_TRAKCIE": "In progress",
+    "ZAKONCZONA": "Completed",
+    "ANULOWANA": "Cancelled"
+  }
+}
