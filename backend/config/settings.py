@@ -24,6 +24,12 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-dev-key-change
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 
+# Behind an nginx reverse proxy that terminates TLS — without this Django thinks
+# every request is plain HTTP (nginx talks to it over http://127.0.0.1), which
+# breaks CSRF's scheme check on POST requests (e.g. the admin login form).
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
