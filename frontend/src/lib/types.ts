@@ -35,8 +35,23 @@ export interface PricingTier {
 
 export interface RouteEstimate {
   distance_km: number;
+  duration_min: number;
+  geometry: [number, number][];
   is_reserved: boolean;
   price: number | null;
+}
+
+export interface DriverEtaLeg {
+  leg_type: "direct_to_pickup" | "to_current_dropoff" | "dropoff_to_new_pickup";
+  distance_km: number;
+  duration_min: number;
+}
+
+export interface DriverEta {
+  available: boolean;
+  driver_status?: "OFFLINE" | "DOSTEPNY" | "JADACY_PO_KLIENTA" | "W_KURSIE" | "WRACA_DO_BAZY";
+  eta_minutes?: number;
+  legs?: DriverEtaLeg[];
 }
 
 export interface TourPhoto {

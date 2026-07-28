@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 
 from .models import Booking, PricingTier
 from .pricing import estimate_price
+from .routing import get_route_details
 from .serializers import (
     BookingCreateSerializer,
     BookingSerializer,
@@ -33,13 +34,19 @@ class RouteEstimateView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        route = get_route_details(
+            data["pickup_lat"], data["pickup_lng"], data["dropoff_lat"], data["dropoff_lng"],
+        )
         estimate = estimate_price(
             data["pickup_lat"], data["pickup_lng"],
             data["dropoff_lat"], data["dropoff_lng"],
             data["scheduled_at"],
+            distance_km=route.distance_km,
         )
         return Response({
             "distance_km": estimate.distance_km,
+            "duration_min": route.duration_min,
+            "geometry": route.geometry,
             "is_reserved": estimate.is_reserved,
             "price": estimate.price,
         })

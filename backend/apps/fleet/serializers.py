@@ -3,6 +3,11 @@ from rest_framework import serializers
 from .models import Driver, Vehicle, VehiclePhoto
 
 
+class DriverEtaRequestSerializer(serializers.Serializer):
+    pickup_lat = serializers.DecimalField(max_digits=9, decimal_places=6)
+    pickup_lng = serializers.DecimalField(max_digits=9, decimal_places=6)
+
+
 class DriverLiveStatusSerializer(serializers.ModelSerializer):
     vehicle_name = serializers.CharField(source="vehicle.name", default=None, read_only=True)
     vehicle_plate = serializers.CharField(source="vehicle.plate", default=None, read_only=True)

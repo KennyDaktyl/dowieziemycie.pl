@@ -24,8 +24,12 @@ class PriceEstimate:
     tier: PricingTier | None
 
 
-def estimate_price(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_at) -> PriceEstimate:
-    distance_km = get_route_distance_km(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
+def estimate_price(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_at, distance_km=None) -> PriceEstimate:
+    """`distance_km` can be passed in by callers that already fetched the route
+    (e.g. the route-estimate endpoint, which also wants duration/geometry) to
+    avoid a second OSRM round-trip for the same pair of points."""
+    if distance_km is None:
+        distance_km = get_route_distance_km(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
     lead_time = scheduled_at - timezone.now()
     is_reserved = lead_time >= timedelta(hours=settings.ADVANCE_BOOKING_THRESHOLD_HOURS)
 

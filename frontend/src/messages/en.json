@@ -41,8 +41,18 @@
     "submitLoginFirst": "Log in to book",
     "footnote": "Book ahead for a lower price.",
     "km": "KM",
+    "min": "min",
     "success": "Ride booked!",
     "error": "Couldn't book the ride. Please try again."
+  },
+  "DriverEta": {
+    "title": "Driver ETA",
+    "estimating": "Checking driver position…",
+    "unavailable": "No driver is online right now — call us to arrange a time.",
+    "eta": "Arriving in approx. {min} min",
+    "legDirectToPickup": "to you",
+    "legToCurrentDropoff": "finishing current trip",
+    "legDropoffToNewPickup": "then to you"
   },
   "StatusLegend": {
     "eyebrow": "Customer panel",

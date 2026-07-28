@@ -41,8 +41,18 @@
     "submitLoginFirst": "Zaloguj się, aby zarezerwować",
     "footnote": "Rezerwacja z wyprzedzeniem = niższa cena.",
     "km": "KM",
+    "min": "min",
     "success": "Kurs zarezerwowany!",
     "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie."
+  },
+  "DriverEta": {
+    "title": "Czas dojazdu kierowcy",
+    "estimating": "Sprawdzanie pozycji kierowcy…",
+    "unavailable": "Żaden kierowca nie jest teraz online — zadzwoń, aby ustalić termin.",
+    "eta": "Dotrze za ok. {min} min",
+    "legDirectToPickup": "do Ciebie",
+    "legToCurrentDropoff": "kończy poprzedni kurs",
+    "legDropoffToNewPickup": "stamtąd do Ciebie"
   },
   "StatusLegend": {
     "eyebrow": "Panel klienta",

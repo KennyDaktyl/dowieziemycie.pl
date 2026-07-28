@@ -8,7 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { publicApiBaseUrl } from "@/lib/api";
 import type { AddressSuggestion } from "@/lib/geocode";
 import { reverseGeocode } from "@/lib/geocode";
-import type { RouteEstimate } from "@/lib/types";
+import type { DriverEta, RouteEstimate } from "@/lib/types";
 
 import { AddressSearchField } from "./address-search-field";
 import { PriceMeter } from "./price-meter";
@@ -19,6 +19,12 @@ const BookingMap = dynamic(() => import("./booking-map").then((m) => m.BookingMa
 });
 
 const MAX_PASSENGERS = 7;
+
+const LEG_LABEL_KEYS = {
+  direct_to_pickup: "legDirectToPickup",
+  to_current_dropoff: "legToCurrentDropoff",
+  dropoff_to_new_pickup: "legDropoffToNewPickup",
+} as const;
 
 type LatLng = { lat: number; lng: number };
 
@@ -34,6 +40,7 @@ function defaultDateTime() {
 export function BookingCard() {
   const t = useTranslations("BookingForm");
   const tTiers = useTranslations("PricingTiers");
+  const tEta = useTranslations("DriverEta");
 
   const [pickup, setPickup] = useState<LatLng | null>(null);
   const [pickupText, setPickupText] = useState("");
@@ -47,6 +54,34 @@ export function BookingCard() {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error" | "unauthenticated">("idle");
   const [estimate, setEstimate] = useState<RouteEstimate | null>(null);
   const [estimating, setEstimating] = useState(false);
+  const [driverEta, setDriverEta] = useState<DriverEta | null>(null);
+  const [etaLoading, setEtaLoading] = useState(false);
+
+  useEffect(() => {
+    if (!pickup) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setEtaLoading(true);
+      try {
+        const params = new URLSearchParams({
+          pickup_lat: String(pickup.lat),
+          pickup_lng: String(pickup.lng),
+        });
+        const res = await fetch(`${publicApiBaseUrl()}/api/fleet/driver-eta/?${params}`, {
+          signal: controller.signal,
+        });
+        if (res.ok) setDriverEta(await res.json());
+      } catch {
+        // ignore — stale/aborted request or transient network hiccup
+      } finally {
+        setEtaLoading(false);
+      }
+    }, 500);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [pickup]);
 
   useEffect(() => {
     if (!pickup || !dropoff || !date) return;
@@ -151,14 +186,24 @@ export function BookingCard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[400px_1fr] lg:gap-8">
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            <AddressSearchField
-              label={t("from")}
-              placeholder={t("fromPlaceholder")}
-              value={pickupText}
-              onTextChange={setPickupText}
-              onFocus={() => setActiveField("pickup")}
-              onSelect={(s) => handleSelectSuggestion("pickup", s)}
-            />
+            <div className="flex flex-col gap-1.5">
+              <AddressSearchField
+                label={t("from")}
+                placeholder={t("fromPlaceholder")}
+                value={pickupText}
+                onTextChange={setPickupText}
+                onFocus={() => setActiveField("pickup")}
+                onSelect={(s) => handleSelectSuggestion("pickup", s)}
+              />
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                disabled={locating}
+                className="text-left text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80 disabled:opacity-50"
+              >
+                📍 {locating ? t("locating") : t("useMyLocation")}
+              </button>
+            </div>
             <AddressSearchField
               label={t("to")}
               placeholder={t("toPlaceholder")}
@@ -168,15 +213,6 @@ export function BookingCard() {
               onSelect={(s) => handleSelectSuggestion("dropoff", s)}
             />
           </div>
-
-          <button
-            type="button"
-            onClick={handleUseMyLocation}
-            disabled={locating}
-            className="text-left text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80 disabled:opacity-50"
-          >
-            📍 {locating ? t("locating") : t("useMyLocation")}
-          </button>
         </div>
 
         <div className="flex flex-col lg:row-span-2 lg:h-full">
@@ -186,6 +222,7 @@ export function BookingCard() {
               pickup={pickup}
               dropoff={dropoff}
               activeField={activeField}
+              routeGeometry={estimate?.geometry}
               onPickupChange={(pos) => handleMapChange("pickup", pos)}
               onDropoffChange={(pos) => handleMapChange("dropoff", pos)}
             />
@@ -197,11 +234,39 @@ export function BookingCard() {
             <div className="my-0.5 flex items-center gap-2">
               <span className="h-[7px] w-[7px] rounded-full bg-muted" />
               <span className="h-px flex-1 bg-[repeating-linear-gradient(90deg,var(--color-muted)_0_4px,transparent_4px_8px)] opacity-50" />
-              <span className="font-label text-xs tracking-[0.05em] text-muted">
-                {estimate.distance_km} {t("km")}
+              <span className="font-label text-xs tracking-[0.05em] text-muted whitespace-nowrap">
+                {estimate.distance_km} {t("km")} · {Math.round(estimate.duration_min)} {t("min")}
               </span>
               <span className="h-px flex-1 bg-[repeating-linear-gradient(90deg,var(--color-muted)_0_4px,transparent_4px_8px)] opacity-50" />
               <span className="h-[7px] w-[7px] rounded-full bg-amber" />
+            </div>
+          )}
+
+          {pickup && (etaLoading || driverEta) && (
+            <div className="rounded-[10px] border border-line bg-panel-2 px-4 py-3">
+              <div className="font-label text-xs font-semibold tracking-[0.1em] text-muted uppercase">
+                {tEta("title")}
+              </div>
+              {etaLoading && !driverEta ? (
+                <div className="mt-1 text-[13px] text-muted">{tEta("estimating")}</div>
+              ) : driverEta?.available && driverEta.eta_minutes != null ? (
+                <>
+                  <div className="mt-1 font-heading text-[16px] font-bold text-green">
+                    {tEta("eta", { min: driverEta.eta_minutes })}
+                  </div>
+                  {driverEta.legs && driverEta.legs.length > 1 && (
+                    <ul className="mt-1.5 flex flex-col gap-0.5 text-[12px] text-muted">
+                      {driverEta.legs.map((leg, i) => (
+                        <li key={i}>
+                          {leg.distance_km} {t("km")} — {tEta(LEG_LABEL_KEYS[leg.leg_type])}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              ) : (
+                <div className="mt-1 text-[13px] text-muted">{tEta("unavailable")}</div>
+              )}
             </div>
           )}
 
