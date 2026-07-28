@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
 
 import { LocaleSwitcher } from "./locale-switcher";
+import { MobileNav } from "./mobile-nav";
 
 export async function SiteHeader() {
   const [t, tNav, locale, { customer }] = await Promise.all([
@@ -26,13 +27,15 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-bg/82 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-4 px-6 py-4">
-        <div>
-          <div className="font-heading flex items-center gap-2 text-[19px] font-bold tracking-tight">
-            <span className="h-[9px] w-[9px] rounded-full bg-amber shadow-[0_0_12px_2px_var(--color-amber)]" />
-            dowiezmy<span className="text-amber">cię</span>
+      <div className="mx-auto flex max-w-[1360px] items-center justify-between gap-2 px-4 py-4 sm:gap-4 sm:px-6">
+        <div className="min-w-0">
+          <div className="font-heading flex items-center gap-2 text-[17px] font-bold tracking-tight sm:text-[19px]">
+            <span className="h-[9px] w-[9px] shrink-0 rounded-full bg-amber shadow-[0_0_12px_2px_var(--color-amber)]" />
+            <span className="truncate">
+              dowiezmy<span className="text-amber">cię</span>
+            </span>
           </div>
-          <div className="font-label ml-[17px] -mt-0.5 text-[11.5px] tracking-[0.08em] text-muted">
+          <div className="font-label ml-[17px] -mt-0.5 truncate text-[10.5px] tracking-[0.08em] text-muted sm:text-[11.5px]">
             {t("subtitle")}
           </div>
         </div>
@@ -51,23 +54,31 @@ export async function SiteHeader() {
           )}
         </nav>
 
-        <div className="flex items-center gap-3">
-          <span className="font-label hidden rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold tracking-wide text-muted sm:inline">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <span className="font-label hidden rounded-full border border-line px-2.5 py-1 text-[11px] font-semibold tracking-wide text-muted xl:inline">
             🇬🇧 {t("speaksEnglish")}
           </span>
-          <LocaleSwitcher />
+          <div className="hidden xl:block">
+            <LocaleSwitcher />
+          </div>
           <Link
             href={customer ? "/panel" : "/logowanie"}
-            className="hidden text-[14.5px] font-semibold text-muted transition-colors hover:text-text sm:inline"
+            className="hidden text-[14.5px] font-semibold text-muted transition-colors hover:text-text xl:inline"
           >
             {customer ? t("myTrips") : t("login")}
           </Link>
           <a
             href="tel:+48000000000"
-            className="rounded-md bg-amber px-[18px] py-[9px] text-sm font-semibold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)]"
+            className="rounded-md bg-amber px-[14px] py-[9px] text-sm font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)] sm:px-[18px]"
           >
             {t("call")}
           </a>
+          <MobileNav
+            navLinks={navLinks}
+            loginHref={customer ? "/panel" : "/logowanie"}
+            loginLabel={customer ? t("myTrips") : t("login")}
+            speaksEnglishLabel={t("speaksEnglish")}
+          />
         </div>
       </div>
     </header>

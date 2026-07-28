@@ -55,7 +55,7 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
-      className={`${spaceGrotesk.variable} ${inter.variable} ${barlowCondensed.variable} antialiased`}
+      className={`${spaceGrotesk.variable} ${inter.variable} ${barlowCondensed.variable} overflow-x-hidden antialiased`}
     >
       <body className="bg-bg text-text min-h-screen overflow-x-hidden" suppressHydrationWarning>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
