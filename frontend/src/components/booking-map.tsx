@@ -27,10 +27,16 @@ const dropoffIcon = new L.Icon({
   className: "hue-rotate-[130deg]",
 });
 
+// Leaflet reports click/drag coordinates at full floating-point precision,
+// which the backend's DecimalField(decimal_places=6) rejects outright.
+function roundCoord(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
+}
+
 function ClickToPlace({ onPick }: { onPick: (pos: LatLng) => void }) {
   useMapEvents({
     click(e) {
-      onPick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      onPick({ lat: roundCoord(e.latlng.lat), lng: roundCoord(e.latlng.lng) });
     },
   });
   return null;
@@ -82,7 +88,7 @@ export function BookingMap({
   }
 
   return (
-    <div className="isolate">
+    <div className="isolate h-full">
       <MapContainer
         center={pickup ?? dropoff ?? KRAKOW_CENTER}
         zoom={points.length ? 12 : 9}
@@ -106,7 +112,7 @@ export function BookingMap({
             eventHandlers={{
               dragend: (e) => {
                 const pos = e.target.getLatLng();
-                onPickupChange({ lat: pos.lat, lng: pos.lng });
+                onPickupChange({ lat: roundCoord(pos.lat), lng: roundCoord(pos.lng) });
               },
             }}
           />
@@ -119,7 +125,7 @@ export function BookingMap({
             eventHandlers={{
               dragend: (e) => {
                 const pos = e.target.getLatLng();
-                onDropoffChange({ lat: pos.lat, lng: pos.lng });
+                onDropoffChange({ lat: roundCoord(pos.lat), lng: roundCoord(pos.lng) });
               },
             }}
           />

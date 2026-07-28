@@ -28,6 +28,15 @@ const LEG_LABEL_KEYS = {
 
 type LatLng = { lat: number; lng: number };
 
+// Geocoders (Nominatim) and the browser's Geolocation API can return more than
+// 6 decimal places, which the backend's DecimalField(decimal_places=6) rejects
+// outright (400, no partial match) — round at the source so every downstream
+// fetch (route estimate, driver ETA, the booking itself) always gets a value
+// the API will actually accept.
+function roundCoord(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
+}
+
 function defaultDateTime() {
   const inThreeHours = new Date(Date.now() + 3 * 60 * 60 * 1000);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -118,7 +127,7 @@ export function BookingCard() {
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        const coords = { lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude) };
         setPickup(coords);
         setActiveField("pickup");
         const address = await reverseGeocode(coords.lat, coords.lng);
@@ -131,7 +140,7 @@ export function BookingCard() {
   }
 
   function handleSelectSuggestion(field: "pickup" | "dropoff", s: AddressSuggestion) {
-    const coords = { lat: s.lat, lng: s.lng };
+    const coords = { lat: roundCoord(s.lat), lng: roundCoord(s.lng) };
     if (field === "pickup") {
       setPickup(coords);
       setPickupText(s.label);
