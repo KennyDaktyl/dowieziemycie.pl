@@ -8,6 +8,11 @@ export function publicApiBaseUrl(): string {
   return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 }
 
+/** Client-side WebSocket base URL — live driver tracking (apps.tracking). */
+export function wsBaseUrl(): string {
+  return process.env.NEXT_PUBLIC_WS_BASE_URL ?? "ws://localhost:8000";
+}
+
 export async function apiFetch<T>(
   path: string,
   init?: RequestInit & { next?: { revalidate?: number } },

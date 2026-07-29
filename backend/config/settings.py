@@ -35,6 +35,11 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 INSTALLED_APPS = [
+    # Must come before django.contrib.staticfiles — Channels' documented
+    # convention for making `manage.py runserver` itself ASGI/WebSocket-aware
+    # in dev (otherwise it's plain WSGI and 404s on every ws:// route, even
+    # though the exact same code works fine under daphne in production).
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

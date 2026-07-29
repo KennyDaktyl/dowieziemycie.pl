@@ -1,13 +1,20 @@
-from rest_framework import generics
+from django.contrib.auth import authenticate
+from rest_framework import generics, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.bookings.routing import get_route_details
 
 from .dispatch import driver_reference_point
 from .models import Driver, Vehicle
-from .serializers import DriverEtaRequestSerializer, DriverLiveStatusSerializer, VehicleSerializer
+from .serializers import (
+    DriverEtaRequestSerializer,
+    DriverLiveStatusSerializer,
+    DriverLoginSerializer,
+    VehicleSerializer,
+)
 
 
 class DriverLiveStatusListView(generics.ListAPIView):
@@ -30,6 +37,49 @@ class VehicleListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     serializer_class = VehicleSerializer
     queryset = Vehicle.objects.filter(is_active=True)
+
+
+class DriverLoginView(APIView):
+    """POST /api/fleet/driver/login/ {username, password}
+
+    Driver accounts are plain Django Users (see Driver.user) — same
+    credential the account was created with in the admin. Issues a JWT
+    whose subject is the Driver row itself (not the User), same trick
+    CustomerJWTAuthentication uses for Customer: SimpleJWT's for_user()
+    only needs a .pk, it doesn't require an actual auth.User instance.
+    The driver's own WebSocket connection (apps.tracking) decodes this
+    token itself rather than going through DRF's authentication classes,
+    so it doesn't matter that DEFAULT_AUTHENTICATION_CLASSES is
+    customer-only.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = DriverLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = authenticate(
+            request,
+            username=serializer.validated_data["username"],
+            password=serializer.validated_data["password"],
+        )
+        if user is None:
+            return Response({"detail": "Nieprawidłowy login lub hasło."}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            driver = Driver.objects.select_related("vehicle").get(user=user)
+        except Driver.DoesNotExist:
+            return Response(
+                {"detail": "To konto nie jest przypisane do kierowcy."}, status=status.HTTP_403_FORBIDDEN
+            )
+
+        refresh = RefreshToken.for_user(driver)
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "driver": DriverLiveStatusSerializer(driver).data,
+        })
 
 
 class DriverEtaView(APIView):

@@ -116,7 +116,34 @@
     "caption": "Nasz kierowca na żywo",
     "pageDescription": "Zanim zamówisz kurs, zobacz gdzie aktualnie jest nasze auto.",
     "noActiveDriver": "Aktualnie żaden kierowca nie jest aktywny",
-    "vehicleUnknown": "Bus"
+    "vehicleUnknown": "Bus",
+    "driversOnline": "Aktywni kierowcy: {count}"
+  },
+  "DriverLogin": {
+    "title": "Panel kierowcy",
+    "username": "Login",
+    "password": "Hasło",
+    "submit": "Zaloguj się",
+    "loggingIn": "Logowanie…",
+    "error": "Nieprawidłowy login lub hasło."
+  },
+  "DriverPanel": {
+    "greeting": "Cześć, {name}",
+    "noVehicle": "Brak przypisanego pojazdu",
+    "statusLabel": "Status",
+    "status": {
+      "DOSTEPNY": "Aktywny (wolny)",
+      "JADACY_PO_KLIENTA": "W drodze do klienta",
+      "W_KURSIE": "W kursie",
+      "WRACA_DO_BAZY": "Wraca do bazy",
+      "OFFLINE": "Poza służbą"
+    },
+    "connected": "Pozycja jest udostępniana",
+    "connecting": "Łączenie…",
+    "disconnected": "Rozłączono — próba ponownego połączenia…",
+    "lastPosition": "Ostatnia wysłana pozycja: {lat}, {lng}",
+    "geoError": "Nie udało się ustalić lokalizacji — sprawdź uprawnienia GPS w przeglądarce.",
+    "logout": "Wyloguj się"
   },
   "Footer": {
     "tagline": "Twój sąsiad z busem — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",

@@ -8,6 +8,11 @@ class DriverEtaRequestSerializer(serializers.Serializer):
     pickup_lng = serializers.DecimalField(max_digits=9, decimal_places=6)
 
 
+class DriverLoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(trim_whitespace=False)
+
+
 class DriverLiveStatusSerializer(serializers.ModelSerializer):
     vehicle_name = serializers.CharField(source="vehicle.name", default=None, read_only=True)
     vehicle_plate = serializers.CharField(source="vehicle.plate", default=None, read_only=True)

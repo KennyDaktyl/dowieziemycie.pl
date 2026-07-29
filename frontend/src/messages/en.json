@@ -116,7 +116,34 @@
     "caption": "Our driver, live",
     "pageDescription": "Before you book, see where our car is right now.",
     "noActiveDriver": "No driver is currently active",
-    "vehicleUnknown": "Van"
+    "vehicleUnknown": "Van",
+    "driversOnline": "Active drivers: {count}"
+  },
+  "DriverLogin": {
+    "title": "Driver panel",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Log in",
+    "loggingIn": "Logging in…",
+    "error": "Incorrect username or password."
+  },
+  "DriverPanel": {
+    "greeting": "Hi, {name}",
+    "noVehicle": "No vehicle assigned",
+    "statusLabel": "Status",
+    "status": {
+      "DOSTEPNY": "Active (free)",
+      "JADACY_PO_KLIENTA": "En route to customer",
+      "W_KURSIE": "On a ride",
+      "WRACA_DO_BAZY": "Returning to base",
+      "OFFLINE": "Off duty"
+    },
+    "connected": "Sharing your position",
+    "connecting": "Connecting…",
+    "disconnected": "Disconnected — reconnecting…",
+    "lastPosition": "Last position sent: {lat}, {lng}",
+    "geoError": "Couldn't get your location — check GPS permissions in your browser.",
+    "logout": "Log out"
   },
   "Footer": {
     "tagline": "Your neighbor with a van — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",
