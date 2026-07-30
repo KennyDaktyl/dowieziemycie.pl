@@ -38,6 +38,7 @@ class TourSerializer(serializers.ModelSerializer):
         model = Tour
         fields = [
             "slug", "title_pl", "title_en", "title_de",
+            "h1_pl", "h1_en", "h1_de",
             "summary_pl", "summary_en", "summary_de",
             "body_pl", "body_en", "body_de",
             "duration", "price_from", "price_large_vehicle", "cover_image",
@@ -89,7 +90,8 @@ class FixedRouteSerializer(serializers.ModelSerializer):
     class Meta:
         model = FixedRoute
         fields = [
-            "slug", "name_pl", "name_en", "name_de", "duration",
+            "slug", "name_pl", "name_en", "name_de",
+            "h1_pl", "h1_en", "h1_de", "duration",
             "price_from", "price_large_vehicle",
             "body_pl", "body_en", "body_de",
             "seo_title_pl", "seo_title_en", "seo_title_de",

@@ -17,7 +17,7 @@ class SiteScopingTests(APITestCase):
     def test_home_content_switches_with_x_site_header(self):
         res = self.client.get("/api/home-content/", HTTP_X_SITE="transfer247")
         self.assertEqual(res.status_code, 200)
-        self.assertIn("Małopolsce", res.data["headline_pl"])
+        self.assertIn("lotniska", res.data["headline_pl"])
 
     def test_home_content_unknown_site_header_falls_back_to_default(self):
         res = self.client.get("/api/home-content/", HTTP_X_SITE="not-a-real-site")

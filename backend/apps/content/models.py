@@ -47,10 +47,17 @@ class Tour(models.Model):
     quotes one price (single vehicle); transfer247 quotes two (Auris/Tourneo)."""
 
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
-    title_pl = models.CharField(max_length=120)
+    title_pl = models.CharField(max_length=120, help_text="Krótki tytuł — używany w menu, na kartach, w stopce.")
     title_en = models.CharField(max_length=120)
     title_de = models.CharField(max_length=120, blank=True)
     slug = models.SlugField(max_length=140, unique=True)
+    h1_pl = models.CharField(
+        max_length=200, blank=True,
+        help_text="Nagłówek H1 na podstronie — dłuższa, pełna fraza kluczowa (np. „Wycieczka do "
+        "Auschwitz-Birkenau z Krakowa”). Puste pole = użyty zostanie title_pl.",
+    )
+    h1_en = models.CharField(max_length=200, blank=True)
+    h1_de = models.CharField(max_length=200, blank=True)
     duration = models.CharField(max_length=40, blank=True, help_text="Np. „do 6 h” — tekst dowolny.")
     summary_pl = models.CharField(max_length=240, blank=True, help_text="Krótki opis pod kartę na liście.")
     summary_en = models.CharField(max_length=240, blank=True)
@@ -145,9 +152,16 @@ class FixedRoute(models.Model):
 
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default="transfer247")
     slug = models.SlugField(max_length=140, unique=True)
-    name_pl = models.CharField(max_length=160)
+    name_pl = models.CharField(max_length=160, help_text="Krótka nazwa — używana w menu, na kartach, w stopce.")
     name_en = models.CharField(max_length=160)
     name_de = models.CharField(max_length=160, blank=True)
+    h1_pl = models.CharField(
+        max_length=200, blank=True,
+        help_text="Nagłówek H1 na podstronie — dłuższa, pełna fraza kluczowa (np. „Transfer z lotniska "
+        "Kraków-Balice do centrum miasta”). Puste pole = użyty zostanie name_pl.",
+    )
+    h1_en = models.CharField(max_length=200, blank=True)
+    h1_de = models.CharField(max_length=200, blank=True)
     duration = models.CharField(max_length=40, blank=True, help_text="Np. „~25 min” — tekst dowolny.")
     price_from = models.DecimalField(max_digits=7, decimal_places=2)
     price_large_vehicle = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)

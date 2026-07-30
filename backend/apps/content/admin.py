@@ -56,9 +56,18 @@ class TourAdmin(admin.ModelAdmin):
             "site", "slug", "duration", "price_from", "price_large_vehicle",
             "cover_image", "is_published", "order",
         )}),
-        ("Polski", {"fields": ("title_pl", "summary_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
-        ("English", {"fields": ("title_en", "summary_en", "body_en", "seo_title_en", "seo_description_en")}),
-        ("Deutsch", {"fields": ("title_de", "summary_de", "body_de", "seo_title_de", "seo_description_de")}),
+        (
+            "Polski",
+            {"fields": ("title_pl", "h1_pl", "summary_pl", "body_pl", "seo_title_pl", "seo_description_pl")},
+        ),
+        (
+            "English",
+            {"fields": ("title_en", "h1_en", "summary_en", "body_en", "seo_title_en", "seo_description_en")},
+        ),
+        (
+            "Deutsch",
+            {"fields": ("title_de", "h1_de", "summary_de", "body_de", "seo_title_de", "seo_description_de")},
+        ),
     )
 
 
@@ -88,9 +97,9 @@ class FixedRouteAdmin(admin.ModelAdmin):
         (None, {"fields": (
             "site", "slug", "duration", "price_from", "price_large_vehicle", "is_published", "order",
         )}),
-        ("Polski", {"fields": ("name_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
-        ("English", {"fields": ("name_en", "body_en", "seo_title_en", "seo_description_en")}),
-        ("Deutsch", {"fields": ("name_de", "body_de", "seo_title_de", "seo_description_de")}),
+        ("Polski", {"fields": ("name_pl", "h1_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
+        ("English", {"fields": ("name_en", "h1_en", "body_en", "seo_title_en", "seo_description_en")}),
+        ("Deutsch", {"fields": ("name_de", "h1_de", "body_de", "seo_title_de", "seo_description_de")}),
     )
 
 
