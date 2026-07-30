@@ -77,6 +77,10 @@ class Driver(models.Model):
     current_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     current_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     location_updated_at = models.DateTimeField(null=True, blank=True)
+    expo_push_token = models.CharField(
+        max_length=200, blank=True,
+        help_text="Ustawiane automatycznie przez aplikację mobilną kierowcy — używane do powiadomień push o nowych kursach.",
+    )
 
     class Meta:
         ordering = ["name"]

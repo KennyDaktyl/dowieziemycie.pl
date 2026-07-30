@@ -32,6 +32,24 @@ class BookingSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class DriverBookingSerializer(serializers.ModelSerializer):
+    """What a driver sees for a booking — includes the customer's contact
+    info (BookingSerializer, the customer-facing one, deliberately doesn't)."""
+
+    customer_phone = serializers.CharField(source="customer.phone", read_only=True)
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+
+    class Meta:
+        model = Booking
+        fields = [
+            "id", "customer_phone", "customer_name",
+            "pickup_address", "pickup_lat", "pickup_lng",
+            "dropoff_address", "dropoff_lat", "dropoff_lng",
+            "scheduled_at", "passenger_count", "status", "distance_km", "price",
+        ]
+        read_only_fields = fields
+
+
 class BookingCreateSerializer(serializers.ModelSerializer):
     coupon_code = serializers.CharField(required=False, allow_blank=True, write_only=True)
     dropoff_lat = serializers.DecimalField(max_digits=9, decimal_places=6)
@@ -50,6 +68,19 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         # just the fields the client sent — so the UI shows the confirmed
         # price immediately without a second request.
         return BookingSerializer(instance, context=self.context).data
+
+    def validate(self, attrs):
+        # Enforced here too, not just as a frontend gate — a driver on
+        # vacation (all drivers OFFLINE) means literally nobody could
+        # fulfill a new booking, so reject it outright rather than accept
+        # a reservation that can never be assigned.
+        from apps.fleet.models import Driver
+
+        if not Driver.objects.exclude(status=Driver.Status.OFFLINE).exists():
+            raise serializers.ValidationError(
+                "Obecnie nie przyjmujemy nowych rezerwacji — żaden kierowca nie jest dostępny."
+            )
+        return attrs
 
     def validate_coupon_code(self, value):
         if not value:
@@ -87,4 +118,9 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             coupon=coupon if isinstance(coupon, Coupon) else None,
             **validated_data,
         )
+
+        from apps.fleet.push import notify_drivers_of_new_booking
+
+        notify_drivers_of_new_booking(booking)
+
         return booking

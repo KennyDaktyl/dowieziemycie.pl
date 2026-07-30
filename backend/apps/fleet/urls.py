@@ -1,14 +1,20 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import DriverEtaView, DriverLiveStatusListView, DriverLoginView, VehicleListView
+from .driver_views import AcceptBookingView, MyScheduleView, OpenBookingsListView, RegisterPushTokenView
+from .views import AvailabilityView, DriverEtaView, DriverLiveStatusListView, DriverLoginView, VehicleListView
 
 urlpatterns = [
     path("live-status/", DriverLiveStatusListView.as_view(), name="fleet-live-status"),
+    path("availability/", AvailabilityView.as_view(), name="fleet-availability"),
     path("vehicles/", VehicleListView.as_view(), name="fleet-vehicles"),
     path("driver-eta/", DriverEtaView.as_view(), name="fleet-driver-eta"),
     path("driver/login/", DriverLoginView.as_view(), name="driver-login"),
     # Subject-agnostic (just re-signs whatever user_id claim the refresh token
     # already has), so the same stock view works for driver tokens too.
     path("driver/token/refresh/", TokenRefreshView.as_view(), name="driver-token-refresh"),
+    path("driver/bookings/open/", OpenBookingsListView.as_view(), name="driver-bookings-open"),
+    path("driver/bookings/<int:booking_id>/accept/", AcceptBookingView.as_view(), name="driver-booking-accept"),
+    path("driver/schedule/", MyScheduleView.as_view(), name="driver-schedule"),
+    path("driver/push-token/", RegisterPushTokenView.as_view(), name="driver-push-token"),
 ]

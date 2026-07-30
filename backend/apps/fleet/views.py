@@ -31,6 +31,19 @@ class DriverLiveStatusListView(generics.ListAPIView):
         return Driver.objects.exclude(status=Driver.Status.OFFLINE).exclude(current_lat__isnull=True)
 
 
+class AvailabilityView(APIView):
+    """GET /api/fleet/availability/ — public. False when every driver is
+    OFFLINE (a driver on their own app can mark themselves OFFLINE for a
+    break or vacation) — the booking form uses this to block new
+    reservations outright instead of accepting one nobody can fulfill."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        available = Driver.objects.exclude(status=Driver.Status.OFFLINE).exists()
+        return Response({"available": available})
+
+
 class VehicleListView(generics.ListAPIView):
     """Public — the active fleet, shown in the homepage Fleet section."""
 

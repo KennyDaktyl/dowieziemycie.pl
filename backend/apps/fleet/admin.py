@@ -38,8 +38,12 @@ class DriverAdmin(admin.ModelAdmin):
         ("Status i pozycja", {
             "fields": ("status", "base_lat", "base_lng", "current_lat", "current_lng", "location_updated_at"),
         }),
+        ("Aplikacja mobilna", {
+            "fields": ("expo_push_token",),
+            "description": "Ustawiane automatycznie po zalogowaniu w aplikacji — nie edytuj ręcznie.",
+        }),
     )
-    readonly_fields = ("location_updated_at",)
+    readonly_fields = ("location_updated_at", "expo_push_token")
 
     @admin.display(description="Status")
     def status_badge(self, obj):
