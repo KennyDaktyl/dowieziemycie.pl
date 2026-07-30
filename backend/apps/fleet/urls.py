@@ -1,7 +1,13 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .driver_views import AcceptBookingView, MyScheduleView, OpenBookingsListView, RegisterPushTokenView
+from .driver_views import (
+    AcceptBookingView,
+    MyScheduleView,
+    OpenBookingsListView,
+    RegisterPushTokenView,
+    UpdatePositionView,
+)
 from .views import AvailabilityView, DriverEtaView, DriverLiveStatusListView, DriverLoginView, VehicleListView
 
 urlpatterns = [
@@ -17,4 +23,5 @@ urlpatterns = [
     path("driver/bookings/<int:booking_id>/accept/", AcceptBookingView.as_view(), name="driver-booking-accept"),
     path("driver/schedule/", MyScheduleView.as_view(), name="driver-schedule"),
     path("driver/push-token/", RegisterPushTokenView.as_view(), name="driver-push-token"),
+    path("driver/position/", UpdatePositionView.as_view(), name="driver-position"),
 ]

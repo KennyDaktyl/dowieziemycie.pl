@@ -148,3 +148,32 @@ class AvailabilityViewTests(TestCase):
         # just mean .exclude(status=OFFLINE).exists() is False.
         res = self.client.get("/api/fleet/availability/")
         self.assertFalse(res.data["available"])
+
+
+class UpdatePositionViewTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        user = User.objects.create_user(username="restdriver")
+        self.driver = Driver.objects.create(user=user, name="REST Driver", status=Driver.Status.DOSTEPNY)
+
+    def test_updates_position_and_status(self):
+        res = self.client.post(
+            "/api/fleet/driver/position/", {"lat": "50.061400", "lng": "19.936600", "status": "W_KURSIE"},
+            **_driver_auth_header(self.driver),
+        )
+        self.assertEqual(res.status_code, 200)
+        self.driver.refresh_from_db()
+        self.assertEqual(str(self.driver.current_lat), "50.061400")
+        self.assertEqual(self.driver.status, Driver.Status.W_KURSIE)
+
+    def test_status_is_optional(self):
+        res = self.client.post(
+            "/api/fleet/driver/position/", {"lat": "50.05", "lng": "19.9"}, **_driver_auth_header(self.driver)
+        )
+        self.assertEqual(res.status_code, 200)
+        self.driver.refresh_from_db()
+        self.assertEqual(self.driver.status, Driver.Status.DOSTEPNY)
+
+    def test_requires_driver_auth(self):
+        res = self.client.post("/api/fleet/driver/position/", {"lat": "50.05", "lng": "19.9"})
+        self.assertEqual(res.status_code, 401)

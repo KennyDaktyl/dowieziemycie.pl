@@ -11,8 +11,10 @@ from rest_framework.views import APIView
 from apps.accounts.sms import get_sms_backend
 from apps.bookings.models import Booking
 from apps.bookings.serializers import DriverBookingSerializer
+from apps.tracking.services import broadcast_driver_update, update_driver_position
 
 from .authentication import DriverJWTAuthentication
+from .models import Driver
 
 
 class OpenBookingsListView(generics.ListAPIView):
@@ -87,6 +89,38 @@ class AcceptBookingView(APIView):
             logging.getLogger("apps.fleet.driver_views").exception(
                 "Nie udało się wysłać powiadomienia SMS do klienta dla rezerwacji %s", booking.id
             )
+
+
+class PositionUpdateSerializer(serializers.Serializer):
+    lat = serializers.DecimalField(max_digits=9, decimal_places=6)
+    lng = serializers.DecimalField(max_digits=9, decimal_places=6)
+    status = serializers.ChoiceField(choices=Driver.Status.choices, required=False)
+
+
+class UpdatePositionView(APIView):
+    """POST /api/fleet/driver/position/ {lat, lng, status?}
+
+    REST counterpart to ws/driver/track/ — used by the mobile app's
+    background location task. Android's headless background-task execution
+    context isn't a reliable place to keep a persistent WebSocket alive, but
+    a one-shot POST works fine; either path ends up broadcasting through the
+    same channel group, so web viewers see the update in real time either way.
+    """
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PositionUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload, active_booking_id = update_driver_position(
+            request.user,
+            serializer.validated_data["lat"],
+            serializer.validated_data["lng"],
+            serializer.validated_data.get("status"),
+        )
+        broadcast_driver_update(payload, active_booking_id)
+        return Response(payload)
 
 
 class PushTokenRequestSerializer(serializers.Serializer):
