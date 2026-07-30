@@ -1,6 +1,6 @@
 "use client";
 
-import { COUNTRIES, DEFAULT_COUNTRY, type Country } from "@/lib/countries";
+import { COUNTRIES, findCountry, type Country } from "@/lib/countries";
 
 /** Country-code select (flag + dial code, Poland default) + local-number
  * input, composed into a single E.164-ish string via onChange. */
@@ -13,7 +13,7 @@ export function PhoneInput({
   onChange: (phone: string) => void;
   placeholder?: string;
 }) {
-  const country = COUNTRIES.find((c) => value.startsWith(c.dial)) ?? DEFAULT_COUNTRY;
+  const country = findCountry(value);
   const localNumber = value.startsWith(country.dial) ? value.slice(country.dial.length) : value;
 
   function handleCountryChange(nextDial: string) {

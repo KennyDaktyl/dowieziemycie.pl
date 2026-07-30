@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
+import { isCompletePhoneNumber } from "@/lib/countries";
 import { saveDriverSession } from "@/lib/driver-auth";
 
 import { PhoneInput } from "./phone-input";
@@ -77,7 +78,7 @@ export function LoginForm() {
           <button
             type="button"
             onClick={requestOtp}
-            disabled={loading || phone.length < 9}
+            disabled={loading || !isCompletePhoneNumber(phone)}
             className="w-full rounded-[9px] bg-amber py-[13px] text-[15px] font-bold text-[#1a1305] disabled:opacity-60"
           >
             {t("requestCode")}
