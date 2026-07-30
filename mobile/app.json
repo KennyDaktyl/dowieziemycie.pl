@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "dowieziemycie Kierowca",
+    "slug": "dowieziemycie-kierowca",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "dowieziemycie-kierowca",
+    "android": {
+      "package": "pl.dowieziemycie.kierowca",
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0F16",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "dowieziemycie.pl potrzebuje Twojej pozycji, żeby klienci widzieli, że jedziesz do nich — także gdy ekran jest zgaszony.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#F5A623"
+        }
+      ]
+    ]
+  }
+}
