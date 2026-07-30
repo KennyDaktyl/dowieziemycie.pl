@@ -172,6 +172,48 @@ class FixedRoute(models.Model):
         return self.name_pl
 
 
+class FleetVehicle(models.Model):
+    """A vehicle CLASS shown on the marketing site (e.g. "Toyota Auris Hybrid").
+    Deliberately separate from apps.fleet.Vehicle, which tracks a specific
+    real numbered car (unique plate) for driver assignment — transfer247
+    quotes a couple of fixed vehicle classes site-wide rather than operating
+    dowieziemycie's larger numbered fleet, so this is pure content."""
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
+    slug = models.SlugField(max_length=140, unique=True)
+    name = models.CharField(max_length=80, help_text="Np. „Toyota Auris Hybrid” — nazwa własna, bez tłumaczenia.")
+    seats = models.PositiveSmallIntegerField(default=4)
+    description_pl = models.TextField(blank=True)
+    description_en = models.TextField(blank=True)
+    description_de = models.TextField(blank=True)
+    cover_photo = models.ImageField(upload_to="fleet-showcase/covers/", blank=True, null=True)
+    is_published = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "name"]
+        verbose_name = "Pojazd (prezentacja floty)"
+        verbose_name_plural = "Flota (prezentacja)"
+
+    def __str__(self):
+        return self.name
+
+
+class FleetVehiclePhoto(models.Model):
+    vehicle = models.ForeignKey(FleetVehicle, related_name="photos", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="fleet-showcase/gallery/")
+    caption = models.CharField(max_length=160, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Zdjęcie pojazdu (flota)"
+        verbose_name_plural = "Zdjęcia pojazdu (flota)"
+
+    def __str__(self):
+        return self.caption or f"Zdjęcie #{self.pk}"
+
+
 class BlogPost(models.Model):
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
     slug = models.SlugField(max_length=160, unique=True)

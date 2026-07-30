@@ -1,6 +1,16 @@
 from rest_framework import serializers
 
-from .models import BlogPost, ContentPage, FixedRoute, HomeContent, LocalRoute, Tour, TourPhoto
+from .models import (
+    BlogPost,
+    ContentPage,
+    FixedRoute,
+    FleetVehicle,
+    FleetVehiclePhoto,
+    HomeContent,
+    LocalRoute,
+    Tour,
+    TourPhoto,
+)
 
 
 class HomeContentSerializer(serializers.ModelSerializer):
@@ -99,6 +109,24 @@ class BlogPostSerializer(serializers.ModelSerializer):
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
             "published_at",
+        ]
+
+
+class FleetVehiclePhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FleetVehiclePhoto
+        fields = ["image", "caption", "order"]
+
+
+class FleetVehicleSerializer(serializers.ModelSerializer):
+    photos = FleetVehiclePhotoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = FleetVehicle
+        fields = [
+            "slug", "name", "seats",
+            "description_pl", "description_en", "description_de",
+            "cover_photo", "photos", "order",
         ]
 
 

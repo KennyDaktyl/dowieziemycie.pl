@@ -4,11 +4,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BlogPost, ContentPage, FixedRoute, HomeContent, LocalRoute, Tour
+from .models import BlogPost, ContentPage, FixedRoute, FleetVehicle, HomeContent, LocalRoute, Tour
 from .serializers import (
     BlogPostSerializer,
     ContentPageSerializer,
     FixedRouteSerializer,
+    FleetVehicleSerializer,
     HomeContentSerializer,
     LocalRouteSerializer,
     TourSerializer,
@@ -87,6 +88,20 @@ class BlogPostDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return BlogPost.objects.filter(is_published=True, site=self.request.site_code)
+
+
+class FleetVehicleListView(generics.ListAPIView):
+    """GET /api/fleet-vehicles/ — marketing vehicle classes (Auris/Tourneo), site-filtered.
+
+    Distinct from /api/fleet/vehicles/ (apps.fleet), which lists dowieziemycie's
+    real numbered operational vehicles used for driver assignment.
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = FleetVehicleSerializer
+
+    def get_queryset(self):
+        return FleetVehicle.objects.filter(is_published=True, site=self.request.site_code)
 
 
 class ContentPageDetailView(generics.RetrieveAPIView):
