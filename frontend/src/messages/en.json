@@ -119,14 +119,6 @@
     "vehicleUnknown": "Van",
     "driversOnline": "Active drivers: {count}"
   },
-  "DriverLogin": {
-    "title": "Driver panel",
-    "username": "Username",
-    "password": "Password",
-    "submit": "Log in",
-    "loggingIn": "Logging in…",
-    "error": "Incorrect username or password."
-  },
   "DriverPanel": {
     "greeting": "Hi, {name}",
     "noVehicle": "No vehicle assigned",
@@ -149,13 +141,12 @@
     "tagline": "Your neighbor with a van — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",
     "tagline2": "24/7, including nights and Sundays.",
     "rights": "© {year} dowieziemycie.pl",
-    "driverPanel": "Driver panel",
     "adminPanel": "Admin panel"
   },
   "Auth": {
     "title": "Log in with your phone number",
     "phoneLabel": "Phone number",
-    "phonePlaceholder": "+1 500 000 000",
+    "phonePlaceholder": "500 000 000",
     "requestCode": "Send SMS code",
     "codeLabel": "SMS code",
     "codePlaceholder": "123456",

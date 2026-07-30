@@ -29,16 +29,11 @@ export async function SiteFooter() {
             </p>
           </div>
         </div>
-        <div className="mt-[30px] flex flex-wrap items-center justify-between gap-2.5 border-t border-line pt-5 text-[12.5px] text-muted">
+        <div className="mt-[30px] flex flex-wrap justify-between gap-2.5 border-t border-line pt-5 text-[12.5px] text-muted">
           <span>{t("rights", { year: new Date().getFullYear() })}</span>
-          <div className="flex items-center gap-4">
-            <Link href="/kierowca/logowanie" className="opacity-60 transition-opacity hover:opacity-100">
-              {t("driverPanel")}
-            </Link>
-            <a href={`${apiBaseUrl()}/admin/`} className="opacity-60 transition-opacity hover:opacity-100">
-              {t("adminPanel")}
-            </a>
-          </div>
+          <a href={`${apiBaseUrl()}/admin/`} className="opacity-60 transition-opacity hover:opacity-100">
+            {t("adminPanel")}
+          </a>
         </div>
       </div>
     </footer>

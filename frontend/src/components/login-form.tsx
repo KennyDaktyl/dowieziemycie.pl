@@ -4,6 +4,9 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
+import { saveDriverSession } from "@/lib/driver-auth";
+
+import { PhoneInput } from "./phone-input";
 
 export function LoginForm() {
   const t = useTranslations("Auth");
@@ -42,9 +45,16 @@ export function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, code }),
       });
+      const data = await res.json();
       if (!res.ok) throw new Error();
-      router.push("/panel");
-      router.refresh();
+
+      if (data.role === "driver") {
+        saveDriverSession(data.access, data.refresh, data.driver);
+        router.push("/kierowca/panel");
+      } else {
+        router.push("/panel");
+        router.refresh();
+      }
     } catch {
       setError(t("errorVerify"));
     } finally {
@@ -62,13 +72,7 @@ export function LoginForm() {
             <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
               {t("phoneLabel")}
             </label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder={t("phonePlaceholder")}
-              className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
-            />
+            <PhoneInput value={phone} onChange={setPhone} placeholder={t("phonePlaceholder")} />
           </div>
           <button
             type="button"

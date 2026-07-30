@@ -41,7 +41,13 @@ class RequestOtpView(APIView):
 
 
 class VerifyOtpView(APIView):
-    """POST /api/auth/verify-otp/ {phone, code} — verifies the code and issues JWT."""
+    """POST /api/auth/verify-otp/ {phone, code} — verifies the code and issues JWT.
+
+    One phone-login entry point for everyone: if the phone matches a Driver,
+    the response is a driver-scoped token (role: "driver") instead of a
+    customer one. Django Admin staff login is unrelated (separate username +
+    password auth at /admin/) — this only distinguishes driver vs. customer.
+    """
 
     permission_classes = [AllowAny]
 
@@ -54,16 +60,27 @@ class VerifyOtpView(APIView):
         otp.verified = True
         otp.save(update_fields=["verified"])
 
-        customer, _ = Customer.objects.get_or_create(phone=phone)
+        from apps.fleet.models import Driver
+        from apps.fleet.serializers import DriverLiveStatusSerializer
 
-        refresh = RefreshToken.for_user(customer)
-        return Response(
-            {
+        driver = Driver.objects.filter(phone=phone).select_related("vehicle").first()
+        if driver:
+            refresh = RefreshToken.for_user(driver)
+            return Response({
+                "role": "driver",
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
-                "customer": CustomerSerializer(customer).data,
-            }
-        )
+                "driver": DriverLiveStatusSerializer(driver).data,
+            })
+
+        customer, _ = Customer.objects.get_or_create(phone=phone)
+        refresh = RefreshToken.for_user(customer)
+        return Response({
+            "role": "customer",
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "customer": CustomerSerializer(customer).data,
+        })
 
 
 class MeView(APIView):

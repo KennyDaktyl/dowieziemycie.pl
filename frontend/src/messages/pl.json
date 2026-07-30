@@ -119,14 +119,6 @@
     "vehicleUnknown": "Bus",
     "driversOnline": "Aktywni kierowcy: {count}"
   },
-  "DriverLogin": {
-    "title": "Panel kierowcy",
-    "username": "Login",
-    "password": "Hasło",
-    "submit": "Zaloguj się",
-    "loggingIn": "Logowanie…",
-    "error": "Nieprawidłowy login lub hasło."
-  },
   "DriverPanel": {
     "greeting": "Cześć, {name}",
     "noVehicle": "Brak przypisanego pojazdu",
@@ -149,13 +141,12 @@
     "tagline": "Twój sąsiad z busem — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",
     "tagline2": "24/7, także w nocy i w niedziele.",
     "rights": "© {year} dowieziemycie.pl",
-    "driverPanel": "Panel kierowcy",
     "adminPanel": "Panel administracyjny"
   },
   "Auth": {
     "title": "Zaloguj się numerem telefonu",
     "phoneLabel": "Numer telefonu",
-    "phonePlaceholder": "+48 500 000 000",
+    "phonePlaceholder": "500 000 000",
     "requestCode": "Wyślij kod SMS",
     "codeLabel": "Kod z SMS-a",
     "codePlaceholder": "123456",

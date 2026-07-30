@@ -18,7 +18,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data, { status: res.status });
   }
 
-  const response = NextResponse.json({ customer: data.customer });
+  if (data.role === "driver") {
+    // Drivers need the raw token client-side (sessionStorage) — their
+    // WebSocket connection has to attach it directly, which an httpOnly
+    // cookie can't do. Handled entirely by the client after this responds.
+    return NextResponse.json({ role: "driver", access: data.access, refresh: data.refresh, driver: data.driver });
+  }
+
+  const response = NextResponse.json({ role: "customer", customer: data.customer });
   response.cookies.set(ACCESS_COOKIE, data.access, { ...cookieOptions, maxAge: ACCESS_MAX_AGE });
   response.cookies.set(REFRESH_COOKIE, data.refresh, { ...cookieOptions, maxAge: REFRESH_MAX_AGE });
   return response;

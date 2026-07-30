@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from apps.accounts.models import phone_validator
+
 
 class Vehicle(models.Model):
     name = models.CharField(max_length=80, help_text="Np. Volkswagen T6")
@@ -62,7 +64,10 @@ class Driver(models.Model):
         help_text="Konto (staff-scoped) używane do logowania na stronie kierowcy.",
     )
     name = models.CharField(max_length=80)
-    phone = models.CharField(max_length=16, blank=True)
+    phone = models.CharField(
+        max_length=16, blank=True, validators=[phone_validator],
+        help_text="Ten sam numer, którym kierowca loguje się przez SMS na /logowanie.",
+    )
     vehicle = models.ForeignKey(
         Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name="drivers"
     )
