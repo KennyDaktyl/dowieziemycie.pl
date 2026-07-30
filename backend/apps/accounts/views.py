@@ -7,6 +7,8 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from config.sites import SITE_DISPLAY_NAMES
+
 from .models import Customer
 from .serializers import CustomerSerializer, RequestOtpSerializer, VerifyOtpSerializer
 from .sms import get_sms_backend
@@ -29,8 +31,10 @@ class RequestOtpView(APIView):
         from .models import PhoneOTP
 
         otp = PhoneOTP.generate(phone)
+        site_name = SITE_DISPLAY_NAMES[request.site_code]
+        message = f"{site_name} - Twoj kod: {otp.code}. Wazny {PhoneOTP.CODE_TTL_MINUTES} min."
         try:
-            get_sms_backend().send_otp(phone, otp.code)
+            get_sms_backend().send_message(phone, message)
         except Exception:
             logger.exception("Nie udało się wysłać kodu OTP do %s", phone)
             return Response(

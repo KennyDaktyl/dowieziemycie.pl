@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
-import { apiBaseUrl } from "./api";
+import { apiBaseUrl, withSiteHeader } from "./api";
 import type { Customer } from "./types";
 
 export const ACCESS_COOKIE = "dwm_access";
@@ -24,7 +24,7 @@ export async function getSession(): Promise<{ customer: Customer | null; accessT
   }
 
   const res = await fetch(`${apiBaseUrl()}/api/auth/me/`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: withSiteHeader({ Authorization: `Bearer ${accessToken}` }),
     cache: "no-store",
   });
   if (!res.ok) {

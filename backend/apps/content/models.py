@@ -1,56 +1,75 @@
 from django.db import models
 
+from config.sites import DEFAULT_SITE, SITE_CHOICES
+
 
 class HomeContent(models.Model):
-    """Editable copy for the homepage hero — singleton (only one row).
+    """Editable copy for a site's homepage hero — one row per site (see
+    config.sites.SITE_CHOICES), not a single global singleton anymore now
+    that two brands share this backend.
 
     Kept separate from `ContentPage` because the hero has several short,
     structurally distinct fields (eyebrow, headline, highlighted word, lead,
-    footnote) rather than one long body.
+    footnote) rather than one long body. `headline_highlight_*` can be left
+    blank for a site whose H1 has no accent word — the frontend just skips
+    the colored span in that case.
     """
 
-    eyebrow_pl = models.CharField(max_length=160)
-    eyebrow_en = models.CharField(max_length=160)
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, unique=True, default=DEFAULT_SITE)
+    eyebrow_pl = models.CharField(max_length=160, blank=True)
+    eyebrow_en = models.CharField(max_length=160, blank=True)
+    eyebrow_de = models.CharField(max_length=160, blank=True)
     headline_pl = models.CharField(max_length=160, help_text="Użyj {highlight} tam, gdzie ma się pojawić wyróżnione słowo.")
     headline_en = models.CharField(max_length=160, help_text="Use {highlight} where the accent word should appear.")
-    headline_highlight_pl = models.CharField(max_length=40)
-    headline_highlight_en = models.CharField(max_length=40)
+    headline_de = models.CharField(max_length=160, blank=True)
+    headline_highlight_pl = models.CharField(max_length=40, blank=True)
+    headline_highlight_en = models.CharField(max_length=40, blank=True)
+    headline_highlight_de = models.CharField(max_length=40, blank=True)
     lead_pl = models.TextField()
     lead_en = models.TextField()
-    footnote_pl = models.CharField(max_length=200)
-    footnote_en = models.CharField(max_length=200)
+    lead_de = models.TextField(blank=True)
+    footnote_pl = models.CharField(max_length=200, blank=True)
+    footnote_en = models.CharField(max_length=200, blank=True)
+    footnote_de = models.CharField(max_length=200, blank=True)
 
     class Meta:
         verbose_name = "Treść strony głównej"
         verbose_name_plural = "Treść strony głównej"
 
     def __str__(self):
-        return "Treść strony głównej"
-
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        pass
+        return f"Treść strony głównej ({self.get_site_display()})"
 
 
 class Tour(models.Model):
-    """A guided day-trip offer (Auschwitz, Wieliczka, Zakopane, ...)."""
+    """A guided day-trip offer with a waiting driver (Auschwitz, Wieliczka,
+    Zakopane, ...) — as opposed to FixedRoute, which is a point-to-point
+    transfer. `price_large_vehicle` is optional: dowieziemycie only ever
+    quotes one price (single vehicle); transfer247 quotes two (Auris/Tourneo)."""
 
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
     title_pl = models.CharField(max_length=120)
     title_en = models.CharField(max_length=120)
+    title_de = models.CharField(max_length=120, blank=True)
     slug = models.SlugField(max_length=140, unique=True)
+    duration = models.CharField(max_length=40, blank=True, help_text="Np. „do 6 h” — tekst dowolny.")
     summary_pl = models.CharField(max_length=240, blank=True, help_text="Krótki opis pod kartę na liście.")
     summary_en = models.CharField(max_length=240, blank=True)
-    body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown).")
+    summary_de = models.CharField(max_length=240, blank=True)
+    body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown) — wstęp, sekcje, FAQ.")
     body_en = models.TextField(blank=True)
+    body_de = models.TextField(blank=True)
     price_from = models.DecimalField(max_digits=7, decimal_places=2)
+    price_large_vehicle = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text="Cena drugim/większym pojazdem, jeśli dotyczy (np. Ford Tourneo Custom u transfer247).",
+    )
     cover_image = models.ImageField(upload_to="tours/covers/", blank=True, null=True)
     seo_title_pl = models.CharField(max_length=160, blank=True)
     seo_title_en = models.CharField(max_length=160, blank=True)
+    seo_title_de = models.CharField(max_length=160, blank=True)
     seo_description_pl = models.CharField(max_length=320, blank=True)
     seo_description_en = models.CharField(max_length=320, blank=True)
+    seo_description_de = models.CharField(max_length=320, blank=True)
     is_published = models.BooleanField(default=True)
     order = models.PositiveSmallIntegerField(default=0)
 
@@ -87,7 +106,8 @@ class LocalRoute(models.Model):
     the example price shown on the page is computed live through the same
     distance-tier engine the booking form uses (apps.bookings.pricing), from
     a fixed Kraków reference point, so it never drifts out of sync with what
-    a customer is actually charged.
+    a customer is actually charged. dowieziemycie.pl only — transfer247's
+    equivalent is FixedRoute, priced by fixed rate not distance-tier.
     """
 
     slug = models.SlugField(max_length=140, unique=True)
@@ -116,6 +136,76 @@ class LocalRoute(models.Model):
         return f"Kraków – {self.destination_town}"
 
 
+class FixedRoute(models.Model):
+    """A point-to-point transfer at a fixed price (transfer247.pl) —
+    Balice↔Kraków, Katowice(Pyrzowice)↔Kraków, Balice↔Zakopane, etc. Unlike
+    LocalRoute, the price here isn't computed live — it's set directly by
+    the admin per route, same reasoning as Tour.price_large_vehicle: this
+    business quotes a flat rate per vehicle type, not a distance calculation."""
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default="transfer247")
+    slug = models.SlugField(max_length=140, unique=True)
+    name_pl = models.CharField(max_length=160)
+    name_en = models.CharField(max_length=160)
+    name_de = models.CharField(max_length=160, blank=True)
+    duration = models.CharField(max_length=40, blank=True, help_text="Np. „~25 min” — tekst dowolny.")
+    price_from = models.DecimalField(max_digits=7, decimal_places=2)
+    price_large_vehicle = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown) — wstęp, sekcje, FAQ.")
+    body_en = models.TextField(blank=True)
+    body_de = models.TextField(blank=True)
+    seo_title_pl = models.CharField(max_length=160, blank=True)
+    seo_title_en = models.CharField(max_length=160, blank=True)
+    seo_title_de = models.CharField(max_length=160, blank=True)
+    seo_description_pl = models.CharField(max_length=320, blank=True)
+    seo_description_en = models.CharField(max_length=320, blank=True)
+    seo_description_de = models.CharField(max_length=320, blank=True)
+    is_published = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "name_pl"]
+        verbose_name = "Trasa stała (transfer247)"
+        verbose_name_plural = "Trasy stałe (transfer247)"
+
+    def __str__(self):
+        return self.name_pl
+
+
+class BlogPost(models.Model):
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
+    slug = models.SlugField(max_length=160, unique=True)
+    tag_pl = models.CharField(max_length=60, blank=True, help_text="Np. „Poradnik”, „Lotnisko”.")
+    tag_en = models.CharField(max_length=60, blank=True)
+    tag_de = models.CharField(max_length=60, blank=True)
+    title_pl = models.CharField(max_length=200)
+    title_en = models.CharField(max_length=200)
+    title_de = models.CharField(max_length=200, blank=True)
+    excerpt_pl = models.CharField(max_length=320, blank=True)
+    excerpt_en = models.CharField(max_length=320, blank=True)
+    excerpt_de = models.CharField(max_length=320, blank=True)
+    body_pl = models.TextField(blank=True, help_text="Treść artykułu (Markdown).")
+    body_en = models.TextField(blank=True)
+    body_de = models.TextField(blank=True)
+    cover_image = models.ImageField(upload_to="blog/covers/", blank=True, null=True)
+    seo_title_pl = models.CharField(max_length=160, blank=True)
+    seo_title_en = models.CharField(max_length=160, blank=True)
+    seo_title_de = models.CharField(max_length=160, blank=True)
+    seo_description_pl = models.CharField(max_length=320, blank=True)
+    seo_description_en = models.CharField(max_length=320, blank=True)
+    seo_description_de = models.CharField(max_length=320, blank=True)
+    published_at = models.DateField()
+    is_published = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-published_at"]
+        verbose_name = "Wpis bloga"
+        verbose_name_plural = "Wpisy bloga"
+
+    def __str__(self):
+        return self.title_pl
+
+
 class ContentPage(models.Model):
     """Generic SEO landing page (airport transfer, night transfer, o nas, ...)."""
 
@@ -128,6 +218,7 @@ class ContentPage(models.Model):
         BLOG = "BLOG", "Wpis blogowy"
         INNE = "INNE", "Inne"
 
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
     slug = models.SlugField(max_length=140, unique=True)
     page_type = models.CharField(max_length=24, choices=PageType.choices, default=PageType.INNE)
     title_pl = models.CharField(max_length=160)

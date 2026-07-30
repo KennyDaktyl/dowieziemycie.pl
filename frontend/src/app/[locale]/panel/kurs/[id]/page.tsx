@@ -4,7 +4,7 @@ import { BookingTracker } from "@/components/booking-tracker";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { redirect } from "@/i18n/navigation";
-import { apiBaseUrl } from "@/lib/api";
+import { apiBaseUrl, withSiteHeader } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import type { Booking } from "@/lib/types";
 
@@ -28,7 +28,7 @@ export default async function BookingTrackingPage({
   }
 
   const res = await fetch(`${apiBaseUrl()}/api/bookings/mine/`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: withSiteHeader({ Authorization: `Bearer ${accessToken}` }),
     cache: "no-store",
   });
   const bookings: Booking[] = res.ok ? await res.json() : [];

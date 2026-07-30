@@ -12,6 +12,7 @@ from apps.accounts.sms import get_sms_backend
 from apps.bookings.models import Booking
 from apps.bookings.serializers import DriverBookingSerializer
 from apps.tracking.services import broadcast_driver_update, update_driver_position
+from config.sites import SITE_DISPLAY_NAMES
 
 from .authentication import DriverJWTAuthentication
 from .models import Driver
@@ -79,9 +80,10 @@ class AcceptBookingView(APIView):
         phone = booking.customer.phone
         if not phone:
             return
+        site_name = SITE_DISPLAY_NAMES[booking.site]
         try:
             get_sms_backend().send_message(
-                phone, f"dowieziemycie.pl: Kierowca {driver.name} jedzie do Ciebie! Kurs: {booking.pickup_address}."
+                phone, f"{site_name}: Kierowca {driver.name} jedzie do Ciebie! Kurs: {booking.pickup_address}."
             )
         except Exception:
             import logging

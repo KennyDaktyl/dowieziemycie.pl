@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { apiBaseUrl } from "@/lib/api";
+import { apiBaseUrl, withSiteHeader } from "@/lib/api";
 import { ACCESS_COOKIE, REFRESH_COOKIE, cookieOptions } from "@/lib/auth";
 
 const ACCESS_MAX_AGE = 60 * 60 * 24 * 14; // 14 days, mirrors backend SIMPLE_JWT.ACCESS_TOKEN_LIFETIME
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const res = await fetch(`${apiBaseUrl()}/api/auth/verify-otp/`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: withSiteHeader({ "Content-Type": "application/json" }),
     body: JSON.stringify(body),
   });
   const data = await res.json();

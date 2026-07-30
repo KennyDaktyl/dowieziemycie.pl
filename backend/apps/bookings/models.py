@@ -3,6 +3,7 @@ from django.db import models
 
 from apps.accounts.models import Customer
 from apps.fleet.models import Driver
+from config.sites import DEFAULT_SITE, SITE_CHOICES
 
 
 class PricingTier(models.Model):
@@ -132,6 +133,10 @@ class Booking(models.Model):
         ANULOWANA = "ANULOWANA", "Anulowana"
 
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="bookings")
+    site = models.CharField(
+        max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE,
+        help_text="Z której marki przyszła ta rezerwacja — decyduje m.in. o brandingu SMS-a do klienta.",
+    )
     pickup_address = models.CharField(max_length=200)
     pickup_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     pickup_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

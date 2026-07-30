@@ -49,3 +49,28 @@ class BookingAvailabilityGateTests(TestCase):
         )
         res = self._post_booking()
         self.assertEqual(res.status_code, 201)
+
+    def test_booking_is_stamped_with_site_from_x_site_header(self):
+        Driver.objects.create(
+            user=User.objects.create_user(username="ondutydriver2"),
+            name="On duty", status=Driver.Status.DOSTEPNY,
+        )
+        body = {**VALID_BOOKING, "scheduled_at": (timezone.now() + timedelta(hours=3)).isoformat()}
+        res = self.client.post("/api/bookings/", body, format="json", HTTP_X_SITE="transfer247")
+        self.assertEqual(res.status_code, 201)
+
+        from .models import Booking
+
+        self.assertEqual(Booking.objects.get(id=res.data["id"]).site, "transfer247")
+
+    def test_booking_defaults_to_dowieziemycie_without_x_site_header(self):
+        Driver.objects.create(
+            user=User.objects.create_user(username="ondutydriver3"),
+            name="On duty", status=Driver.Status.DOSTEPNY,
+        )
+        res = self._post_booking()
+        self.assertEqual(res.status_code, 201)
+
+        from .models import Booking
+
+        self.assertEqual(Booking.objects.get(id=res.data["id"]).site, "dowieziemycie")

@@ -112,6 +112,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
 
         booking = Booking.objects.create(
             customer=self.context["request"].user,
+            site=self.context["request"].site_code,
             distance_km=estimate.distance_km,
             pricing_tier=estimate.tier,
             pricing_mode=estimate.pricing_mode,

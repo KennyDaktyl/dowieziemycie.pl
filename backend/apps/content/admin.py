@@ -1,40 +1,21 @@
 from django.contrib import admin
 
-from .models import ContentPage, HomeContent, LocalRoute, Tour, TourPhoto
+from .models import BlogPost, ContentPage, FixedRoute, HomeContent, LocalRoute, Tour, TourPhoto
 
 
 @admin.register(HomeContent)
 class HomeContentAdmin(admin.ModelAdmin):
+    """One row per site (config.sites.SITE_CHOICES) — `site` has a unique
+    constraint, so the admin form itself blocks a second row for the same
+    site rather than needing a custom singleton guard here."""
+
+    list_display = ("site", "headline_pl")
     fieldsets = (
+        (None, {"fields": ("site",)}),
         ("Polski", {"fields": ("eyebrow_pl", "headline_pl", "headline_highlight_pl", "lead_pl", "footnote_pl")}),
         ("English", {"fields": ("eyebrow_en", "headline_en", "headline_highlight_en", "lead_en", "footnote_en")}),
+        ("Deutsch", {"fields": ("eyebrow_de", "headline_de", "headline_highlight_de", "lead_de", "footnote_de")}),
     )
-
-    def has_add_permission(self, request):
-        return not HomeContent.objects.exists()
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def changelist_view(self, request, extra_context=None):
-        obj, _ = HomeContent.objects.get_or_create(
-            pk=1,
-            defaults={
-                "eyebrow_pl": "24/7 · Bezpiecznie, komfortowo, o każdej porze",
-                "eyebrow_en": "24/7 · Safe, comfortable, any time of day",
-                "headline_pl": "Bezpieczny przejazd. Każdej {highlight}",
-                "headline_en": "A safe ride. Any {highlight}",
-                "headline_highlight_pl": "pory.",
-                "headline_highlight_en": "time.",
-                "lead_pl": "Kraków–Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa. Komfortowy, bezpieczny przejazd 24 godziny na dobę — także w nocy i w niedziele. Zarezerwuj z wyprzedzeniem dla najlepszej ceny, albo zadzwoń w dowolnej chwili — dojedziemy, tylko drożej niż przy wcześniejszej rezerwacji.",
-                "lead_en": "Kraków–Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa. A comfortable, safe ride around the clock — including nights and Sundays. Book ahead for the best price, or call any time — we'll still get you there, just at a higher on-demand rate.",
-                "footnote_pl": "Zarezerwuj wcześniej — zapłacisz mniej niż za kurs na już.",
-                "footnote_en": "Book ahead — pay less than an on-demand ride.",
-            },
-        )
-        from django.shortcuts import redirect
-
-        return redirect("admin:content_homecontent_change", obj.pk)
 
 
 class TourPhotoInline(admin.TabularInline):
@@ -45,15 +26,20 @@ class TourPhotoInline(admin.TabularInline):
 
 @admin.register(Tour)
 class TourAdmin(admin.ModelAdmin):
-    list_display = ("title_pl", "title_en", "price_from", "is_published", "order")
+    list_display = ("title_pl", "site", "price_from", "price_large_vehicle", "is_published", "order")
     list_editable = ("price_from", "is_published", "order")
+    list_filter = ("site", "is_published")
     prepopulated_fields = {"slug": ("title_pl",)}
     search_fields = ("title_pl", "title_en", "summary_pl", "summary_en")
     inlines = [TourPhotoInline]
     fieldsets = (
-        (None, {"fields": ("slug", "price_from", "cover_image", "is_published", "order")}),
+        (None, {"fields": (
+            "site", "slug", "duration", "price_from", "price_large_vehicle",
+            "cover_image", "is_published", "order",
+        )}),
         ("Polski", {"fields": ("title_pl", "summary_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("title_en", "summary_en", "body_en", "seo_title_en", "seo_description_en")}),
+        ("Deutsch", {"fields": ("title_de", "summary_de", "body_de", "seo_title_de", "seo_description_de")}),
     )
 
 
@@ -70,15 +56,45 @@ class LocalRouteAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(FixedRoute)
+class FixedRouteAdmin(admin.ModelAdmin):
+    list_display = ("name_pl", "price_from", "price_large_vehicle", "duration", "is_published", "order")
+    list_editable = ("price_from", "price_large_vehicle", "is_published", "order")
+    list_filter = ("is_published",)
+    prepopulated_fields = {"slug": ("name_pl",)}
+    search_fields = ("name_pl", "name_en", "slug")
+    fieldsets = (
+        (None, {"fields": ("site", "slug", "duration", "price_from", "price_large_vehicle", "is_published", "order")}),
+        ("Polski", {"fields": ("name_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
+        ("English", {"fields": ("name_en", "body_en", "seo_title_en", "seo_description_en")}),
+        ("Deutsch", {"fields": ("name_de", "body_de", "seo_title_de", "seo_description_de")}),
+    )
+
+
+@admin.register(BlogPost)
+class BlogPostAdmin(admin.ModelAdmin):
+    list_display = ("title_pl", "site", "tag_pl", "published_at", "is_published")
+    list_editable = ("is_published",)
+    list_filter = ("site", "is_published")
+    prepopulated_fields = {"slug": ("title_pl",)}
+    search_fields = ("title_pl", "title_en", "excerpt_pl", "excerpt_en", "slug")
+    fieldsets = (
+        (None, {"fields": ("site", "slug", "cover_image", "published_at", "is_published")}),
+        ("Polski", {"fields": ("tag_pl", "title_pl", "excerpt_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
+        ("English", {"fields": ("tag_en", "title_en", "excerpt_en", "body_en", "seo_title_en", "seo_description_en")}),
+        ("Deutsch", {"fields": ("tag_de", "title_de", "excerpt_de", "body_de", "seo_title_de", "seo_description_de")}),
+    )
+
+
 @admin.register(ContentPage)
 class ContentPageAdmin(admin.ModelAdmin):
-    list_display = ("title_pl", "title_en", "page_type", "slug", "is_published")
-    list_filter = ("page_type", "is_published")
+    list_display = ("title_pl", "title_en", "site", "page_type", "slug", "is_published")
+    list_filter = ("site", "page_type", "is_published")
     list_editable = ("is_published",)
     prepopulated_fields = {"slug": ("title_pl",)}
     search_fields = ("title_pl", "title_en", "slug")
     fieldsets = (
-        (None, {"fields": ("slug", "page_type", "is_published")}),
+        (None, {"fields": ("site", "slug", "page_type", "is_published")}),
         ("Polski", {"fields": ("title_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("title_en", "body_en", "seo_title_en", "seo_description_en")}),
     )

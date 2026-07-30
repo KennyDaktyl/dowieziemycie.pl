@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
 import { Link } from "@/i18n/navigation";
-import { publicApiBaseUrl } from "@/lib/api";
+import { publicApiBaseUrl, withSiteHeader } from "@/lib/api";
 import type { AddressSuggestion } from "@/lib/geocode";
 import { reverseGeocode } from "@/lib/geocode";
 import type { DriverEta, RouteEstimate } from "@/lib/types";
@@ -71,7 +71,10 @@ export function BookingCard() {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`${publicApiBaseUrl()}/api/fleet/availability/`, { signal: controller.signal });
+        const res = await fetch(`${publicApiBaseUrl()}/api/fleet/availability/`, {
+          signal: controller.signal,
+          headers: withSiteHeader(),
+        });
         const data = await res.json();
         setAvailability(data.available ? "available" : "unavailable");
       } catch {
@@ -98,6 +101,7 @@ export function BookingCard() {
         });
         const res = await fetch(`${publicApiBaseUrl()}/api/fleet/driver-eta/?${params}`, {
           signal: controller.signal,
+          headers: withSiteHeader(),
         });
         if (res.ok) setDriverEta(await res.json());
       } catch {
@@ -128,6 +132,7 @@ export function BookingCard() {
         });
         const res = await fetch(`${publicApiBaseUrl()}/api/route-estimate/?${params}`, {
           signal: controller.signal,
+          headers: withSiteHeader(),
         });
         if (res.ok) setEstimate(await res.json());
       } catch {

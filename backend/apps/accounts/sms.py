@@ -17,11 +17,6 @@ class SmsBackend:
     def send_message(self, phone: str, message: str) -> None:
         raise NotImplementedError
 
-    def send_otp(self, phone: str, code: str) -> None:
-        from .models import PhoneOTP
-
-        self.send_message(phone, f"dowieziemycie.pl - Twoj kod: {code}. Wazny {PhoneOTP.CODE_TTL_MINUTES} min.")
-
 
 class ConsoleSmsBackend(SmsBackend):
     """Dev backend — logs the message instead of sending a real SMS."""

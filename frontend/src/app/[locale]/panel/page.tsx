@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Link, redirect } from "@/i18n/navigation";
-import { apiBaseUrl } from "@/lib/api";
+import { apiBaseUrl, withSiteHeader } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import type { Booking } from "@/lib/types";
 
@@ -24,7 +24,7 @@ export default async function PanelPage({ params }: { params: Promise<{ locale: 
   }
 
   const res = await fetch(`${apiBaseUrl()}/api/bookings/mine/`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: withSiteHeader({ Authorization: `Bearer ${accessToken}` }),
     cache: "no-store",
   });
   const bookings: Booking[] = res.ok ? await res.json() : [];

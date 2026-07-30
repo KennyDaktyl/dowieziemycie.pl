@@ -68,6 +68,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "config.middleware.SiteMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -178,11 +179,18 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
 }
 
-# CORS — Next.js dev server + production frontend origin(s).
+# CORS — Next.js dev server + production frontend origin(s), across both
+# dowieziemycie.pl and transfer247.pl.
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
 )
 CORS_ALLOW_CREDENTIALS = True
+# django-cors-headers only allows a standard safe list of headers by default —
+# X-Site (which frontend a request is for, see config.middleware) needs to be
+# added explicitly or the browser's preflight rejects it.
+from corsheaders.defaults import default_headers  # noqa: E402
+
+CORS_ALLOW_HEADERS = (*default_headers, "x-site")
 
 # Make sure app-level logger.info() calls (e.g. the console SMS backend
 # printing OTP codes in dev) actually reach the runserver console — Django's
