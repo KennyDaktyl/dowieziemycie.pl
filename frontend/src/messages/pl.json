@@ -43,6 +43,8 @@
     "km": "KM",
     "min": "min",
     "localFare": "Taryfa lokalna — kierowca jest już blisko",
+    "unavailableTitle": "Chwilowo nie przyjmujemy rezerwacji",
+    "unavailableBody": "Żaden kierowca nie jest teraz dostępny. Wróć za chwilę albo zadzwoń, żeby ustalić termin.",
     "success": "Kurs zarezerwowany!",
     "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie."
   },
@@ -163,7 +165,9 @@
     "from": "Skąd",
     "to": "Dokąd",
     "date": "Termin",
-    "price": "Cena"
+    "price": "Cena",
+    "trackDriver": "Śledź kierowcę",
+    "trackingTitle": "Twój kierowca w drodze"
   },
   "BookingStatus": {
     "NOWA": "Nowa (oczekuje na potwierdzenie)",

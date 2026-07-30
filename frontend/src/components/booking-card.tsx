@@ -65,6 +65,26 @@ export function BookingCard() {
   const [estimating, setEstimating] = useState(false);
   const [driverEta, setDriverEta] = useState<DriverEta | null>(null);
   const [etaLoading, setEtaLoading] = useState(false);
+  const [availability, setAvailability] = useState<"checking" | "available" | "unavailable">("checking");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${publicApiBaseUrl()}/api/fleet/availability/`, { signal: controller.signal });
+        const data = await res.json();
+        setAvailability(data.available ? "available" : "unavailable");
+      } catch {
+        // Fail open — a hiccup on this check shouldn't block the whole form;
+        // the backend enforces the same rule again at actual submit time.
+        setAvailability("available");
+      }
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!pickup) return;
@@ -188,6 +208,15 @@ export function BookingCard() {
     } catch {
       setStatus("error");
     }
+  }
+
+  if (availability === "unavailable") {
+    return (
+      <div className="rounded-[14px] border border-line bg-panel p-[22px] text-center lg:p-10">
+        <div className="font-heading text-lg font-semibold">{t("unavailableTitle")}</div>
+        <p className="mt-2 text-[14px] text-muted">{t("unavailableBody")}</p>
+      </div>
+    );
   }
 
   return (

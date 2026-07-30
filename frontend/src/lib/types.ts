@@ -152,6 +152,8 @@ export interface Booking {
   is_reserved: boolean;
   price: string | null;
   coupon_code: string | null;
+  driver_name: string | null;
+  driver_vehicle: string | null;
   created_at: string;
 }
 

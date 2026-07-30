@@ -20,6 +20,8 @@ class RouteEstimateRequestSerializer(serializers.Serializer):
 
 class BookingSerializer(serializers.ModelSerializer):
     coupon_code = serializers.CharField(source="coupon.code", read_only=True, default=None)
+    driver_name = serializers.CharField(source="assigned_driver.name", read_only=True, default=None)
+    driver_vehicle = serializers.CharField(source="assigned_driver.vehicle.name", read_only=True, default=None)
 
     class Meta:
         model = Booking
@@ -27,7 +29,7 @@ class BookingSerializer(serializers.ModelSerializer):
             "id", "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "status", "distance_km", "is_reserved",
-            "price", "pricing_mode", "coupon_code", "created_at",
+            "price", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle", "created_at",
         ]
         read_only_fields = fields
 

@@ -2,10 +2,12 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { redirect } from "@/i18n/navigation";
+import { Link, redirect } from "@/i18n/navigation";
 import { apiBaseUrl } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import type { Booking } from "@/lib/types";
+
+const TRACKABLE_STATUSES = ["KIEROWCA_W_DRODZE", "W_TRAKCIE"];
 
 export default async function PanelPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -47,13 +49,18 @@ export default async function PanelPage({ params }: { params: Promise<{ locale: 
                     {tStatus(booking.status)}
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-muted">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[13px] text-muted">
                   <span>
                     {t("date")}: {new Date(booking.scheduled_at).toLocaleString(locale)}
                   </span>
                   <span>
                     {t("price")}: {booking.price ? `${Number(booking.price).toFixed(0)} zł` : "—"}
                   </span>
+                  {TRACKABLE_STATUSES.includes(booking.status) && (
+                    <Link href={`/panel/kurs/${booking.id}`} className="font-semibold text-amber underline">
+                      {t("trackDriver")}
+                    </Link>
+                  )}
                 </div>
               </div>
             ))}
