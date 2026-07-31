@@ -24,6 +24,16 @@ class VehicleAdmin(admin.ModelAdmin):
     list_filter = ("is_active",)
     search_fields = ("name", "plate", "model")
     inlines = [VehiclePhotoInline]
+    fieldsets = (
+        (None, {"fields": ("name", "plate", "model", "seats", "cover_photo", "is_active")}),
+        (
+            "Opis publiczny (strona floty)",
+            {
+                "fields": ("description_pl", "description_en", "description_de"),
+                "description": "Widoczne na publicznej stronie /flota — puste pole w EN/DE pokaże opis polski.",
+            },
+        ),
+    )
 
 
 @admin.register(Driver)

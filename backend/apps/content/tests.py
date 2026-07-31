@@ -49,12 +49,3 @@ class SiteScopingTests(APITestCase):
 
         res_transfer247 = self.client.get("/api/blog/", HTTP_X_SITE="transfer247")
         self.assertEqual(len(res_transfer247.data), 4)
-
-    def test_fleet_vehicles_only_visible_for_transfer247(self):
-        res_default = self.client.get("/api/fleet-vehicles/")
-        self.assertEqual(len(res_default.data), 0)
-
-        res_transfer247 = self.client.get("/api/fleet-vehicles/", HTTP_X_SITE="transfer247")
-        self.assertEqual(res_transfer247.status_code, 200)
-        names = {v["name"] for v in res_transfer247.data}
-        self.assertEqual(names, {"Toyota Auris Hybrid", "Ford Tourneo Custom"})

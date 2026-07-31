@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 from apps.accounts.models import Customer
 from apps.bookings.models import Booking
 
-from .models import Driver
+from .models import Driver, Vehicle
 
 
 class DriverLoginViewTests(TestCase):
@@ -177,3 +177,29 @@ class UpdatePositionViewTests(TestCase):
     def test_requires_driver_auth(self):
         res = self.client.post("/api/fleet/driver/position/", {"lat": "50.05", "lng": "19.9"})
         self.assertEqual(res.status_code, 401)
+
+
+class VehicleListViewTests(TestCase):
+    """The single real fleet (apps.fleet.Vehicle) is the source of truth for
+    both brands' public fleet pages — no separate per-site showcase model."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_exposes_bilingual_descriptions(self):
+        Vehicle.objects.create(
+            name="Toyota Auris Hybrid", plate="KR1TEST", seats=4,
+            description_pl="Opis PL", description_en="Opis EN", description_de="Opis DE",
+        )
+        res = self.client.get("/api/fleet/vehicles/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data[0]["description_pl"], "Opis PL")
+        self.assertEqual(res.data[0]["description_en"], "Opis EN")
+        self.assertEqual(res.data[0]["description_de"], "Opis DE")
+
+    def test_hides_inactive_vehicles(self):
+        Vehicle.objects.create(name="Retired Van", plate="KR2TEST", is_active=False)
+        res = self.client.get("/api/fleet/vehicles/")
+        self.assertEqual(res.status_code, 200)
+        names = {v["name"] for v in res.data}
+        self.assertNotIn("Retired Van", names)

@@ -4,8 +4,6 @@ from .models import (
     BlogPost,
     ContentPage,
     FixedRoute,
-    FleetVehicle,
-    FleetVehiclePhoto,
     HomeContent,
     LocalRoute,
     Tour,
@@ -41,7 +39,8 @@ class TourSerializer(serializers.ModelSerializer):
             "h1_pl", "h1_en", "h1_de",
             "summary_pl", "summary_en", "summary_de",
             "body_pl", "body_en", "body_de",
-            "duration", "price_from", "price_large_vehicle", "cover_image",
+            "duration", "price_from", "price_large_vehicle",
+            "price_from_eur", "price_large_vehicle_eur", "cover_image",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
             "photos", "order",
@@ -93,6 +92,7 @@ class FixedRouteSerializer(serializers.ModelSerializer):
             "slug", "name_pl", "name_en", "name_de",
             "h1_pl", "h1_en", "h1_de", "duration",
             "price_from", "price_large_vehicle",
+            "price_from_eur", "price_large_vehicle_eur",
             "body_pl", "body_en", "body_de",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
@@ -111,24 +111,6 @@ class BlogPostSerializer(serializers.ModelSerializer):
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
             "published_at",
-        ]
-
-
-class FleetVehiclePhotoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FleetVehiclePhoto
-        fields = ["image", "caption", "order"]
-
-
-class FleetVehicleSerializer(serializers.ModelSerializer):
-    photos = FleetVehiclePhotoSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = FleetVehicle
-        fields = [
-            "slug", "name", "seats",
-            "description_pl", "description_en", "description_de",
-            "cover_photo", "photos", "order",
         ]
 
 

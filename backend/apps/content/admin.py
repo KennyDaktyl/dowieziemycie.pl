@@ -1,16 +1,6 @@
 from django.contrib import admin
 
-from .models import (
-    BlogPost,
-    ContentPage,
-    FixedRoute,
-    FleetVehicle,
-    FleetVehiclePhoto,
-    HomeContent,
-    LocalRoute,
-    Tour,
-    TourPhoto,
-)
+from .models import BlogPost, ContentPage, FixedRoute, HomeContent, LocalRoute, Tour, TourPhoto
 
 
 @admin.register(HomeContent)
@@ -53,9 +43,19 @@ class TourAdmin(admin.ModelAdmin):
     inlines = [TourPhotoInline]
     fieldsets = (
         (None, {"fields": (
-            "site", "slug", "duration", "price_from", "price_large_vehicle",
-            "cover_image", "is_published", "order",
+            "site", "slug", "duration", "cover_image", "is_published", "order",
         )}),
+        (
+            "Ceny (PLN — wersja polska)",
+            {"fields": ("price_from", "price_large_vehicle")},
+        ),
+        (
+            "Ceny (EUR — wersje EN/DE)",
+            {
+                "fields": ("price_from_eur", "price_large_vehicle_eur"),
+                "description": "Wpisz ręcznie — nie są przeliczane automatycznie z PLN.",
+            },
+        ),
         (
             "Polski",
             {"fields": ("title_pl", "h1_pl", "summary_pl", "body_pl", "seo_title_pl", "seo_description_pl")},
@@ -95,33 +95,22 @@ class FixedRouteAdmin(admin.ModelAdmin):
     search_fields = ("name_pl", "name_en", "slug")
     fieldsets = (
         (None, {"fields": (
-            "site", "slug", "duration", "price_from", "price_large_vehicle", "is_published", "order",
+            "site", "slug", "duration", "is_published", "order",
         )}),
+        (
+            "Ceny (PLN — wersja polska)",
+            {"fields": ("price_from", "price_large_vehicle")},
+        ),
+        (
+            "Ceny (EUR — wersje EN/DE)",
+            {
+                "fields": ("price_from_eur", "price_large_vehicle_eur"),
+                "description": "Wpisz ręcznie — nie są przeliczane automatycznie z PLN.",
+            },
+        ),
         ("Polski", {"fields": ("name_pl", "h1_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("name_en", "h1_en", "body_en", "seo_title_en", "seo_description_en")}),
         ("Deutsch", {"fields": ("name_de", "h1_de", "body_de", "seo_title_de", "seo_description_de")}),
-    )
-
-
-class FleetVehiclePhotoInline(admin.TabularInline):
-    model = FleetVehiclePhoto
-    extra = 1
-    fields = ("image", "caption", "order")
-
-
-@admin.register(FleetVehicle)
-class FleetVehicleAdmin(admin.ModelAdmin):
-    list_display = ("name", "site", "seats", "is_published", "order")
-    list_editable = ("is_published", "order")
-    list_filter = ("site", "is_published")
-    prepopulated_fields = {"slug": ("name",)}
-    search_fields = ("name",)
-    inlines = [FleetVehiclePhotoInline]
-    fieldsets = (
-        (None, {"fields": ("site", "slug", "name", "seats", "cover_photo", "is_published", "order")}),
-        ("Polski", {"fields": ("description_pl",)}),
-        ("English", {"fields": ("description_en",)}),
-        ("Deutsch", {"fields": ("description_de",)}),
     )
 
 

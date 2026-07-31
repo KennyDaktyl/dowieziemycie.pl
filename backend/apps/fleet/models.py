@@ -9,6 +9,11 @@ class Vehicle(models.Model):
     plate = models.CharField(max_length=16, unique=True)
     model = models.CharField(max_length=80, blank=True)
     seats = models.PositiveSmallIntegerField(default=7)
+    description_pl = models.TextField(
+        blank=True, help_text="Opis marketingowy pokazywany na publicznej stronie floty.",
+    )
+    description_en = models.TextField(blank=True)
+    description_de = models.TextField(blank=True)
     cover_photo = models.ImageField(upload_to="vehicles/covers/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
 
