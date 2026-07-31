@@ -45,7 +45,8 @@
     "localFare": "Local fare — a driver is already nearby",
     "unavailableTitle": "Not taking bookings right now",
     "unavailableBody": "No driver is currently available. Check back shortly, or call us to arrange a time.",
-    "success": "Ride booked!",
+    "success": "Request received — awaiting confirmation.",
+    "successPanelLink": "Check status",
     "error": "Couldn't book the ride. Please try again."
   },
   "DriverEta": {
@@ -171,10 +172,19 @@
   },
   "BookingStatus": {
     "NOWA": "New (awaiting confirmation)",
-    "POTWIERDZONA": "Confirmed",
+    "POTWIERDZONA": "Confirmed (pay deposit)",
+    "OPLACONA": "Paid (awaiting driver)",
     "KIEROWCA_W_DRODZE": "Driver on the way",
     "W_TRAKCIE": "In progress",
     "ZAKONCZONA": "Completed",
     "ANULOWANA": "Cancelled"
+  },
+  "BookingPayment": {
+    "waitingForConfirmation": "Waiting for dispatcher confirmation — you'll get an SMS and email once it's confirmed. Payment isn't available yet.",
+    "payDeposit": "Pay deposit {amount} zł",
+    "payBy": "Pay by {time}, or the booking will be cancelled.",
+    "paying": "Paying…",
+    "paidConfirmed": "Deposit paid — the ride is confirmed.",
+    "error": "Couldn't pay the deposit. Please try again."
   }
 }

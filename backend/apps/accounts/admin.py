@@ -5,8 +5,9 @@ from .models import Customer, PhoneOTP
 
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ("phone", "name", "created_at")
-    search_fields = ("phone", "name")
+    list_display = ("phone", "name", "email", "created_at")
+    list_editable = ("email",)
+    search_fields = ("phone", "name", "email")
     ordering = ("-created_at",)
 
 

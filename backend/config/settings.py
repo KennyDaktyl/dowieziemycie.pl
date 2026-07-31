@@ -220,3 +220,17 @@ SMSAPI_SENDER_NAME = os.environ.get("SMSAPI_SENDER_NAME", "")
 # tier price; anything sooner (or a booking for right now) gets the pricier
 # on-demand rate. See apps/bookings/models.PricingTier.
 ADVANCE_BOOKING_THRESHOLD_HOURS = int(os.environ.get("ADVANCE_BOOKING_THRESHOLD_HOURS", "2"))
+
+# Email notifications for the confirm-before-pay booking workflow (see
+# apps/bookings/notifications.py). "console" (dev) prints the message instead
+# of sending it; set EMAIL_BACKEND=smtp + the EMAIL_HOST_* vars in prod.
+if os.environ.get("EMAIL_BACKEND", "console") == "smtp":
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true") == "true"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@dowieziemycie.pl")

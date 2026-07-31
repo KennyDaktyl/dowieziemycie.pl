@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
+import { PayDepositButton } from "@/components/pay-deposit-button";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Link, redirect } from "@/i18n/navigation";
@@ -13,9 +14,10 @@ export default async function PanelPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, tStatus, { customer, accessToken }] = await Promise.all([
+  const [t, tStatus, tPayment, { customer, accessToken }] = await Promise.all([
     getTranslations("Panel"),
     getTranslations("BookingStatus"),
+    getTranslations("BookingPayment"),
     getSession(),
   ]);
 
@@ -62,6 +64,25 @@ export default async function PanelPage({ params }: { params: Promise<{ locale: 
                     </Link>
                   )}
                 </div>
+
+                {booking.status === "NOWA" && (
+                  <p className="mt-3 text-[13px] text-muted">{tPayment("waitingForConfirmation")}</p>
+                )}
+
+                {booking.status === "POTWIERDZONA" && booking.deposit_amount && (
+                  <div className="mt-3 flex flex-col gap-2">
+                    <PayDepositButton bookingId={booking.id} depositAmount={booking.deposit_amount} />
+                    {booking.payment_deadline && (
+                      <span className="text-[12px] text-muted">
+                        {tPayment("payBy", { time: new Date(booking.payment_deadline).toLocaleString(locale) })}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {booking.status === "OPLACONA" && (
+                  <p className="mt-3 text-[13px] text-green">{tPayment("paidConfirmed")}</p>
+                )}
               </div>
             ))}
           </div>

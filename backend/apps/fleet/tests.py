@@ -49,7 +49,7 @@ def _make_booking(customer, **overrides):
         dropoff_address="Kraków",
         dropoff_lat=50.06, dropoff_lng=19.94,
         scheduled_at=timezone.now(),
-        status=Booking.Status.NOWA,
+        status=Booking.Status.OPLACONA,
     )
     defaults.update(overrides)
     return Booking.objects.create(**defaults)
@@ -177,6 +177,59 @@ class UpdatePositionViewTests(TestCase):
     def test_requires_driver_auth(self):
         res = self.client.post("/api/fleet/driver/position/", {"lat": "50.05", "lng": "19.9"})
         self.assertEqual(res.status_code, 401)
+
+
+class DispatcherConfirmWorkflowTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.customer = Customer.objects.create(phone="+48500111222", name="Klient Testowy")
+        dispatcher_user = User.objects.create_user(username="dispatcher")
+        self.dispatcher = Driver.objects.create(user=dispatcher_user, name="Dyspozytor", is_dispatcher=True)
+        plain_user = User.objects.create_user(username="plaindriver")
+        self.plain_driver = Driver.objects.create(user=plain_user, name="Zwykły kierowca")
+
+    def test_pending_confirmation_list_is_dispatcher_only(self):
+        _make_booking(self.customer, status=Booking.Status.NOWA)
+
+        res_dispatcher = self.client.get(
+            "/api/fleet/driver/bookings/pending-confirmation/", **_driver_auth_header(self.dispatcher)
+        )
+        self.assertEqual(res_dispatcher.status_code, 200)
+        self.assertEqual(len(res_dispatcher.data), 1)
+
+        res_plain = self.client.get(
+            "/api/fleet/driver/bookings/pending-confirmation/", **_driver_auth_header(self.plain_driver)
+        )
+        self.assertEqual(res_plain.status_code, 200)
+        self.assertEqual(len(res_plain.data), 0)
+
+    def test_confirm_requires_dispatcher(self):
+        booking = _make_booking(self.customer, status=Booking.Status.NOWA)
+        res = self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/confirm/", **_driver_auth_header(self.plain_driver)
+        )
+        self.assertEqual(res.status_code, 403)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.NOWA)
+
+    def test_dispatcher_can_confirm_with_price_override(self):
+        booking = _make_booking(self.customer, status=Booking.Status.NOWA, price=100)
+        res = self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/confirm/", {"price": "155.00"},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.POTWIERDZONA)
+        self.assertEqual(str(booking.price), "155.00")
+
+    def test_open_bookings_only_shows_paid_ones_not_merely_confirmed(self):
+        _make_booking(self.customer, status=Booking.Status.POTWIERDZONA)
+        paid = _make_booking(self.customer, status=Booking.Status.OPLACONA)
+
+        res = self.client.get("/api/fleet/driver/bookings/open/", **_driver_auth_header(self.plain_driver))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual([b["id"] for b in res.data], [paid.id])
 
 
 class VehicleListViewTests(TestCase):

@@ -38,13 +38,23 @@ class VehicleAdmin(admin.ModelAdmin):
 
 @admin.register(Driver)
 class DriverAdmin(admin.ModelAdmin):
-    list_display = ("name", "vehicle", "status_badge", "phone", "location_updated_at")
-    list_filter = ("status", "vehicle")
+    list_display = ("name", "vehicle", "status_badge", "phone", "is_dispatcher", "location_updated_at")
+    list_filter = ("status", "vehicle", "is_dispatcher")
     list_editable = ()
     search_fields = ("name", "phone")
     actions = ["set_offline", "set_dostepny"]
     fieldsets = (
         (None, {"fields": ("user", "name", "phone", "vehicle")}),
+        (
+            "Dyspozytor",
+            {
+                "fields": ("is_dispatcher",),
+                "description": (
+                    "Widzi w aplikacji mobilnej kolejkę nowych rezerwacji do potwierdzenia "
+                    "i dostaje o nich powiadomienia push."
+                ),
+            },
+        ),
         ("Status i pozycja", {
             "fields": ("status", "base_lat", "base_lng", "current_lat", "current_lng", "location_updated_at"),
         }),

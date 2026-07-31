@@ -133,6 +133,7 @@ export interface Customer {
 export type BookingStatus =
   | "NOWA"
   | "POTWIERDZONA"
+  | "OPLACONA"
   | "KIEROWCA_W_DRODZE"
   | "W_TRAKCIE"
   | "ZAKONCZONA"
@@ -155,6 +156,10 @@ export interface Booking {
   driver_name: string | null;
   driver_vehicle: string | null;
   created_at: string;
+  confirmed_at: string | null;
+  payment_deadline: string | null;
+  deposit_amount: string | null;
+  paid_at: string | null;
 }
 
 export interface BookingInput {

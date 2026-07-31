@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from apps.accounts.sms import get_sms_backend
 from apps.bookings.models import Booking
 from apps.bookings.serializers import DriverBookingSerializer
+from apps.bookings.services import BookingConfirmError, confirm_booking
 from apps.tracking.services import broadcast_driver_update, update_driver_position
 from config.sites import SITE_DISPLAY_NAMES
 
@@ -19,7 +20,12 @@ from .models import Driver
 
 
 class OpenBookingsListView(generics.ListAPIView):
-    """GET /api/fleet/driver/bookings/open/ — unassigned bookings any driver can accept."""
+    """GET /api/fleet/driver/bookings/open/ — unassigned bookings any driver can accept.
+
+    Only OPLACONA (deposit paid) bookings show up here — a NOWA/POTWIERDZONA
+    booking hasn't cleared the confirm-and-pay gate yet, so there's nothing
+    for a driver to actually commit to.
+    """
 
     authentication_classes = [DriverJWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -27,8 +33,59 @@ class OpenBookingsListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Booking.objects.filter(
-            status=Booking.Status.NOWA, assigned_driver__isnull=True
+            status=Booking.Status.OPLACONA, assigned_driver__isnull=True
         ).select_related("customer").order_by("scheduled_at")
+
+
+class PendingConfirmationListView(generics.ListAPIView):
+    """GET /api/fleet/driver/bookings/pending-confirmation/ — dispatcher-only:
+    new bookings (NOWA) awaiting price review and confirmation."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = DriverBookingSerializer
+
+    def get_queryset(self):
+        if not self.request.user.is_dispatcher:
+            return Booking.objects.none()
+        return (
+            Booking.objects.filter(status=Booking.Status.NOWA)
+            .select_related("customer")
+            .order_by("scheduled_at")
+        )
+
+
+class ConfirmBookingRequestSerializer(serializers.Serializer):
+    price = serializers.DecimalField(max_digits=7, decimal_places=2, required=False)
+
+
+class ConfirmBookingView(APIView):
+    """POST /api/fleet/driver/bookings/<id>/confirm/ {price?} — dispatcher-only.
+    Optionally overrides the algorithm-computed price before locking the
+    booking in and starting the customer's payment window."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        if not request.user.is_dispatcher:
+            return Response(
+                {"detail": "Tylko dyspozytor może potwierdzać rezerwacje."}, status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = ConfirmBookingRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        booking = Booking.objects.filter(id=booking_id).first()
+        if not booking:
+            return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            confirmed = confirm_booking(booking, price=serializer.validated_data.get("price"))
+        except BookingConfirmError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+
+        return Response(DriverBookingSerializer(confirmed).data)
 
 
 class MyScheduleView(generics.ListAPIView):
@@ -64,7 +121,7 @@ class AcceptBookingView(APIView):
         driver = request.user
         with transaction.atomic():
             updated = Booking.objects.filter(
-                id=booking_id, status=Booking.Status.NOWA, assigned_driver__isnull=True,
+                id=booking_id, status=Booking.Status.OPLACONA, assigned_driver__isnull=True,
             ).update(assigned_driver=driver, status=Booking.Status.KIEROWCA_W_DRODZE)
             if not updated:
                 return Response(

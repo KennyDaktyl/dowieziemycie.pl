@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from .availability import has_conflicting_booking
 from .models import Booking, Coupon, PricingTier
 from .pricing import estimate_price
 
@@ -30,6 +31,7 @@ class BookingSerializer(serializers.ModelSerializer):
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "status", "distance_km", "is_reserved",
             "price", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle", "created_at",
+            "confirmed_at", "payment_deadline", "deposit_amount", "paid_at",
         ]
         read_only_fields = fields
 
@@ -82,6 +84,13 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Obecnie nie przyjmujemy nowych rezerwacji — żaden kierowca nie jest dostępny."
             )
+
+        site_code = self.context["request"].site_code
+        if has_conflicting_booking(attrs["scheduled_at"], site_code):
+            raise serializers.ValidationError(
+                "Ten termin nie jest dostępny — inny kurs jest zaplanowany zbyt blisko tej godziny. "
+                "Wybierz proszę inną godzinę."
+            )
         return attrs
 
     def validate_coupon_code(self, value):
@@ -122,8 +131,8 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             **validated_data,
         )
 
-        from apps.fleet.push import notify_drivers_of_new_booking
+        from .notifications import notify_dispatcher_of_new_booking
 
-        notify_drivers_of_new_booking(booking)
+        notify_dispatcher_of_new_booking(booking)
 
         return booking

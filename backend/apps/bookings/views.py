@@ -1,4 +1,4 @@
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,6 +12,7 @@ from .serializers import (
     PricingTierSerializer,
     RouteEstimateRequestSerializer,
 )
+from .services import BookingPaymentError, pay_booking_deposit
 
 
 class PricingTierListView(generics.ListAPIView):
@@ -64,3 +65,25 @@ class BookingMineListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Booking.objects.filter(customer=self.request.user)
+
+
+class PayBookingDepositView(APIView):
+    """POST /api/bookings/<id>/pay/ — mock deposit payment (no real gateway
+    yet, see project notes). Re-validates the payment window and the time-slot
+    conflict at the moment of payment, not just at confirm time — see
+    apps.bookings.services.pay_booking_deposit for why that re-check matters.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        booking = Booking.objects.filter(id=booking_id, customer=request.user).first()
+        if not booking:
+            return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            paid_booking = pay_booking_deposit(booking.id)
+        except BookingPaymentError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+
+        return Response(BookingSerializer(paid_booking).data)

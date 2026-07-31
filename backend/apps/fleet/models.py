@@ -77,6 +77,13 @@ class Driver(models.Model):
         Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name="drivers"
     )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.OFFLINE)
+    is_dispatcher = models.BooleanField(
+        default=False,
+        help_text=(
+            "Widzi w aplikacji mobilnej kolejkę nowych rezerwacji do potwierdzenia (z możliwością "
+            "zmiany ceny) i dostaje o nich powiadomienia push, niezależnie od własnego statusu."
+        ),
+    )
     base_lat = models.DecimalField(max_digits=9, decimal_places=6, default=50.0)
     base_lng = models.DecimalField(max_digits=9, decimal_places=6, default=19.7)
     current_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

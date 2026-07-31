@@ -409,7 +409,12 @@ export function BookingCard() {
           </button>
 
           {status === "success" && (
-            <div className="text-center text-xs font-semibold text-green">{t("success")}</div>
+            <div className="text-center text-xs font-semibold text-green">
+              {t("success")}{" "}
+              <Link href="/panel" className="underline">
+                {t("successPanelLink")}
+              </Link>
+            </div>
           )}
           {status === "error" && (
             <div className="text-center text-xs font-semibold text-red">{t("error")}</div>

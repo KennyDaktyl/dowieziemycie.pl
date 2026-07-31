@@ -45,7 +45,8 @@
     "localFare": "Taryfa lokalna — kierowca jest już blisko",
     "unavailableTitle": "Chwilowo nie przyjmujemy rezerwacji",
     "unavailableBody": "Żaden kierowca nie jest teraz dostępny. Wróć za chwilę albo zadzwoń, żeby ustalić termin.",
-    "success": "Kurs zarezerwowany!",
+    "success": "Zgłoszenie przyjęte — czeka na potwierdzenie.",
+    "successPanelLink": "Sprawdź status",
     "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie."
   },
   "DriverEta": {
@@ -171,10 +172,19 @@
   },
   "BookingStatus": {
     "NOWA": "Nowa (oczekuje na potwierdzenie)",
-    "POTWIERDZONA": "Potwierdzona",
+    "POTWIERDZONA": "Potwierdzona (zapłać zaliczkę)",
+    "OPLACONA": "Opłacona (oczekuje na kierowcę)",
     "KIEROWCA_W_DRODZE": "Kierowca w drodze",
     "W_TRAKCIE": "W trakcie kursu",
     "ZAKONCZONA": "Zakończona",
     "ANULOWANA": "Anulowana"
+  },
+  "BookingPayment": {
+    "waitingForConfirmation": "Czekaj na potwierdzenie przez dyspozytora — dostaniesz SMS i e-mail, gdy kurs zostanie potwierdzony. Płatność nie jest jeszcze możliwa.",
+    "payDeposit": "Zapłać zaliczkę {amount} zł",
+    "payBy": "Zapłać do {time}, inaczej rezerwacja zostanie anulowana.",
+    "paying": "Płacę…",
+    "paidConfirmed": "Zaliczka opłacona — kurs jest ważny.",
+    "error": "Nie udało się zapłacić zaliczki. Spróbuj ponownie."
   }
 }

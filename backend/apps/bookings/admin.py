@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.shortcuts import redirect
 
-from .models import Booking, Coupon, LocalFarePolicy, PricingTier
+from .models import Booking, BookingSettings, Coupon, LocalFarePolicy, PricingTier
+from .services import BookingConfirmError, confirm_booking
 
 
 @admin.register(PricingTier)
@@ -36,6 +37,16 @@ class CouponAdmin(admin.ModelAdmin):
     search_fields = ("code",)
 
 
+@admin.register(BookingSettings)
+class BookingSettingsAdmin(admin.ModelAdmin):
+    list_display = ("site", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes")
+    list_editable = ("deposit_amount", "payment_window_minutes", "driver_buffer_minutes")
+    fields = (
+        "site", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes",
+        "dispatcher_phone", "dispatcher_email",
+    )
+
+
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
     list_display = (
@@ -43,10 +54,30 @@ class BookingAdmin(admin.ModelAdmin):
         "status", "distance_km", "pricing_mode", "is_reserved", "price", "coupon", "assigned_driver",
     )
     list_filter = ("status", "pricing_mode", "is_reserved", "assigned_driver")
-    list_editable = ("status", "assigned_driver")
+    # `status` is deliberately NOT list_editable — editing it directly here
+    # would skip confirm_booking()'s side effects (payment deadline, deposit
+    # snapshot, customer notification). Adjust the price inline, then use
+    # the "Potwierdź" action below to move NOWA -> POTWIERDZONA properly.
+    list_editable = ("price", "assigned_driver")
     search_fields = ("customer__phone", "customer__name", "pickup_address", "dropoff_address")
     date_hierarchy = "scheduled_at"
     autocomplete_fields = ("customer", "coupon")
+    actions = ["confirm_selected"]
+
+    @admin.action(description="Potwierdź wybrane rezerwacje (wysyła SMS/e-mail do klienta)")
+    def confirm_selected(self, request, queryset):
+        confirmed, failed = 0, 0
+        for booking in queryset:
+            try:
+                confirm_booking(booking)
+                confirmed += 1
+            except BookingConfirmError as exc:
+                failed += 1
+                self.message_user(request, f"Rezerwacja #{booking.id}: {exc}", level="warning")
+        if confirmed:
+            self.message_user(request, f"Potwierdzono {confirmed} rezerwacji.")
+        if failed:
+            self.message_user(request, f"Nie udało się potwierdzić {failed} rezerwacji.", level="warning")
 
 
 admin.site.site_header = "dowieziemycie.pl — panel admina"

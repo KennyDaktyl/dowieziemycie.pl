@@ -16,6 +16,7 @@ class Customer(models.Model):
 
     phone = models.CharField(max_length=16, unique=True, validators=[phone_validator])
     name = models.CharField(max_length=120, blank=True)
+    email = models.EmailField(blank=True, help_text="Opcjonalny — jeśli podany, dostaje też powiadomienia e-mail.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

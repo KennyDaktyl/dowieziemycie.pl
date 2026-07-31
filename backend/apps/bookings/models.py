@@ -6,6 +6,46 @@ from apps.fleet.models import Driver
 from config.sites import DEFAULT_SITE, SITE_CHOICES
 
 
+class BookingSettings(models.Model):
+    """One row per site (config.sites.SITE_CHOICES) — the knobs the confirm-
+    before-pay workflow needs, all admin-editable without a deploy."""
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, unique=True, default=DEFAULT_SITE)
+    deposit_amount = models.DecimalField(
+        max_digits=7, decimal_places=2, default=50,
+        help_text="Zaliczka wymagana do zablokowania terminu po potwierdzeniu rezerwacji.",
+    )
+    payment_window_minutes = models.PositiveSmallIntegerField(
+        default=60,
+        help_text="Ile minut klient ma na zapłatę zaliczki po potwierdzeniu, zanim rezerwacja wygaśnie.",
+    )
+    driver_buffer_minutes = models.PositiveSmallIntegerField(
+        default=60,
+        help_text=(
+            "Minimalny odstęp (w obie strony) między godzinami dwóch potwierdzonych kursów — "
+            "czas na powrót kierowcy do bazy. Nowe rezerwacje w tym oknie są odrzucane."
+        ),
+    )
+    dispatcher_phone = models.CharField(
+        max_length=16, blank=True, help_text="Numer, na który idzie SMS o nowej rezerwacji do potwierdzenia.",
+    )
+    dispatcher_email = models.EmailField(
+        blank=True, help_text="Adres, na który idzie e-mail o nowej rezerwacji do potwierdzenia.",
+    )
+
+    class Meta:
+        verbose_name = "Ustawienia rezerwacji"
+        verbose_name_plural = "Ustawienia rezerwacji"
+
+    def __str__(self):
+        return f"Ustawienia rezerwacji ({self.get_site_display()})"
+
+    @classmethod
+    def for_site(cls, site: str) -> "BookingSettings":
+        settings, _ = cls.objects.get_or_create(site=site)
+        return settings
+
+
 class PricingTier(models.Model):
     """A distance bracket with two prices — booked in advance vs. on-demand.
 
@@ -126,7 +166,8 @@ class Coupon(models.Model):
 class Booking(models.Model):
     class Status(models.TextChoices):
         NOWA = "NOWA", "Nowa (oczekuje na potwierdzenie)"
-        POTWIERDZONA = "POTWIERDZONA", "Potwierdzona"
+        POTWIERDZONA = "POTWIERDZONA", "Potwierdzona (oczekuje na zaliczkę)"
+        OPLACONA = "OPLACONA", "Opłacona (oczekuje na kierowcę)"
         KIEROWCA_W_DRODZE = "KIEROWCA_W_DRODZE", "Kierowca w drodze"
         W_TRAKCIE = "W_TRAKCIE", "W trakcie kursu"
         ZAKONCZONA = "ZAKONCZONA", "Zakończona"
@@ -177,6 +218,20 @@ class Booking(models.Model):
     )
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name="bookings")
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # Confirm-before-pay workflow: NOWA (just created) -> POTWIERDZONA (dispatcher
+    # reviewed/adjusted price) -> OPLACONA (customer paid the deposit within the
+    # payment window) -> normal driver-assignment flow picks up from there.
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    payment_deadline = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Ustawiane przy potwierdzeniu — po tym czasie niezapłacona rezerwacja jest automatycznie anulowana.",
+    )
+    deposit_amount = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text="Zaliczka do zapłaty — zrzut z ustawień w momencie potwierdzenia rezerwacji.",
+    )
+    paid_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-scheduled_at"]
