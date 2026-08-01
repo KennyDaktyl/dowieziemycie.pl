@@ -1,6 +1,17 @@
 from django.contrib import admin
 
-from .models import BlogPost, ContentPage, FixedRoute, HomeContent, LocalRoute, Tour, TourPhoto
+from .models import (
+    BlogPost,
+    ContentPage,
+    FixedRoute,
+    FixedRoutePhoto,
+    FixedRouteVehiclePrice,
+    HomeContent,
+    LocalRoute,
+    Tour,
+    TourPhoto,
+    TourVehiclePrice,
+)
 
 
 @admin.register(HomeContent)
@@ -27,35 +38,44 @@ class HomeContentAdmin(admin.ModelAdmin):
     )
 
 
+class TourVehiclePriceInline(admin.TabularInline):
+    """One row per real vehicle from Flota → Pojazdy — add/remove a vehicle
+    there and its price row appears/disappears here, instead of a fixed
+    pair of price fields that assumed there'd always be exactly two."""
+
+    model = TourVehiclePrice
+    extra = 1
+    autocomplete_fields = ("vehicle",)
+    fields = ("vehicle", "price", "price_eur")
+
+
 class TourPhotoInline(admin.TabularInline):
     model = TourPhoto
     extra = 1
-    fields = ("image", "caption", "order")
+    fields = ("image", "thumbnail_preview", "caption", "order")
+    readonly_fields = ("thumbnail_preview",)
+
+    @admin.display(description="Podgląd")
+    def thumbnail_preview(self, obj):
+        if not obj.thumbnail:
+            return "—"
+        from django.utils.html import format_html
+
+        return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.thumbnail.url)
 
 
 @admin.register(Tour)
 class TourAdmin(admin.ModelAdmin):
-    list_display = ("title_pl", "site", "price_from", "price_large_vehicle", "is_published", "order")
-    list_editable = ("price_from", "is_published", "order")
+    list_display = ("title_pl", "site", "is_published", "order")
+    list_editable = ("is_published", "order")
     list_filter = ("site", "is_published")
     prepopulated_fields = {"slug": ("title_pl",)}
     search_fields = ("title_pl", "title_en", "summary_pl", "summary_en")
-    inlines = [TourPhotoInline]
+    inlines = [TourVehiclePriceInline, TourPhotoInline]
     fieldsets = (
         (None, {"fields": (
             "site", "slug", "duration", "cover_image", "is_published", "order",
         )}),
-        (
-            "Ceny (PLN — wersja polska)",
-            {"fields": ("price_from", "price_large_vehicle")},
-        ),
-        (
-            "Ceny (EUR — wersje EN/DE)",
-            {
-                "fields": ("price_from_eur", "price_large_vehicle_eur"),
-                "description": "Wpisz ręcznie — nie są przeliczane automatycznie z PLN.",
-            },
-        ),
         (
             "Polski",
             {"fields": ("title_pl", "h1_pl", "summary_pl", "body_pl", "seo_title_pl", "seo_description_pl")},
@@ -86,28 +106,40 @@ class LocalRouteAdmin(admin.ModelAdmin):
     )
 
 
+class FixedRouteVehiclePriceInline(admin.TabularInline):
+    model = FixedRouteVehiclePrice
+    extra = 1
+    autocomplete_fields = ("vehicle",)
+    fields = ("vehicle", "price", "price_eur")
+
+
+class FixedRoutePhotoInline(admin.TabularInline):
+    model = FixedRoutePhoto
+    extra = 1
+    fields = ("image", "thumbnail_preview", "caption", "order")
+    readonly_fields = ("thumbnail_preview",)
+
+    @admin.display(description="Podgląd")
+    def thumbnail_preview(self, obj):
+        if not obj.thumbnail:
+            return "—"
+        from django.utils.html import format_html
+
+        return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.thumbnail.url)
+
+
 @admin.register(FixedRoute)
 class FixedRouteAdmin(admin.ModelAdmin):
-    list_display = ("name_pl", "price_from", "price_large_vehicle", "duration", "is_published", "order")
-    list_editable = ("price_from", "price_large_vehicle", "is_published", "order")
+    list_display = ("name_pl", "duration", "is_published", "order")
+    list_editable = ("is_published", "order")
     list_filter = ("is_published",)
     prepopulated_fields = {"slug": ("name_pl",)}
     search_fields = ("name_pl", "name_en", "slug")
+    inlines = [FixedRouteVehiclePriceInline, FixedRoutePhotoInline]
     fieldsets = (
         (None, {"fields": (
             "site", "slug", "duration", "is_published", "order",
         )}),
-        (
-            "Ceny (PLN — wersja polska)",
-            {"fields": ("price_from", "price_large_vehicle")},
-        ),
-        (
-            "Ceny (EUR — wersje EN/DE)",
-            {
-                "fields": ("price_from_eur", "price_large_vehicle_eur"),
-                "description": "Wpisz ręcznie — nie są przeliczane automatycznie z PLN.",
-            },
-        ),
         ("Polski", {"fields": ("name_pl", "h1_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("name_en", "h1_en", "body_en", "seo_title_en", "seo_description_en")}),
         ("Deutsch", {"fields": ("name_de", "h1_de", "body_de", "seo_title_de", "seo_description_de")}),

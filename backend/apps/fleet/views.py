@@ -49,7 +49,7 @@ class VehicleListView(generics.ListAPIView):
 
     permission_classes = [AllowAny]
     serializer_class = VehicleSerializer
-    queryset = Vehicle.objects.filter(is_active=True)
+    queryset = Vehicle.objects.filter(is_active=True).prefetch_related("photos")
 
 
 class DriverLoginView(APIView):

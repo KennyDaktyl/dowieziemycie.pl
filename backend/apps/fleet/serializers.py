@@ -28,7 +28,7 @@ class DriverLiveStatusSerializer(serializers.ModelSerializer):
 class VehiclePhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = VehiclePhoto
-        fields = ["image", "caption", "order"]
+        fields = ["image", "thumbnail", "caption", "order"]
 
 
 class VehicleSerializer(serializers.ModelSerializer):

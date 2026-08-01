@@ -15,7 +15,14 @@ STATUS_COLORS = {
 class VehiclePhotoInline(admin.TabularInline):
     model = VehiclePhoto
     extra = 1
-    fields = ("image", "caption", "order")
+    fields = ("image", "thumbnail_preview", "caption", "order")
+    readonly_fields = ("thumbnail_preview",)
+
+    @admin.display(description="Podgląd")
+    def thumbnail_preview(self, obj):
+        if not obj.thumbnail:
+            return "—"
+        return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.thumbnail.url)
 
 
 @admin.register(Vehicle)

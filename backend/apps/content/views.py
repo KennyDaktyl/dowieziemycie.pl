@@ -23,12 +23,17 @@ class HomeContentView(APIView):
         return Response(HomeContentSerializer(content).data)
 
 
+TOUR_PREFETCH = ("photos", "vehicle_prices__vehicle")
+
+
 class TourListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     serializer_class = TourSerializer
 
     def get_queryset(self):
-        return Tour.objects.filter(is_published=True, site=self.request.site_code)
+        return Tour.objects.filter(is_published=True, site=self.request.site_code).prefetch_related(
+            *TOUR_PREFETCH
+        )
 
 
 class TourDetailView(generics.RetrieveAPIView):
@@ -37,7 +42,9 @@ class TourDetailView(generics.RetrieveAPIView):
     lookup_field = "slug"
 
     def get_queryset(self):
-        return Tour.objects.filter(is_published=True, site=self.request.site_code)
+        return Tour.objects.filter(is_published=True, site=self.request.site_code).prefetch_related(
+            *TOUR_PREFETCH
+        )
 
 
 class LocalRouteListView(generics.ListAPIView):
@@ -53,6 +60,9 @@ class LocalRouteDetailView(generics.RetrieveAPIView):
     lookup_field = "slug"
 
 
+ROUTE_PREFETCH = ("photos", "vehicle_prices__vehicle")
+
+
 class FixedRouteListView(generics.ListAPIView):
     """GET /api/fixed-routes/ — transfer247's point-to-point routes, site-filtered."""
 
@@ -60,7 +70,9 @@ class FixedRouteListView(generics.ListAPIView):
     serializer_class = FixedRouteSerializer
 
     def get_queryset(self):
-        return FixedRoute.objects.filter(is_published=True, site=self.request.site_code)
+        return FixedRoute.objects.filter(is_published=True, site=self.request.site_code).prefetch_related(
+            *ROUTE_PREFETCH
+        )
 
 
 class FixedRouteDetailView(generics.RetrieveAPIView):
@@ -69,7 +81,9 @@ class FixedRouteDetailView(generics.RetrieveAPIView):
     lookup_field = "slug"
 
     def get_queryset(self):
-        return FixedRoute.objects.filter(is_published=True, site=self.request.site_code)
+        return FixedRoute.objects.filter(is_published=True, site=self.request.site_code).prefetch_related(
+            *ROUTE_PREFETCH
+        )
 
 
 class BlogPostListView(generics.ListAPIView):

@@ -2,6 +2,7 @@ from django.conf import settings
 from django.db import models
 
 from apps.accounts.models import phone_validator
+from common.imaging import process_cover_image, process_gallery_photo
 
 
 class Vehicle(models.Model):
@@ -22,6 +23,10 @@ class Vehicle(models.Model):
         verbose_name = "Pojazd"
         verbose_name_plural = "Pojazdy"
 
+    def save(self, *args, **kwargs):
+        process_cover_image(self, "cover_photo")
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name} · {self.plate}"
 
@@ -31,6 +36,7 @@ class VehiclePhoto(models.Model):
 
     vehicle = models.ForeignKey(Vehicle, related_name="photos", on_delete=models.CASCADE)
     image = models.ImageField(upload_to="vehicles/gallery/")
+    thumbnail = models.ImageField(upload_to="vehicles/gallery/thumbs/", blank=True, editable=False)
     caption = models.CharField(max_length=160, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
 
@@ -38,6 +44,10 @@ class VehiclePhoto(models.Model):
         ordering = ["order", "id"]
         verbose_name = "Zdjęcie pojazdu"
         verbose_name_plural = "Zdjęcia pojazdu"
+
+    def save(self, *args, **kwargs):
+        process_gallery_photo(self, "image", "thumbnail")
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.caption or f"Zdjęcie #{self.pk}"

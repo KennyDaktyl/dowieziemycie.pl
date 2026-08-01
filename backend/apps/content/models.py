@@ -1,5 +1,6 @@
 from django.db import models
 
+from common.imaging import process_cover_image, process_gallery_photo
 from config.sites import DEFAULT_SITE, SITE_CHOICES
 
 
@@ -43,8 +44,9 @@ class HomeContent(models.Model):
 class Tour(models.Model):
     """A guided day-trip offer with a waiting driver (Auschwitz, Wieliczka,
     Zakopane, ...) — as opposed to FixedRoute, which is a point-to-point
-    transfer. `price_large_vehicle` is optional: dowieziemycie only ever
-    quotes one price (single vehicle); transfer247 quotes two (Auris/Tourneo)."""
+    transfer. Price is per real vehicle from the fleet (see
+    TourVehiclePrice) — however many vehicle classes actually exist in
+    apps.fleet.Vehicle, not a hardcoded pair of "small"/"large" fields."""
 
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
     title_pl = models.CharField(max_length=120, help_text="Krótki tytuł — używany w menu, na kartach, w stopce.")
@@ -65,16 +67,6 @@ class Tour(models.Model):
     body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown) — wstęp, sekcje, FAQ.")
     body_en = models.TextField(blank=True)
     body_de = models.TextField(blank=True)
-    price_from = models.DecimalField(max_digits=7, decimal_places=2)
-    price_large_vehicle = models.DecimalField(
-        max_digits=7, decimal_places=2, null=True, blank=True,
-        help_text="Cena drugim/większym pojazdem, jeśli dotyczy (np. Ford Tourneo Custom u transfer247).",
-    )
-    price_from_eur = models.DecimalField(
-        max_digits=7, decimal_places=2, null=True, blank=True,
-        help_text="Cena w euro dla wersji EN/DE strony — wpisywana ręcznie, nie przeliczana automatycznie.",
-    )
-    price_large_vehicle_eur = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     cover_image = models.ImageField(upload_to="tours/covers/", blank=True, null=True)
     seo_title_pl = models.CharField(max_length=160, blank=True)
     seo_title_en = models.CharField(max_length=160, blank=True)
@@ -90,13 +82,42 @@ class Tour(models.Model):
         verbose_name = "Wycieczka"
         verbose_name_plural = "Wycieczki"
 
+    def save(self, *args, **kwargs):
+        process_cover_image(self, "cover_image")
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.title_pl
+
+
+class TourVehiclePrice(models.Model):
+    """One row per (Tour, Vehicle) — however many vehicle classes actually
+    exist in the fleet (apps.fleet.Vehicle) get a price row here; add or
+    remove a vehicle there and its price line appears/disappears, instead
+    of a fixed pair of price fields that assumed exactly two."""
+
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name="vehicle_prices")
+    vehicle = models.ForeignKey("fleet.Vehicle", on_delete=models.CASCADE, related_name="tour_prices")
+    price = models.DecimalField(max_digits=7, decimal_places=2)
+    price_eur = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text="Cena w euro dla wersji EN/DE strony — wpisywana ręcznie, nie przeliczana automatycznie.",
+    )
+
+    class Meta:
+        unique_together = ("tour", "vehicle")
+        ordering = ["vehicle__name"]
+        verbose_name = "Cena wycieczki dla pojazdu"
+        verbose_name_plural = "Ceny wycieczki dla pojazdów"
+
+    def __str__(self):
+        return f"{self.tour} · {self.vehicle.name}: {self.price} zł"
 
 
 class TourPhoto(models.Model):
     tour = models.ForeignKey(Tour, related_name="photos", on_delete=models.CASCADE)
     image = models.ImageField(upload_to="tours/gallery/")
+    thumbnail = models.ImageField(upload_to="tours/gallery/thumbs/", blank=True, editable=False)
     caption = models.CharField(max_length=160, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
 
@@ -104,6 +125,10 @@ class TourPhoto(models.Model):
         ordering = ["order", "id"]
         verbose_name = "Zdjęcie wycieczki"
         verbose_name_plural = "Zdjęcia wycieczki"
+
+    def save(self, *args, **kwargs):
+        process_gallery_photo(self, "image", "thumbnail")
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.caption or f"Zdjęcie #{self.pk}"
@@ -149,11 +174,11 @@ class LocalRoute(models.Model):
 
 
 class FixedRoute(models.Model):
-    """A point-to-point transfer at a fixed price (transfer247.pl) —
-    Balice↔Kraków, Katowice(Pyrzowice)↔Kraków, Balice↔Zakopane, etc. Unlike
+    """A point-to-point transfer at a fixed price (transfer247.pl) — Balice
+    ↔Kraków, Katowice(Pyrzowice)↔Kraków, Balice↔Zakopane, etc. Unlike
     LocalRoute, the price here isn't computed live — it's set directly by
-    the admin per route, same reasoning as Tour.price_large_vehicle: this
-    business quotes a flat rate per vehicle type, not a distance calculation."""
+    the admin, per real vehicle from the fleet (see FixedRouteVehiclePrice),
+    however many vehicle classes actually exist in apps.fleet.Vehicle."""
 
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default="transfer247")
     slug = models.SlugField(max_length=140, unique=True)
@@ -168,13 +193,6 @@ class FixedRoute(models.Model):
     h1_en = models.CharField(max_length=200, blank=True)
     h1_de = models.CharField(max_length=200, blank=True)
     duration = models.CharField(max_length=40, blank=True, help_text="Np. „~25 min” — tekst dowolny.")
-    price_from = models.DecimalField(max_digits=7, decimal_places=2)
-    price_large_vehicle = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
-    price_from_eur = models.DecimalField(
-        max_digits=7, decimal_places=2, null=True, blank=True,
-        help_text="Cena w euro dla wersji EN/DE strony — wpisywana ręcznie, nie przeliczana automatycznie.",
-    )
-    price_large_vehicle_eur = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
     body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown) — wstęp, sekcje, FAQ.")
     body_en = models.TextField(blank=True)
     body_de = models.TextField(blank=True)
@@ -194,6 +212,45 @@ class FixedRoute(models.Model):
 
     def __str__(self):
         return self.name_pl
+
+
+class FixedRouteVehiclePrice(models.Model):
+    route = models.ForeignKey(FixedRoute, on_delete=models.CASCADE, related_name="vehicle_prices")
+    vehicle = models.ForeignKey("fleet.Vehicle", on_delete=models.CASCADE, related_name="route_prices")
+    price = models.DecimalField(max_digits=7, decimal_places=2)
+    price_eur = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text="Cena w euro dla wersji EN/DE strony — wpisywana ręcznie, nie przeliczana automatycznie.",
+    )
+
+    class Meta:
+        unique_together = ("route", "vehicle")
+        ordering = ["vehicle__name"]
+        verbose_name = "Cena trasy dla pojazdu"
+        verbose_name_plural = "Ceny trasy dla pojazdów"
+
+    def __str__(self):
+        return f"{self.route} · {self.vehicle.name}: {self.price} zł"
+
+
+class FixedRoutePhoto(models.Model):
+    route = models.ForeignKey(FixedRoute, related_name="photos", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="routes/gallery/")
+    thumbnail = models.ImageField(upload_to="routes/gallery/thumbs/", blank=True, editable=False)
+    caption = models.CharField(max_length=160, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Zdjęcie trasy"
+        verbose_name_plural = "Zdjęcia trasy"
+
+    def save(self, *args, **kwargs):
+        process_gallery_photo(self, "image", "thumbnail")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.caption or f"Zdjęcie #{self.pk}"
 
 
 class BlogPost(models.Model):
@@ -225,6 +282,10 @@ class BlogPost(models.Model):
         ordering = ["-published_at"]
         verbose_name = "Wpis bloga"
         verbose_name_plural = "Wpisy bloga"
+
+    def save(self, *args, **kwargs):
+        process_cover_image(self, "cover_image")
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title_pl

@@ -4,10 +4,13 @@ from .models import (
     BlogPost,
     ContentPage,
     FixedRoute,
+    FixedRoutePhoto,
+    FixedRouteVehiclePrice,
     HomeContent,
     LocalRoute,
     Tour,
     TourPhoto,
+    TourVehiclePrice,
 )
 
 
@@ -26,11 +29,29 @@ class HomeContentSerializer(serializers.ModelSerializer):
 class TourPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TourPhoto
-        fields = ["image", "caption", "order"]
+        fields = ["image", "thumbnail", "caption", "order"]
+
+
+class TourVehiclePriceSerializer(serializers.ModelSerializer):
+    """A price line tied to a REAL vehicle from the fleet — however many of
+    these a tour has is however many vehicles the admin priced it for, not
+    a hardcoded pair of slots. vehicle_id lets the frontend link straight
+    to that vehicle's entry on /flota."""
+
+    vehicle_id = serializers.IntegerField(source="vehicle.id", read_only=True)
+    vehicle_name = serializers.CharField(source="vehicle.name", read_only=True)
+    vehicle_seats = serializers.IntegerField(source="vehicle.seats", read_only=True)
+
+    class Meta:
+        model = TourVehiclePrice
+        fields = ["vehicle_id", "vehicle_name", "vehicle_seats", "price", "price_eur"]
 
 
 class TourSerializer(serializers.ModelSerializer):
     photos = TourPhotoSerializer(many=True, read_only=True)
+    vehicle_prices = TourVehiclePriceSerializer(many=True, read_only=True)
+    price_from = serializers.SerializerMethodField()
+    price_from_eur = serializers.SerializerMethodField()
 
     class Meta:
         model = Tour
@@ -39,12 +60,19 @@ class TourSerializer(serializers.ModelSerializer):
             "h1_pl", "h1_en", "h1_de",
             "summary_pl", "summary_en", "summary_de",
             "body_pl", "body_en", "body_de",
-            "duration", "price_from", "price_large_vehicle",
-            "price_from_eur", "price_large_vehicle_eur", "cover_image",
+            "duration", "vehicle_prices", "price_from", "price_from_eur", "cover_image",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
             "photos", "order",
         ]
+
+    def get_price_from(self, obj):
+        prices = [vp.price for vp in obj.vehicle_prices.all()]
+        return min(prices) if prices else None
+
+    def get_price_from_eur(self, obj):
+        prices = [vp.price_eur for vp in obj.vehicle_prices.all() if vp.price_eur is not None]
+        return min(prices) if prices else None
 
 
 class LocalRouteSerializer(serializers.ModelSerializer):
@@ -85,19 +113,47 @@ class LocalRouteSerializer(serializers.ModelSerializer):
         return self._estimate(obj).price
 
 
+class FixedRoutePhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FixedRoutePhoto
+        fields = ["image", "thumbnail", "caption", "order"]
+
+
+class FixedRouteVehiclePriceSerializer(serializers.ModelSerializer):
+    vehicle_id = serializers.IntegerField(source="vehicle.id", read_only=True)
+    vehicle_name = serializers.CharField(source="vehicle.name", read_only=True)
+    vehicle_seats = serializers.IntegerField(source="vehicle.seats", read_only=True)
+
+    class Meta:
+        model = FixedRouteVehiclePrice
+        fields = ["vehicle_id", "vehicle_name", "vehicle_seats", "price", "price_eur"]
+
+
 class FixedRouteSerializer(serializers.ModelSerializer):
+    photos = FixedRoutePhotoSerializer(many=True, read_only=True)
+    vehicle_prices = FixedRouteVehiclePriceSerializer(many=True, read_only=True)
+    price_from = serializers.SerializerMethodField()
+    price_from_eur = serializers.SerializerMethodField()
+
     class Meta:
         model = FixedRoute
         fields = [
             "slug", "name_pl", "name_en", "name_de",
             "h1_pl", "h1_en", "h1_de", "duration",
-            "price_from", "price_large_vehicle",
-            "price_from_eur", "price_large_vehicle_eur",
+            "vehicle_prices", "price_from", "price_from_eur",
             "body_pl", "body_en", "body_de",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
-            "order",
+            "photos", "order",
         ]
+
+    def get_price_from(self, obj):
+        prices = [vp.price for vp in obj.vehicle_prices.all()]
+        return min(prices) if prices else None
+
+    def get_price_from_eur(self, obj):
+        prices = [vp.price_eur for vp in obj.vehicle_prices.all() if vp.price_eur is not None]
+        return min(prices) if prices else None
 
 
 class BlogPostSerializer(serializers.ModelSerializer):
