@@ -6,6 +6,15 @@ import { getAccessToken } from "./session";
 
 export const LOCATION_TASK_NAME = "dowieziemycie-driver-location";
 
+// GPS coords come back as raw JS floats with full double-precision noise
+// (e.g. 50.06139500000001) — the backend's DecimalField(max_digits=9,
+// decimal_places=6) rejects that as "too many digits". Round to 6 decimal
+// places (~11cm accuracy, already far more precise than needed) before
+// sending, matching the backend's own precision.
+export function round6(value: number): number {
+  return Math.round(value * 1e6) / 1e6;
+}
+
 // Must be defined at module top level so it re-registers on a cold start
 // triggered by the OS delivering a background location update — this
 // module is imported once from app/_layout.tsx specifically to guarantee
@@ -23,7 +32,7 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
     await fetch(`${API_BASE_URL}/api/fleet/driver/position/`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ lat: latest.coords.latitude, lng: latest.coords.longitude }),
+      body: JSON.stringify({ lat: round6(latest.coords.latitude), lng: round6(latest.coords.longitude) }),
     });
   } catch {
     // Dropped silently — the next tick (in ~10s) reports a fresher position

@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   isTrackingActive,
   requestLocationPermissions,
+  round6,
   startBackgroundTracking,
   stopBackgroundTracking,
 } from "@/lib/location-task";
@@ -41,7 +42,7 @@ export default function DashboardScreen() {
     const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
     await apiFetch("/api/fleet/driver/position/", accessToken, {
       method: "POST",
-      body: JSON.stringify({ lat: position.coords.latitude, lng: position.coords.longitude, status }),
+      body: JSON.stringify({ lat: round6(position.coords.latitude), lng: round6(position.coords.longitude), status }),
     });
   }
 
