@@ -48,6 +48,13 @@
           "color": "#F5A623"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1d382d98-0085-44c1-9bd7-b6aa102f77ac"
+      }
+    },
+    "owner": "kennydaktyl"
   }
 }
