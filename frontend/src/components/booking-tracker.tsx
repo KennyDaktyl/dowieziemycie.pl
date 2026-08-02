@@ -25,11 +25,13 @@ const RECONNECT_MAX_MS = 15000;
 export function BookingTracker({
   bookingId,
   accessToken,
+  code,
   driverName,
   driverVehicle,
 }: {
   bookingId: number;
-  accessToken: string;
+  accessToken?: string;
+  code?: string;
   driverName: string | null;
   driverVehicle: string | null;
 }) {
@@ -47,7 +49,8 @@ export function BookingTracker({
     function connect() {
       if (cancelled) return;
       setConnectionState("connecting");
-      socket = new WebSocket(`${wsBaseUrl()}/ws/booking/track/${bookingId}/?token=${accessToken}`);
+      const authParam = code ? `code=${code}` : `token=${accessToken}`;
+      socket = new WebSocket(`${wsBaseUrl()}/ws/booking/track/${bookingId}/?${authParam}`);
 
       socket.onopen = () => {
         retryDelay = RECONNECT_BASE_MS;
@@ -76,7 +79,7 @@ export function BookingTracker({
       if (retryTimer) clearTimeout(retryTimer);
       socket?.close();
     };
-  }, [bookingId, accessToken]);
+  }, [bookingId, accessToken, code]);
 
   const mapDrivers =
     driver?.current_lat && driver?.current_lng

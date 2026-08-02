@@ -2,7 +2,11 @@
 schedule, registering the mobile app's push token. All authenticated via
 DriverJWTAuthentication (a driver's token, not a customer's or Django User's)."""
 
+import random
+from datetime import timedelta
+
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import generics, serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -104,6 +108,82 @@ class MyScheduleView(generics.ListAPIView):
         )
 
 
+class DriverBookingHistoryView(generics.ListAPIView):
+    """GET /api/fleet/driver/bookings/history/ — this driver's own finished
+    or cancelled bookings, most recent first."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = DriverBookingSerializer
+
+    def get_queryset(self):
+        return (
+            Booking.objects.filter(
+                assigned_driver=self.request.user,
+                status__in=[Booking.Status.ZAKONCZONA, Booking.Status.ANULOWANA],
+            )
+            .select_related("customer")
+            .order_by("-scheduled_at")[:50]
+        )
+
+
+class StartBookingView(APIView):
+    """POST /api/fleet/driver/bookings/<id>/start/ — driver has arrived and
+    picked up the customer. KIEROWCA_W_DRODZE -> W_TRAKCIE, only for the
+    driver this booking is assigned to. Also flips the driver's own
+    availability status so it can't drift out of sync with the booking it's
+    tied to (this was the actual bug the client hit: accepting a booking
+    never touched Driver.status, so "which booking am I on" and "am I
+    marked busy" were two unrelated pieces of state)."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        driver = request.user
+        with transaction.atomic():
+            updated = Booking.objects.filter(
+                id=booking_id, assigned_driver=driver, status=Booking.Status.KIEROWCA_W_DRODZE,
+            ).update(status=Booking.Status.W_TRAKCIE)
+            if not updated:
+                return Response(
+                    {"detail": "Ten kurs nie jest przypisany do Ciebie albo nie jest w drodze do klienta."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            booking = Booking.objects.select_related("customer").get(id=booking_id)
+            driver.status = Driver.Status.W_KURSIE
+            driver.save(update_fields=["status"])
+
+        return Response(DriverBookingSerializer(booking).data)
+
+
+class FinishBookingView(APIView):
+    """POST /api/fleet/driver/bookings/<id>/finish/ — W_TRAKCIE -> ZAKONCZONA,
+    only for the driver this booking is assigned to. Frees the driver back
+    up (Driver.status -> DOSTEPNY) so open bookings/dispatch see them as
+    available again."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        driver = request.user
+        with transaction.atomic():
+            updated = Booking.objects.filter(
+                id=booking_id, assigned_driver=driver, status=Booking.Status.W_TRAKCIE,
+            ).update(status=Booking.Status.ZAKONCZONA)
+            if not updated:
+                return Response(
+                    {"detail": "Ten kurs nie jest przypisany do Ciebie albo nie jest w trakcie realizacji."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            booking = Booking.objects.select_related("customer").get(id=booking_id)
+            driver.status = Driver.Status.DOSTEPNY
+            driver.save(update_fields=["status"])
+
+        return Response(DriverBookingSerializer(booking).data)
+
+
 class AcceptBookingView(APIView):
     """POST /api/fleet/driver/bookings/<id>/accept/
 
@@ -129,6 +209,11 @@ class AcceptBookingView(APIView):
                     status=status.HTTP_409_CONFLICT,
                 )
             booking = Booking.objects.select_related("customer").get(id=booking_id)
+            driver.status = Driver.Status.JADACY_PO_KLIENTA
+            driver.save(update_fields=["status"])
+            booking.tracking_code = f"{random.randint(0, 9999):04d}"
+            booking.tracking_code_expires_at = timezone.now() + timedelta(hours=1)
+            booking.save(update_fields=["tracking_code", "tracking_code_expires_at"])
 
         self._notify_customer(booking, driver)
         return Response(DriverBookingSerializer(booking).data)
@@ -140,7 +225,9 @@ class AcceptBookingView(APIView):
         site_name = SITE_DISPLAY_NAMES[booking.site]
         try:
             get_sms_backend().send_message(
-                phone, f"{site_name}: Kierowca {driver.name} jedzie do Ciebie! Kurs: {booking.pickup_address}."
+                phone,
+                f"{site_name}: Kierowca {driver.name} jedzie do Ciebie! Kurs: {booking.pickup_address}. "
+                f"Śledź na żywo: kod {booking.tracking_code} (ważny 1h) na stronie /sledz.",
             )
         except Exception:
             import logging

@@ -111,14 +111,17 @@ class LiveMapConsumer(AsyncWebsocketConsumer):
 
 
 class BookingTrackConsumer(AsyncWebsocketConsumer):
-    """Private per-booking tracking — only the customer who made this exact
-    booking can subscribe, and only while a driver is actually assigned and
-    en route/in progress. Nothing here is ever visible on the public map."""
+    """Private per-booking tracking — either the customer who made this
+    exact booking (?token=<their JWT>), or anyone holding its short-lived
+    4-digit tracking code (?code=<code>, see TrackByCodeView) can subscribe.
+    Nothing here is ever visible on the public map."""
 
     async def connect(self):
         booking_id = self.scope["url_route"]["kwargs"]["booking_id"]
-        token = self._token_from_query_string()
-        allowed = await self._authorize(booking_id, token)
+        query = parse_qs(self.scope["query_string"].decode())
+        token = query.get("token", [None])[0]
+        code = query.get("code", [None])[0]
+        allowed = await self._authorize(booking_id, token, code)
         if not allowed:
             await self.close(code=4403)
             return
@@ -133,14 +136,16 @@ class BookingTrackConsumer(AsyncWebsocketConsumer):
     async def driver_update(self, event):
         await self.send(text_data=json.dumps({"type": "update", "driver": event["driver"]}))
 
-    def _token_from_query_string(self):
-        query = parse_qs(self.scope["query_string"].decode())
-        values = query.get("token")
-        return values[0] if values else None
-
     @database_sync_to_async
-    def _authorize(self, booking_id, token):
+    def _authorize(self, booking_id, token, code):
+        from django.utils import timezone
+
         from apps.accounts.models import Customer
+
+        if code:
+            return Booking.objects.filter(
+                id=booking_id, tracking_code=code, tracking_code_expires_at__gte=timezone.now(),
+            ).exists()
 
         if not token:
             return False

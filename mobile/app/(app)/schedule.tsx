@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { siteLabel } from "@/lib/site";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
 
@@ -15,15 +16,29 @@ const STATUS_LABELS: Record<string, string> = {
   NOWA: "Nowa",
 };
 
+// A booking only ever lands in "my schedule" already assigned to me
+// (accept sets both at once) — so the only actions are moving it forward
+// one step: KIEROWCA_W_DRODZE -> W_TRAKCIE -> ZAKONCZONA (which then drops
+// off this list and into Historia).
+const NEXT_ACTION: Record<string, { endpoint: string; label: string } | undefined> = {
+  KIEROWCA_W_DRODZE: { endpoint: "start", label: "Rozpocznij kurs" },
+  W_TRAKCIE: { endpoint: "finish", label: "Zakończ kurs" },
+};
+
 export default function ScheduleScreen() {
   const { accessToken } = useAuth();
   const [bookings, setBookings] = useState<DriverBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actingId, setActingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setError(null);
     try {
       const data = await apiFetch<DriverBooking[]>("/api/fleet/driver/schedule/", accessToken);
       setBookings(data);
+    } catch {
+      setError("Nie udało się pobrać listy kursów.");
     } finally {
       setLoading(false);
     }
@@ -34,6 +49,23 @@ export default function ScheduleScreen() {
       load();
     }, [load]),
   );
+
+  async function handleAction(booking: DriverBooking) {
+    const action = NEXT_ACTION[booking.status];
+    if (!action) return;
+    setActingId(booking.id);
+    setError(null);
+    try {
+      await apiFetch(`/api/fleet/driver/bookings/${booking.id}/${action.endpoint}/`, accessToken, {
+        method: "POST",
+      });
+      load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Nie udało się zaktualizować kursu.");
+    } finally {
+      setActingId(null);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
@@ -52,21 +84,47 @@ export default function ScheduleScreen() {
               <Text style={styles.emptyText}>Brak zaplanowanych kursów.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
+          renderItem={({ item }) => {
+            const action = NEXT_ACTION[item.status];
+            return (
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <Text style={styles.site}>{siteLabel(item.site)}</Text>
+                  <Text style={styles.badge}>{STATUS_LABELS[item.status] ?? item.status}</Text>
+                </View>
                 <Text style={styles.route}>
                   {item.pickup_address} → {item.dropoff_address}
                 </Text>
-                <Text style={styles.badge}>{STATUS_LABELS[item.status] ?? item.status}</Text>
+                <Text style={styles.meta}>
+                  {new Date(item.scheduled_at).toLocaleString("pl-PL")} · {item.customer_name || item.customer_phone}
+                </Text>
+                <Text style={styles.meta}>{item.customer_phone}</Text>
+                {action && (
+                  <Pressable
+                    onPress={() => handleAction(item)}
+                    disabled={actingId === item.id}
+                    style={({ pressed }) => [
+                      styles.actionButton,
+                      actingId === item.id && styles.actionButtonDisabled,
+                      pressed && { opacity: 0.85 },
+                    ]}
+                  >
+                    {actingId === item.id ? (
+                      <ActivityIndicator size="small" color="#1A1305" />
+                    ) : (
+                      <Text style={styles.actionButtonText}>{action.label}</Text>
+                    )}
+                  </Pressable>
+                )}
               </View>
-              <Text style={styles.meta}>
-                {new Date(item.scheduled_at).toLocaleString("pl-PL")} · {item.customer_name || item.customer_phone}
-              </Text>
-              <Text style={styles.meta}>{item.customer_phone}</Text>
-            </View>
-          )}
+            );
+          }}
         />
+      )}
+      {error && (
+        <View style={styles.errorBar}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -85,7 +143,14 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8 },
-  route: { color: colors.text, fontSize: 15, fontWeight: "700", flex: 1 },
+  site: {
+    color: colors.muted,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  route: { color: colors.text, fontSize: 15, fontWeight: "700", marginTop: 6 },
   badge: {
     color: colors.amber,
     fontSize: 11,
@@ -98,4 +163,15 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   meta: { color: colors.muted, fontSize: 13, marginTop: 6 },
+  actionButton: {
+    backgroundColor: colors.amber,
+    borderRadius: 9,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 12,
+  },
+  actionButtonDisabled: { opacity: 0.6 },
+  actionButtonText: { color: "#1A1305", fontWeight: "700", fontSize: 14 },
+  errorBar: { padding: 12, backgroundColor: colors.panel2 },
+  errorText: { color: colors.red, fontSize: 13, textAlign: "center" },
 });

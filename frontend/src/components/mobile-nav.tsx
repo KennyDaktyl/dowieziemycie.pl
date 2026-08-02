@@ -10,11 +10,13 @@ export function MobileNav({
   navLinks,
   loginHref,
   loginLabel,
+  trackByCodeLabel,
   speaksEnglishLabel,
 }: {
   navLinks: { href: string; label: string }[];
   loginHref: string;
   loginLabel: string;
+  trackByCodeLabel: string;
   speaksEnglishLabel: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -74,6 +76,13 @@ export function MobileNav({
               className="rounded-md px-2 py-3 text-text transition-colors hover:bg-panel"
             >
               {loginLabel}
+            </Link>
+            <Link
+              href="/sledz"
+              onClick={() => setOpen(false)}
+              className="mt-2 rounded-md border border-amber px-2 py-3 text-center font-semibold text-amber transition-colors hover:bg-amber/10"
+            >
+              {trackByCodeLabel}
             </Link>
           </nav>
 

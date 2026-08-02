@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { siteLabel } from "@/lib/site";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
 
@@ -65,6 +66,7 @@ export default function BookingsScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.card}>
+              <Text style={styles.site}>{siteLabel(item.site)}</Text>
               <Text style={styles.route}>
                 {item.pickup_address} → {item.dropoff_address}
               </Text>
@@ -113,7 +115,8 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 16,
   },
-  route: { color: colors.text, fontSize: 15, fontWeight: "700" },
+  site: { color: colors.muted, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 },
+  route: { color: colors.text, fontSize: 15, fontWeight: "700", marginTop: 6 },
   meta: { color: colors.muted, fontSize: 13, marginTop: 6 },
   price: { color: colors.green, fontSize: 16, fontWeight: "700", marginTop: 8 },
   acceptButton: { backgroundColor: colors.amber, borderRadius: 9, paddingVertical: 12, alignItems: "center", marginTop: 12 },

@@ -16,13 +16,17 @@ import { registerForPushNotifications } from "@/lib/notifications";
 import type { DriverStatus } from "@/lib/session";
 import { colors } from "@/lib/theme";
 
+// "W drodze do klienta" / "W kursie" are deliberately not manually
+// selectable here — they're driven by accepting/starting a booking (see
+// the Kursy/Harmonogram tabs), so this picker can't drift out of sync with
+// whichever booking the driver is actually on.
 const STATUS_OPTIONS: { value: DriverStatus; label: string }[] = [
   { value: "DOSTEPNY", label: "Aktywny (wolny)" },
-  { value: "JADACY_PO_KLIENTA", label: "W drodze do klienta" },
-  { value: "W_KURSIE", label: "W kursie" },
   { value: "WRACA_DO_BAZY", label: "Wraca do bazy" },
   { value: "OFFLINE", label: "Poza służbą / przerwa" },
 ];
+
+const BOOKING_DRIVEN_STATUSES: DriverStatus[] = ["JADACY_PO_KLIENTA", "W_KURSIE"];
 
 export default function DashboardScreen() {
   const { driver, accessToken, updateStatus, logout } = useAuth();
@@ -91,6 +95,14 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
+        {BOOKING_DRIVEN_STATUSES.includes(driver.status) && (
+          <View style={styles.bookingNotice}>
+            <Text style={styles.bookingNoticeText}>
+              Masz aktywny kurs — status steruje się z zakładki „Harmonogram”, nie stąd.
+            </Text>
+          </View>
+        )}
+
         <Text style={styles.label}>STATUS</Text>
         <View style={styles.statusList}>
           {STATUS_OPTIONS.map((option) => {
@@ -144,6 +156,16 @@ const styles = StyleSheet.create({
   },
   trackingDot: { width: 9, height: 9, borderRadius: 5 },
   trackingText: { color: colors.text, fontSize: 13.5, fontWeight: "600" },
+  bookingNotice: {
+    backgroundColor: colors.panel2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.amber,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  bookingNoticeText: { color: colors.amber, fontSize: 13, fontWeight: "600" },
   label: { color: colors.muted, fontSize: 11, fontWeight: "600", letterSpacing: 1, marginBottom: 8 },
   statusList: { gap: 8 },
   statusOption: {

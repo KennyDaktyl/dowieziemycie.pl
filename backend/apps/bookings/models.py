@@ -233,6 +233,18 @@ class Booking(models.Model):
     )
     paid_at = models.DateTimeField(null=True, blank=True)
 
+    # Low-friction alternative to logging in to watch a driver: a 4-digit
+    # code, generated when a driver accepts the booking (that's the moment
+    # tracking becomes meaningful), valid for 1 hour — enough for this
+    # business's short local trips, no renewal needed. Anyone with the code
+    # can watch this one booking's live position via /sledz, no account
+    # required — sent to the customer in the same "driver is on the way"
+    # SMS. Low entropy (10,000 combinations) is an accepted tradeoff: it's
+    # scoped to a single booking, expires in an hour, and only ever exposes
+    # a GPS position, nothing sensitive.
+    tracking_code = models.CharField(max_length=4, blank=True)
+    tracking_code_expires_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-scheduled_at"]
         verbose_name = "Rezerwacja"

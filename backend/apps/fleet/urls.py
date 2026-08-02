@@ -4,10 +4,13 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .driver_views import (
     AcceptBookingView,
     ConfirmBookingView,
+    DriverBookingHistoryView,
+    FinishBookingView,
     MyScheduleView,
     OpenBookingsListView,
     PendingConfirmationListView,
     RegisterPushTokenView,
+    StartBookingView,
     UpdatePositionView,
 )
 from .views import AvailabilityView, DriverEtaView, DriverLiveStatusListView, DriverLoginView, VehicleListView
@@ -32,6 +35,9 @@ urlpatterns = [
         "driver/bookings/<int:booking_id>/confirm/", ConfirmBookingView.as_view(), name="driver-booking-confirm",
     ),
     path("driver/schedule/", MyScheduleView.as_view(), name="driver-schedule"),
+    path("driver/bookings/history/", DriverBookingHistoryView.as_view(), name="driver-bookings-history"),
+    path("driver/bookings/<int:booking_id>/start/", StartBookingView.as_view(), name="driver-booking-start"),
+    path("driver/bookings/<int:booking_id>/finish/", FinishBookingView.as_view(), name="driver-booking-finish"),
     path("driver/push-token/", RegisterPushTokenView.as_view(), name="driver-push-token"),
     path("driver/position/", UpdatePositionView.as_view(), name="driver-position"),
 ]

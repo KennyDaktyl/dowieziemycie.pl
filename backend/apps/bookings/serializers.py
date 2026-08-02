@@ -46,7 +46,7 @@ class DriverBookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = [
-            "id", "customer_phone", "customer_name",
+            "id", "site", "customer_phone", "customer_name",
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "status", "distance_km", "price",

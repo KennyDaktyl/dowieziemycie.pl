@@ -71,6 +71,12 @@ export async function SiteHeader() {
             >
               {customer ? t("myTrips") : t("login")}
             </Link>
+            <Link
+              href="/sledz"
+              className="hidden rounded-md border border-amber px-[14px] py-[9px] text-sm font-semibold whitespace-nowrap text-amber transition-colors hover:bg-amber/10 sm:inline-block"
+            >
+              {tNav("trackByCode")}
+            </Link>
             <a
               href="tel:+48506029980"
               className="rounded-md bg-amber px-[14px] py-[9px] text-sm font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)] sm:px-[18px]"
@@ -81,6 +87,7 @@ export async function SiteHeader() {
               navLinks={navLinks}
               loginHref={customer ? "/panel" : "/logowanie"}
               loginLabel={customer ? t("myTrips") : t("login")}
+              trackByCodeLabel={tNav("trackByCode")}
               speaksEnglishLabel={t("speaksEnglish")}
             />
           </div>

@@ -34,6 +34,8 @@ def send_push(token: str, title: str, body: str, data: dict | None = None) -> No
 
 
 def notify_drivers_of_new_booking(booking) -> None:
+    from config.sites import SITE_DISPLAY_NAMES
+
     from .models import Driver
 
     tokens = (
@@ -41,10 +43,11 @@ def notify_drivers_of_new_booking(booking) -> None:
         .exclude(expo_push_token="")
         .values_list("expo_push_token", flat=True)
     )
+    site_name = SITE_DISPLAY_NAMES.get(booking.site, booking.site)
     for token in tokens:
         send_push(
             token,
-            title="Nowy kurs do odebrania",
+            title=f"Nowy kurs — {site_name}",
             body=f"{booking.pickup_address} → {booking.dropoff_address}",
-            data={"type": "new_booking", "booking_id": booking.id},
+            data={"type": "new_booking", "booking_id": booking.id, "site": booking.site},
         )

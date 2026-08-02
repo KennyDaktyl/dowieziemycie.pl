@@ -9,6 +9,7 @@ urlpatterns = [
     path("api/fleet/", include("apps.fleet.urls")),
     path("api/", include("apps.bookings.urls")),
     path("api/", include("apps.content.urls")),
+    path("api/tracking/", include("apps.tracking.urls")),
 ]
 
 if settings.DEBUG:

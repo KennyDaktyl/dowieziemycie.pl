@@ -1,5 +1,6 @@
 export interface DriverBooking {
   id: number;
+  site: string;
   customer_phone: string;
   customer_name: string;
   pickup_address: string;

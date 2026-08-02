@@ -114,6 +114,64 @@ class DriverBookingWorkflowTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual([b["id"] for b in res.data], [mine.id])
 
+    def test_accept_also_marks_driver_as_heading_to_customer(self):
+        booking = _make_booking(self.customer)
+        self.client.post(f"/api/fleet/driver/bookings/{booking.id}/accept/", **_driver_auth_header(self.driver))
+        self.driver.refresh_from_db()
+        self.assertEqual(self.driver.status, Driver.Status.JADACY_PO_KLIENTA)
+
+    def test_start_moves_booking_to_w_trakcie_and_driver_to_w_kursie(self):
+        booking = _make_booking(
+            self.customer, assigned_driver=self.driver, status=Booking.Status.KIEROWCA_W_DRODZE,
+        )
+        res = self.client.post(f"/api/fleet/driver/bookings/{booking.id}/start/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.driver.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.W_TRAKCIE)
+        self.assertEqual(self.driver.status, Driver.Status.W_KURSIE)
+
+    def test_start_rejects_booking_assigned_to_another_driver(self):
+        other = Driver.objects.create(user=User.objects.create_user(username="driverE"), name="Driver E")
+        booking = _make_booking(self.customer, assigned_driver=other, status=Booking.Status.KIEROWCA_W_DRODZE)
+        res = self.client.post(f"/api/fleet/driver/bookings/{booking.id}/start/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.status_code, 409)
+
+    def test_finish_moves_booking_to_zakonczona_and_driver_to_dostepny(self):
+        booking = _make_booking(self.customer, assigned_driver=self.driver, status=Booking.Status.W_TRAKCIE)
+        self.driver.status = Driver.Status.W_KURSIE
+        self.driver.save(update_fields=["status"])
+        res = self.client.post(f"/api/fleet/driver/bookings/{booking.id}/finish/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.driver.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.ZAKONCZONA)
+        self.assertEqual(self.driver.status, Driver.Status.DOSTEPNY)
+
+    def test_finish_rejects_booking_not_yet_started(self):
+        booking = _make_booking(
+            self.customer, assigned_driver=self.driver, status=Booking.Status.KIEROWCA_W_DRODZE,
+        )
+        res = self.client.post(f"/api/fleet/driver/bookings/{booking.id}/finish/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.status_code, 409)
+
+    def test_history_lists_only_own_finished_or_cancelled_bookings(self):
+        finished = _make_booking(self.customer, assigned_driver=self.driver, status=Booking.Status.ZAKONCZONA)
+        cancelled = _make_booking(self.customer, assigned_driver=self.driver, status=Booking.Status.ANULOWANA)
+        _make_booking(self.customer, assigned_driver=self.driver, status=Booking.Status.KIEROWCA_W_DRODZE)
+        other_driver = Driver.objects.create(user=User.objects.create_user(username="driverF"), name="Driver F")
+        _make_booking(self.customer, assigned_driver=other_driver, status=Booking.Status.ZAKONCZONA)
+
+        res = self.client.get("/api/fleet/driver/bookings/history/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.status_code, 200)
+        ids = {b["id"] for b in res.data}
+        self.assertEqual(ids, {finished.id, cancelled.id})
+
+    def test_driver_booking_serializer_exposes_site(self):
+        booking = _make_booking(self.customer, assigned_driver=self.driver, site="transfer247")
+        res = self.client.get("/api/fleet/driver/schedule/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.data[0]["site"], "transfer247")
+
     def test_register_push_token_saves_it(self):
         res = self.client.post(
             "/api/fleet/driver/push-token/", {"expo_push_token": "ExponentPushToken[abc123]"},

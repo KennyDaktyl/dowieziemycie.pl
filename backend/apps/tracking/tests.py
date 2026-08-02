@@ -182,3 +182,81 @@ class BookingTrackConsumerTests(TestCase):
 
         await booking_socket.disconnect()
         await driver_socket.disconnect()
+
+    async def _connect_with_code(self, booking_id, code):
+        communicator = WebsocketCommunicator(
+            BookingTrackConsumer.as_asgi(), f"/ws/booking/track/{booking_id}/?code={code}"
+        )
+        communicator.scope["url_route"] = {"kwargs": {"booking_id": booking_id}}
+        connected, _ = await communicator.connect()
+        return communicator, connected
+
+    async def test_accepts_valid_unexpired_code(self):
+        customer = await Customer.objects.acreate(phone="+48500000006")
+        booking = await Booking.objects.acreate(
+            customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
+            tracking_code="1234", tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
+        )
+        communicator, connected = await self._connect_with_code(booking.id, "1234")
+        self.assertTrue(connected)
+        await communicator.disconnect()
+
+    async def test_rejects_expired_code(self):
+        customer = await Customer.objects.acreate(phone="+48500000007")
+        booking = await Booking.objects.acreate(
+            customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
+            tracking_code="1234", tracking_code_expires_at=timezone.now() - timezone.timedelta(minutes=1),
+        )
+        communicator, connected = await self._connect_with_code(booking.id, "1234")
+        self.assertFalse(connected)
+        await communicator.disconnect()
+
+    async def test_rejects_wrong_code(self):
+        customer = await Customer.objects.acreate(phone="+48500000008")
+        booking = await Booking.objects.acreate(
+            customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
+            tracking_code="1234", tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
+        )
+        communicator, connected = await self._connect_with_code(booking.id, "9999")
+        self.assertFalse(connected)
+        await communicator.disconnect()
+
+
+class TrackByCodeViewTests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+
+        self.client = APIClient()
+
+    def test_resolves_valid_code_to_booking_with_driver_position(self):
+        customer = Customer.objects.create(phone="+48500000009")
+        user = User.objects.create_user(username="codedriver")
+        driver = Driver.objects.create(
+            user=user, name="Code Driver", status=Driver.Status.JADACY_PO_KLIENTA,
+            current_lat="50.06", current_lng="19.93",
+        )
+        booking = Booking.objects.create(
+            customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
+            assigned_driver=driver, status=Booking.Status.KIEROWCA_W_DRODZE,
+            tracking_code="4321", tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
+        )
+        res = self.client.post("/api/tracking/track-by-code/", {"code": "4321"})
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["booking_id"], booking.id)
+        self.assertEqual(res.data["driver_name"], "Code Driver")
+
+    def test_rejects_unknown_code(self):
+        res = self.client.post("/api/tracking/track-by-code/", {"code": "0000"})
+        self.assertEqual(res.status_code, 404)
+
+    def test_rejects_code_for_finished_booking(self):
+        customer = Customer.objects.create(phone="+48500000010")
+        user = User.objects.create_user(username="finisheddriver")
+        driver = Driver.objects.create(user=user, name="Finished Driver")
+        Booking.objects.create(
+            customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
+            assigned_driver=driver, status=Booking.Status.ZAKONCZONA,
+            tracking_code="5555", tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
+        )
+        res = self.client.post("/api/tracking/track-by-code/", {"code": "5555"})
+        self.assertEqual(res.status_code, 404)

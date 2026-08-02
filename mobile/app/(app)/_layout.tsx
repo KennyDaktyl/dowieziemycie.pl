@@ -22,6 +22,7 @@ export default function AppLayout() {
       <Tabs.Screen name="dashboard" options={{ title: "Panel" }} />
       <Tabs.Screen name="bookings" options={{ title: "Kursy" }} />
       <Tabs.Screen name="schedule" options={{ title: "Harmonogram" }} />
+      <Tabs.Screen name="history" options={{ title: "Historia" }} />
     </Tabs>
   );
 }
