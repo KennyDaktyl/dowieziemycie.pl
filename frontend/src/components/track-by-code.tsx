@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { publicApiBaseUrl, withSiteHeader } from "@/lib/api";
@@ -13,6 +14,7 @@ type TrackResult = {
 };
 
 export function TrackByCode() {
+  const t = useTranslations("TrackByCode");
   const [code, setCode] = useState("");
   const [result, setResult] = useState<TrackResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,12 +31,12 @@ export function TrackByCode() {
         body: JSON.stringify({ code }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.detail ?? "Nieprawidłowy lub wygasły kod.");
+        setError(t("invalidCode"));
+        return;
       }
       setResult(await res.json());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Nie udało się sprawdzić kodu.");
+    } catch {
+      setError(t("genericError"));
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export function TrackByCode() {
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-[360px]">
       <label className="mb-2 block text-[13px] font-semibold tracking-wide text-muted uppercase">
-        Kod kursu (4 cyfry)
+        {t("codeLabel")}
       </label>
       <input
         value={code}
@@ -70,7 +72,7 @@ export function TrackByCode() {
         disabled={code.length !== 4 || loading}
         className="mt-4 w-full rounded-md bg-amber py-3 text-[14px] font-semibold text-[#1a1305] transition-opacity disabled:opacity-50"
       >
-        {loading ? "Sprawdzam…" : "Śledź kierowcę"}
+        {loading ? t("submitting") : t("submit")}
       </button>
     </form>
   );

@@ -12,6 +12,15 @@
     "myTrips": "My trips",
     "logout": "Log out"
   },
+  "TrackByCode": {
+    "title": "Track your driver",
+    "lead": "Enter the 4-digit code you got by SMS from your driver — the code is valid for one hour after the ride is accepted.",
+    "codeLabel": "Ride code (4 digits)",
+    "submit": "Track driver",
+    "submitting": "Checking…",
+    "invalidCode": "Invalid or expired code.",
+    "genericError": "Couldn't check the code."
+  },
   "NotFound": {
     "title": "Page not found",
     "lead": "The page you're looking for doesn't exist or has moved. Check the links below or head back home.",

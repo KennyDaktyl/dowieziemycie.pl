@@ -12,6 +12,15 @@
     "myTrips": "Moje kursy",
     "logout": "Wyloguj"
   },
+  "TrackByCode": {
+    "title": "Śledź pozycję kierowcy",
+    "lead": "Wpisz 4-cyfrowy kod, który dostałeś SMS-em od kierowcy — kod jest ważny przez godzinę od przyjęcia kursu.",
+    "codeLabel": "Kod kursu (4 cyfry)",
+    "submit": "Śledź kierowcę",
+    "submitting": "Sprawdzam…",
+    "invalidCode": "Nieprawidłowy lub wygasły kod.",
+    "genericError": "Nie udało się sprawdzić kodu."
+  },
   "NotFound": {
     "title": "Nie znaleziono strony",
     "lead": "Strona, której szukasz, nie istnieje albo została przeniesiona. Sprawdź poniższe linki albo wróć na stronę główną.",
