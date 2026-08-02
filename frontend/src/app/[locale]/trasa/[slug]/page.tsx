@@ -69,7 +69,7 @@ export default async function RoutePage({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-[840px] px-6 py-16">
+      <main className="mx-auto max-w-[1360px] px-6 py-16">
         <Link href="/#routes" className="mb-6 inline-block text-[13px] font-semibold text-amber">
           {t("backToHome")}
         </Link>

@@ -15,7 +15,7 @@ export async function AboutSection() {
 
   return (
     <section className="border-line border-t px-6 py-16">
-      <div className="mx-auto max-w-[720px]">
+      <div className="mx-auto max-w-[1360px]">
         <h2 className="font-heading text-[24px] font-semibold">{t("heading")}</h2>
         <p className="mt-4 text-[15px] leading-relaxed text-muted">{about}</p>
         <a

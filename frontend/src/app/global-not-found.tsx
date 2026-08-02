@@ -20,6 +20,7 @@ export default function GlobalNotFound() {
           <p className="text-muted mt-3 text-[15px]">
             Strona, której szukasz, nie istnieje albo została przeniesiona.
           </p>
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- this page bypasses [locale]/layout.tsx entirely, no next-intl Link context is available here */}
           <a
             href="/pl"
             className="bg-amber mt-8 inline-block rounded-md px-6 py-3 text-[14px] font-semibold text-[#1a1305]"
