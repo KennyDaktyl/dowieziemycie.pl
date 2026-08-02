@@ -31,7 +31,7 @@ export default function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      await login(username, password);
+      await login(username.trim(), password);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się połączyć z serwerem.");
     } finally {
@@ -69,6 +69,8 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
               style={styles.input}
               placeholderTextColor={colors.muted}
             />
