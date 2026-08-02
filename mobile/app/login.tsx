@@ -20,6 +20,7 @@ export default function LoginScreen() {
   const { driver, login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,15 +66,20 @@ export default function LoginScreen() {
               placeholderTextColor={colors.muted}
             />
             <Text style={[styles.label, { marginTop: 14 }]}>HASŁO</Text>
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={styles.input}
-              placeholderTextColor={colors.muted}
-            />
+            <View style={styles.passwordRow}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={[styles.input, styles.passwordInput]}
+                placeholderTextColor={colors.muted}
+              />
+              <Pressable onPress={() => setShowPassword((v) => !v)} style={styles.showPasswordButton} hitSlop={10}>
+                <Text style={styles.showPasswordText}>{showPassword ? "Ukryj" : "Pokaż"}</Text>
+              </Pressable>
+            </View>
 
             {error && <Text style={styles.error}>{error}</Text>}
 
@@ -115,6 +121,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
   },
+  passwordRow: { position: "relative", justifyContent: "center" },
+  passwordInput: { paddingRight: 64 },
+  showPasswordButton: { position: "absolute", right: 12 },
+  showPasswordText: { color: colors.amber, fontSize: 12, fontWeight: "600" },
   error: { color: colors.red, fontSize: 13, marginTop: 14, textAlign: "center" },
   button: {
     backgroundColor: colors.amber,
