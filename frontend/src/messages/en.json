@@ -1,15 +1,21 @@
 {
   "Metadata": {
     "title": "dowieziemycie.pl — your neighbor with a van, 24/7",
-    "description": "Safe transfer Kraków–Rybna, Liszki, Czernichów and nearby villages, any time. Book online, track your driver live."
+    "description": "Safe transfer Kraków–Rybna, Liszki, Czernichów, Kaszów, Alwernia and nearby villages, any time of day or night. Book online, track your driver live."
   },
   "Header": {
     "subtitle": "YOUR NEIGHBOR WITH A VAN",
     "speaksEnglish": "We speak English",
     "call": "Call",
+    "whatsapp": "Message on WhatsApp",
     "login": "Log in",
     "myTrips": "My trips",
     "logout": "Log out"
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "lead": "The page you're looking for doesn't exist or has moved. Check the links below or head back home.",
+    "backHome": "Back home"
   },
   "Nav": {
     "coverage": "Pricing examples",

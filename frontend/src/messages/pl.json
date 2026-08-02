@@ -1,15 +1,21 @@
 {
   "Metadata": {
     "title": "dowieziemycie.pl — Twój sąsiad z busem, 24/7",
-    "description": "Bezpieczny transfer Kraków–Rybna, Liszki, Czernichów i okolice, o każdej porze dnia. Rezerwacja online, śledzenie kierowcy na żywo."
+    "description": "Bezpieczny transfer Kraków–Rybna, Liszki, Czernichów, Kaszów, Alwernia i okolice, o każdej porze dnia i nocy. Rezerwacja online, śledzenie kierowcy na żywo."
   },
   "Header": {
     "subtitle": "TWÓJ SĄSIAD Z BUSEM",
     "speaksEnglish": "We speak English",
     "call": "Zadzwoń",
+    "whatsapp": "Napisz na WhatsApp",
     "login": "Zaloguj się",
     "myTrips": "Moje kursy",
     "logout": "Wyloguj"
+  },
+  "NotFound": {
+    "title": "Nie znaleziono strony",
+    "lead": "Strona, której szukasz, nie istnieje albo została przeniesiona. Sprawdź poniższe linki albo wróć na stronę główną.",
+    "backHome": "Strona główna"
   },
   "Nav": {
     "coverage": "Wyceny",

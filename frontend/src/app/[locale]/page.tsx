@@ -5,6 +5,7 @@ import { FleetSection } from "@/components/fleet-section";
 import { HeroSection } from "@/components/hero-section";
 import { HowItWorksSection } from "@/components/how-it-works-section";
 import { LocalRoutesSection } from "@/components/local-routes-section";
+import { OrganizationJsonLd } from "@/components/organization-jsonld";
 import { PricingTierSection } from "@/components/pricing-tier-section";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -16,6 +17,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
 
   return (
     <>
+      <OrganizationJsonLd />
       <SiteHeader />
       <main>
         <HeroSection />

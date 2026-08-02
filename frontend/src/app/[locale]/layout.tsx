@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { Barlow_Condensed, Inter, Space_Grotesk } from "next/font/google";
 
+import { WhatsAppButton } from "@/components/whatsapp-button";
 import { routing } from "@/i18n/routing";
 import "./globals.css";
 
@@ -60,7 +61,10 @@ export default async function LocaleLayout({
       className={`${spaceGrotesk.variable} ${inter.variable} ${barlowCondensed.variable} overflow-x-hidden antialiased`}
     >
       <body className="bg-bg text-text min-h-screen overflow-x-hidden" suppressHydrationWarning>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          {children}
+          <WhatsAppButton />
+        </NextIntlClientProvider>
       </body>
     </html>
   );
