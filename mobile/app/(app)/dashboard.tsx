@@ -16,14 +16,18 @@ import { registerForPushNotifications } from "@/lib/notifications";
 import type { DriverStatus } from "@/lib/session";
 import { colors } from "@/lib/theme";
 
-// "W drodze do klienta" / "W kursie" are deliberately not manually
-// selectable here — they're driven by accepting/starting a booking (see
+// "W drodze do klienta" / "W kursie" are shown for visibility but are never
+// manually tappable — they're driven by accepting/starting a booking (see
 // the Kursy/Harmonogram tabs), so this picker can't drift out of sync with
-// whichever booking the driver is actually on.
-const STATUS_OPTIONS: { value: DriverStatus; label: string }[] = [
-  { value: "DOSTEPNY", label: "Aktywny (wolny)" },
-  { value: "WRACA_DO_BAZY", label: "Wraca do bazy" },
-  { value: "OFFLINE", label: "Poza służbą / przerwa" },
+// whichever booking the driver is actually on. While either is active, the
+// other three go read-only too — you can't manually go OFFLINE mid-ride,
+// you have to finish the booking first.
+const STATUS_OPTIONS: { value: DriverStatus; label: string; manual: boolean }[] = [
+  { value: "DOSTEPNY", label: "Aktywny (wolny)", manual: true },
+  { value: "JADACY_PO_KLIENTA", label: "W drodze do klienta", manual: false },
+  { value: "W_KURSIE", label: "W trakcie kursu", manual: false },
+  { value: "WRACA_DO_BAZY", label: "Wraca do bazy", manual: true },
+  { value: "OFFLINE", label: "Poza służbą / przerwa", manual: true },
 ];
 
 const BOOKING_DRIVEN_STATUSES: DriverStatus[] = ["JADACY_PO_KLIENTA", "W_KURSIE"];
@@ -80,6 +84,8 @@ export default function DashboardScreen() {
 
   if (!driver) return null;
 
+  const isBookingDriven = BOOKING_DRIVEN_STATUSES.includes(driver.status);
+
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <View style={styles.content}>
@@ -95,10 +101,10 @@ export default function DashboardScreen() {
           </Text>
         </View>
 
-        {BOOKING_DRIVEN_STATUSES.includes(driver.status) && (
+        {isBookingDriven && (
           <View style={styles.bookingNotice}>
             <Text style={styles.bookingNoticeText}>
-              Masz aktywny kurs — status steruje się z zakładki „Harmonogram”, nie stąd.
+              Masz aktywny kurs — zakończ go w zakładce „Harmonogram”, żeby znowu móc zmienić status ręcznie.
             </Text>
           </View>
         )}
@@ -107,21 +113,24 @@ export default function DashboardScreen() {
         <View style={styles.statusList}>
           {STATUS_OPTIONS.map((option) => {
             const active = driver.status === option.value;
+            const disabled = busy || !option.manual || isBookingDriven;
             return (
               <Pressable
                 key={option.value}
-                disabled={busy}
+                disabled={disabled}
                 onPress={() => handleStatusChange(option.value)}
                 style={({ pressed }) => [
                   styles.statusOption,
                   active && styles.statusOptionActive,
-                  pressed && { opacity: 0.85 },
+                  !option.manual && styles.statusOptionReadOnly,
+                  disabled && !active && styles.statusOptionDisabled,
+                  !disabled && pressed && { opacity: 0.85 },
                 ]}
               >
                 <Text style={[styles.statusOptionText, active && styles.statusOptionTextActive]}>
                   {option.label}
                 </Text>
-                {busy && active && <ActivityIndicator size="small" color={colors.amber} />}
+                {busy && active ? <ActivityIndicator size="small" color={colors.amber} /> : null}
               </Pressable>
             );
           })}
@@ -180,6 +189,8 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
   },
   statusOptionActive: { borderColor: colors.amber, backgroundColor: colors.panel2 },
+  statusOptionReadOnly: { opacity: 0.55 },
+  statusOptionDisabled: { opacity: 0.4 },
   statusOptionText: { color: colors.muted, fontSize: 14.5, fontWeight: "600" },
   statusOptionTextActive: { color: colors.text },
   error: { color: colors.red, fontSize: 13, marginTop: 16, textAlign: "center" },

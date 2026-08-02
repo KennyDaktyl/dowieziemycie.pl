@@ -40,6 +40,7 @@ export default function BookingsScreen() {
     try {
       await apiFetch(`/api/fleet/driver/bookings/${booking.id}/accept/`, accessToken, { method: "POST" });
       setBookings((prev) => prev.filter((b) => b.id !== booking.id));
+      await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się przyjąć kursu.");
     } finally {
