@@ -9,6 +9,8 @@ export interface HomeContent {
   lead_en: string;
   footnote_pl: string;
   footnote_en: string;
+  about_pl: string;
+  about_en: string;
 }
 
 export interface VehiclePhotoItem {

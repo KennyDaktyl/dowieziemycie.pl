@@ -29,6 +29,8 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dowieziemycie.pl";
+
 export async function generateMetadata({
   params,
 }: {
@@ -36,7 +38,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "Metadata" });
-  return { title: t("title"), description: t("description") };
+  return { title: t("title"), description: t("description"), metadataBase: new URL(SITE_URL) };
 }
 
 export default async function LocaleLayout({

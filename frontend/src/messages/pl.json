@@ -1,7 +1,7 @@
 {
   "Metadata": {
-    "title": "dowieziemycie.pl — Bezpieczne, komfortowe przejazdy pod Krakowem, 24/7",
-    "description": "Bezpieczny, komfortowy transfer Kraków–Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia i Przeginia Narodowa, o każdej porze dnia. Rezerwacja online, śledzenie kierowcy na żywo — zarezerwuj z wyprzedzeniem dla najlepszej ceny."
+    "title": "dowieziemycie.pl — Twój sąsiad z busem, 24/7",
+    "description": "Bezpieczny transfer Kraków–Rybna, Liszki, Czernichów i okolice, o każdej porze dnia. Rezerwacja online, śledzenie kierowcy na żywo."
   },
   "Header": {
     "subtitle": "TWÓJ SĄSIAD Z BUSEM",
@@ -139,6 +139,10 @@
     "lastPosition": "Ostatnia wysłana pozycja: {lat}, {lng}",
     "geoError": "Nie udało się ustalić lokalizacji — sprawdź uprawnienia GPS w przeglądarce.",
     "logout": "Wyloguj się"
+  },
+  "About": {
+    "heading": "O dowieziemycie.pl",
+    "gminaLink": "Oficjalna strona Gminy Czernichów"
   },
   "Footer": {
     "tagline": "Twój sąsiad z busem — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",

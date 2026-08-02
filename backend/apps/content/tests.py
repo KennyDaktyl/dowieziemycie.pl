@@ -98,7 +98,7 @@ class SiteScopingTests(APITestCase):
 
         res_transfer247 = self.client.get("/api/fixed-routes/", HTTP_X_SITE="transfer247")
         self.assertEqual(res_transfer247.status_code, 200)
-        self.assertEqual(len(res_transfer247.data), 4)
+        self.assertEqual(len(res_transfer247.data), 5)
 
     def test_tours_are_scoped_per_site(self):
         res_default = self.client.get("/api/tours/")

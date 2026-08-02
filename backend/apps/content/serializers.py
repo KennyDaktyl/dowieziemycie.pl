@@ -23,6 +23,7 @@ class HomeContentSerializer(serializers.ModelSerializer):
             "headline_highlight_pl", "headline_highlight_en", "headline_highlight_de",
             "lead_pl", "lead_en", "lead_de",
             "footnote_pl", "footnote_en", "footnote_de",
+            "about_pl", "about_en", "about_de",
         ]
 
 
@@ -138,7 +139,7 @@ class FixedRouteSerializer(serializers.ModelSerializer):
     class Meta:
         model = FixedRoute
         fields = [
-            "slug", "name_pl", "name_en", "name_de",
+            "slug", "category", "name_pl", "name_en", "name_de",
             "h1_pl", "h1_en", "h1_de", "duration",
             "vehicle_prices", "price_from", "price_from_eur",
             "body_pl", "body_en", "body_de",

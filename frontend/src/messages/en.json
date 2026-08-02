@@ -1,7 +1,7 @@
 {
   "Metadata": {
-    "title": "dowieziemycie.pl — Safe, comfortable rides around Kraków, 24/7",
-    "description": "Safe, comfortable transfers between Kraków and Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia and Przeginia Narodowa, any time of day. Book online, track your driver live — book ahead for the best price."
+    "title": "dowieziemycie.pl — your neighbor with a van, 24/7",
+    "description": "Safe transfer Kraków–Rybna, Liszki, Czernichów and nearby villages, any time. Book online, track your driver live."
   },
   "Header": {
     "subtitle": "YOUR NEIGHBOR WITH A VAN",
@@ -139,6 +139,10 @@
     "lastPosition": "Last position sent: {lat}, {lng}",
     "geoError": "Couldn't get your location — check GPS permissions in your browser.",
     "logout": "Log out"
+  },
+  "About": {
+    "heading": "About dowieziemycie.pl",
+    "gminaLink": "Official Gmina Czernichów website"
   },
   "Footer": {
     "tagline": "Your neighbor with a van — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",

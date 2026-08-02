@@ -25,15 +25,15 @@ class HomeContentAdmin(admin.ModelAdmin):
         (None, {"fields": ("site",)}),
         (
             "Polski",
-            {"fields": ("eyebrow_pl", "headline_pl", "headline_highlight_pl", "lead_pl", "footnote_pl")},
+            {"fields": ("eyebrow_pl", "headline_pl", "headline_highlight_pl", "lead_pl", "footnote_pl", "about_pl")},
         ),
         (
             "English",
-            {"fields": ("eyebrow_en", "headline_en", "headline_highlight_en", "lead_en", "footnote_en")},
+            {"fields": ("eyebrow_en", "headline_en", "headline_highlight_en", "lead_en", "footnote_en", "about_en")},
         ),
         (
             "Deutsch",
-            {"fields": ("eyebrow_de", "headline_de", "headline_highlight_de", "lead_de", "footnote_de")},
+            {"fields": ("eyebrow_de", "headline_de", "headline_highlight_de", "lead_de", "footnote_de", "about_de")},
         ),
     )
 
@@ -130,15 +130,15 @@ class FixedRoutePhotoInline(admin.TabularInline):
 
 @admin.register(FixedRoute)
 class FixedRouteAdmin(admin.ModelAdmin):
-    list_display = ("name_pl", "duration", "is_published", "order")
+    list_display = ("name_pl", "category", "duration", "is_published", "order")
     list_editable = ("is_published", "order")
-    list_filter = ("is_published",)
+    list_filter = ("category", "is_published")
     prepopulated_fields = {"slug": ("name_pl",)}
     search_fields = ("name_pl", "name_en", "slug")
     inlines = [FixedRouteVehiclePriceInline, FixedRoutePhotoInline]
     fieldsets = (
         (None, {"fields": (
-            "site", "slug", "duration", "is_published", "order",
+            "site", "category", "slug", "duration", "is_published", "order",
         )}),
         ("Polski", {"fields": ("name_pl", "h1_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("name_en", "h1_en", "body_en", "seo_title_en", "seo_description_en")}),

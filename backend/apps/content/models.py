@@ -32,6 +32,11 @@ class HomeContent(models.Model):
     footnote_pl = models.CharField(max_length=200, blank=True)
     footnote_en = models.CharField(max_length=200, blank=True)
     footnote_de = models.CharField(max_length=200, blank=True)
+    about_pl = models.TextField(
+        blank=True, help_text="Dłuższy akapit pod SEO, wyświetlany na dole strony głównej. Puste pole = sekcja ukryta.",
+    )
+    about_en = models.TextField(blank=True)
+    about_de = models.TextField(blank=True)
 
     class Meta:
         verbose_name = "Treść strony głównej"
@@ -180,7 +185,15 @@ class FixedRoute(models.Model):
     the admin, per real vehicle from the fleet (see FixedRouteVehiclePrice),
     however many vehicle classes actually exist in apps.fleet.Vehicle."""
 
+    class Category(models.TextChoices):
+        LOTNISKO = "LOTNISKO", "Transfer lotniskowy"
+        DWORZEC_PKP = "DWORZEC_PKP", "Transfer z dworca PKP"
+
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default="transfer247")
+    category = models.CharField(
+        max_length=20, choices=Category.choices, default=Category.LOTNISKO,
+        help_text="Decyduje w którym dziale menu (i sekcji na /transfery) trasa się pojawia.",
+    )
     slug = models.SlugField(max_length=140, unique=True)
     name_pl = models.CharField(max_length=160, help_text="Krótka nazwa — używana w menu, na kartach, w stopce.")
     name_en = models.CharField(max_length=160)
@@ -301,6 +314,7 @@ class ContentPage(models.Model):
         O_NAS = "O_NAS", "O nas"
         KONTAKT = "KONTAKT", "Kontakt"
         BLOG = "BLOG", "Wpis blogowy"
+        TRANSPORT_ROWEROW = "TRANSPORT_ROWEROW", "Transport rowerów"
         INNE = "INNE", "Inne"
 
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
