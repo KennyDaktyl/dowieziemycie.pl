@@ -72,7 +72,7 @@ export async function SiteHeader() {
               {customer ? t("myTrips") : t("login")}
             </Link>
             <a
-              href="tel:+48000000000"
+              href="tel:+48506029980"
               className="rounded-md bg-amber px-[14px] py-[9px] text-sm font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)] sm:px-[18px]"
             >
               {t("call")}

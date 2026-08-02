@@ -23,7 +23,7 @@ export async function SiteFooter() {
           </div>
           <div>
             <p className="text-[13.5px] leading-[1.7] text-muted">
-              <a href="tel:+48000000000">+48 000 000 000</a>
+              <a href="tel:+48506029980">+48 506 029 980</a>
               <br />
               kontakt@dowieziemycie.pl
             </p>
