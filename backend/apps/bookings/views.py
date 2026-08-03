@@ -176,7 +176,17 @@ class StripeWebhookView(APIView):
             event = stripe.Webhook.construct_event(
                 request.body, sig_header, settings.STRIPE_WEBHOOK_SECRET,
             )
-        except (ValueError, stripe.SignatureVerificationError):
+        except (ValueError, stripe.SignatureVerificationError) as exc:
+            # Temporary diagnostic logging — never logs the secret or the
+            # signature itself, only what's needed to tell a body-mangling
+            # issue apart from a wrong/stale secret.
+            logger.warning(
+                "Stripe webhook rejected: %s | body_len=%s body_prefix=%r sig_header_present=%s "
+                "configured_secret_prefix=%r content_type=%r",
+                exc, len(request.body), request.body[:80],
+                bool(sig_header), settings.STRIPE_WEBHOOK_SECRET[:12],
+                request.META.get("CONTENT_TYPE"),
+            )
             return Response({"detail": "Nieprawidłowy webhook."}, status=status.HTTP_400_BAD_REQUEST)
 
         intent = event["data"]["object"]
