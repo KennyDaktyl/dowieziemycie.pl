@@ -32,16 +32,20 @@ class DriverLiveStatusListView(generics.ListAPIView):
 
 
 class AvailabilityView(APIView):
-    """GET /api/fleet/availability/ — public. False when every driver is
-    OFFLINE (a driver on their own app can mark themselves OFFLINE for a
-    break or vacation) — the booking form uses this to block new
-    reservations outright instead of accepting one nobody can fulfill."""
+    """GET /api/fleet/availability/ — public. Driven by
+    BookingSettings.bookings_paused (an explicit admin switch, e.g. for a
+    vacation), not by any driver's live status — a booking can be made
+    weeks ahead of time, long before whichever driver ends up assigned is
+    actually on duty, so "a driver happens to be OFFLINE right now" was
+    never the right signal for whether the form should even be shown."""
 
     permission_classes = [AllowAny]
 
     def get(self, request):
-        available = Driver.objects.exclude(status=Driver.Status.OFFLINE).exists()
-        return Response({"available": available})
+        from apps.bookings.models import BookingSettings
+
+        settings_row = BookingSettings.for_site(request.site_code)
+        return Response({"available": not settings_row.bookings_paused})
 
 
 class VehicleListView(generics.ListAPIView):

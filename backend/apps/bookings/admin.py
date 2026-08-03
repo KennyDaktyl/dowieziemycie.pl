@@ -39,10 +39,10 @@ class CouponAdmin(admin.ModelAdmin):
 
 @admin.register(BookingSettings)
 class BookingSettingsAdmin(admin.ModelAdmin):
-    list_display = ("site", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes")
-    list_editable = ("deposit_amount", "payment_window_minutes", "driver_buffer_minutes")
+    list_display = ("site", "bookings_paused", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes")
+    list_editable = ("bookings_paused", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes")
     fields = (
-        "site", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes",
+        "site", "bookings_paused", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes",
         "dispatcher_phone", "dispatcher_email",
     )
 

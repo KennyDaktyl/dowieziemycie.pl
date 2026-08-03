@@ -11,6 +11,14 @@ class BookingSettings(models.Model):
     before-pay workflow needs, all admin-editable without a deploy."""
 
     site = models.CharField(max_length=20, choices=SITE_CHOICES, unique=True, default=DEFAULT_SITE)
+    bookings_paused = models.BooleanField(
+        default=False,
+        help_text=(
+            "Wyłącza formularz rezerwacji na stronie (np. na czas urlopu). Niezależne od statusu "
+            "kierowców — kurs można zarezerwować z wyprzedzeniem nawet gdy żaden kierowca akurat "
+            "nie jest 'Aktywny (wolny)'."
+        ),
+    )
     deposit_amount = models.DecimalField(
         max_digits=7, decimal_places=2, default=50,
         help_text="Zaliczka wymagana do zablokowania terminu po potwierdzeniu rezerwacji.",

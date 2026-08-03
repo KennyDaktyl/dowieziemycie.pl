@@ -60,7 +60,7 @@
     "min": "min",
     "localFare": "Local fare — a driver is already nearby",
     "unavailableTitle": "Not taking bookings right now",
-    "unavailableBody": "No driver is currently available. Check back shortly, or call us to arrange a time.",
+    "unavailableBody": "We're not taking new bookings right now — check back soon, or call us to arrange a time.",
     "success": "Request received — awaiting confirmation.",
     "successPanelLink": "Check status",
     "error": "Couldn't book the ride. Please try again."
@@ -164,7 +164,8 @@
     "tagline": "Your neighbor with a van — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",
     "tagline2": "24/7, including nights and Sundays.",
     "rights": "© {year} dowieziemycie.pl",
-    "adminPanel": "Admin panel"
+    "adminPanel": "Admin panel",
+    "terms": "Terms of Service"
   },
   "Auth": {
     "title": "Log in with your phone number",
@@ -188,7 +189,8 @@
     "date": "Scheduled",
     "price": "Price",
     "trackDriver": "Track driver",
-    "trackingTitle": "Your driver is on the way"
+    "trackingTitle": "Your driver is on the way",
+    "vatIncluded": "incl. 23% VAT, net: {net} zł"
   },
   "BookingStatus": {
     "NOWA": "New (awaiting confirmation)",
@@ -205,6 +207,8 @@
     "payBy": "Pay by {time}, or the booking will be cancelled.",
     "paying": "Paying…",
     "paidConfirmed": "Deposit paid — the ride is confirmed.",
-    "error": "Couldn't pay the deposit. Please try again."
+    "error": "Couldn't pay the deposit. Please try again.",
+    "processing": "Verifying your payment… this can take up to 2 minutes for BLIK.",
+    "vatNote": "Gross amount, includes 23% VAT (net: {net} zł)."
   }
 }

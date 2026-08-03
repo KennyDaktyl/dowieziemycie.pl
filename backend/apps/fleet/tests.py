@@ -186,25 +186,41 @@ class AvailabilityViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
-    def test_unavailable_when_all_drivers_offline(self):
+    def test_available_by_default_regardless_of_driver_status(self):
+        # A driver being OFFLINE (on a break, or simply not on shift right
+        # now) must not block a booking made well in advance — only the
+        # explicit bookings_paused admin switch does that.
         Driver.objects.create(
             user=User.objects.create_user(username="offlinedriver"), name="Offline", status=Driver.Status.OFFLINE,
         )
         res = self.client.get("/api/fleet/availability/")
         self.assertEqual(res.status_code, 200)
-        self.assertFalse(res.data["available"])
+        self.assertTrue(res.data["available"])
 
-    def test_available_when_at_least_one_driver_is_on(self):
-        Driver.objects.create(
-            user=User.objects.create_user(username="ondriver"), name="On duty", status=Driver.Status.DOSTEPNY,
-        )
+    def test_available_with_no_drivers_at_all(self):
         res = self.client.get("/api/fleet/availability/")
         self.assertTrue(res.data["available"])
 
-    def test_unavailable_with_no_drivers_at_all(self):
-        # Zero Driver rows behaves the same as "everyone's OFFLINE" — both
-        # just mean .exclude(status=OFFLINE).exists() is False.
+    def test_unavailable_when_bookings_paused_for_the_site(self):
+        from apps.bookings.models import BookingSettings
+
+        settings_row = BookingSettings.for_site("dowieziemycie")
+        settings_row.bookings_paused = True
+        settings_row.save(update_fields=["bookings_paused"])
+
         res = self.client.get("/api/fleet/availability/")
+        self.assertFalse(res.data["available"])
+
+    def test_pausing_one_site_does_not_affect_the_other(self):
+        from apps.bookings.models import BookingSettings
+
+        settings_row = BookingSettings.for_site("transfer247")
+        settings_row.bookings_paused = True
+        settings_row.save(update_fields=["bookings_paused"])
+
+        res = self.client.get("/api/fleet/availability/", HTTP_X_SITE="dowieziemycie")
+        self.assertTrue(res.data["available"])
+        res = self.client.get("/api/fleet/availability/", HTTP_X_SITE="transfer247")
         self.assertFalse(res.data["available"])
 
 

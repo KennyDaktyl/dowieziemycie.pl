@@ -60,7 +60,7 @@
     "min": "min",
     "localFare": "Taryfa lokalna — kierowca jest już blisko",
     "unavailableTitle": "Chwilowo nie przyjmujemy rezerwacji",
-    "unavailableBody": "Żaden kierowca nie jest teraz dostępny. Wróć za chwilę albo zadzwoń, żeby ustalić termin.",
+    "unavailableBody": "Nie przyjmujemy teraz nowych rezerwacji — wróć wkrótce albo zadzwoń, żeby ustalić termin.",
     "success": "Zgłoszenie przyjęte — czeka na potwierdzenie.",
     "successPanelLink": "Sprawdź status",
     "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie."
@@ -164,7 +164,8 @@
     "tagline": "Twój sąsiad z busem — Rybna, Liszki, Kaszów, Czernichów, Sanka, Alwernia, Przeginia Narodowa.",
     "tagline2": "24/7, także w nocy i w niedziele.",
     "rights": "© {year} dowieziemycie.pl",
-    "adminPanel": "Panel administracyjny"
+    "adminPanel": "Panel administracyjny",
+    "terms": "Regulamin"
   },
   "Auth": {
     "title": "Zaloguj się numerem telefonu",
@@ -188,7 +189,8 @@
     "date": "Termin",
     "price": "Cena",
     "trackDriver": "Śledź kierowcę",
-    "trackingTitle": "Twój kierowca w drodze"
+    "trackingTitle": "Twój kierowca w drodze",
+    "vatIncluded": "w tym VAT 23%, netto: {net} zł"
   },
   "BookingStatus": {
     "NOWA": "Nowa (oczekuje na potwierdzenie)",
@@ -205,6 +207,8 @@
     "payBy": "Zapłać do {time}, inaczej rezerwacja zostanie anulowana.",
     "paying": "Płacę…",
     "paidConfirmed": "Zaliczka opłacona — kurs jest ważny.",
-    "error": "Nie udało się zapłacić zaliczki. Spróbuj ponownie."
+    "error": "Nie udało się zapłacić zaliczki. Spróbuj ponownie.",
+    "processing": "Weryfikujemy płatność… może to potrwać do 2 minut przy BLIK-u.",
+    "vatNote": "Kwota brutto, zawiera VAT 23% (netto: {net} zł)."
   }
 }
