@@ -62,7 +62,12 @@ export default function BookingsScreen() {
           refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={colors.amber} />}
           ListEmptyComponent={
             <View style={styles.center}>
-              <Text style={styles.emptyText}>Brak dostępnych kursów.</Text>
+              <Text style={styles.emptyText}>Brak wolnych kursów do przyjęcia.</Text>
+              <Text style={styles.emptyHint}>
+                To lista kursów opłaconych przez klienta, które nie ma jeszcze przypisanego kierowcy. Kursy już
+                przypisane do Ciebie (także te czekające na potwierdzenie lub zaliczkę) zobaczysz w zakładce „Moje
+                kursy”.
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -107,7 +112,8 @@ export default function BookingsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60 },
-  emptyText: { color: colors.muted, fontSize: 14 },
+  emptyText: { color: colors.muted, fontSize: 14, textAlign: "center" },
+  emptyHint: { color: colors.muted, fontSize: 12.5, textAlign: "center", marginTop: 8, paddingHorizontal: 24 },
   list: { padding: 16, gap: 12 },
   card: {
     backgroundColor: colors.panel,
