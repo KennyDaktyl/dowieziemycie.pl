@@ -89,11 +89,31 @@ function vehicleChip(booking: Booking): string | null {
   return null;
 }
 
-export function BookingsList({ bookings, locale }: { bookings: Booking[]; locale: string }) {
+// Statuses change from the mobile driver app (confirm/accept/start/finish),
+// not from anything the customer does in this tab — without polling, the
+// customer would have no way to find out except an SMS/email landing, or a
+// manual page reload. 20s keeps the panel feeling live without hammering
+// the backend.
+const POLL_INTERVAL_MS = 20_000;
+
+export function BookingsList({ bookings: initialBookings, locale }: { bookings: Booking[]; locale: string }) {
   const t = useTranslations("Panel");
   const tStatus = useTranslations("BookingStatus");
   const tPayment = useTranslations("BookingPayment");
   const [tab, setTab] = useState<Tab>("upcoming");
+  const [bookings, setBookings] = useState(initialBookings);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/bookings/mine", { cache: "no-store" });
+        if (res.ok) setBookings(await res.json());
+      } catch {
+        // ignore — try again next tick
+      }
+    }, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   if (bookings.length === 0) {
     return <p className="text-muted">{t("empty")}</p>;

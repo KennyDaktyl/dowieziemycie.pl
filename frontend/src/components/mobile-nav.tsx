@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Link } from "@/i18n/navigation";
 
 import { LocaleSwitcher } from "./locale-switcher";
+import { LogoutButton } from "./logout-button";
 
 export function MobileNav({
   navLinks,
@@ -12,12 +13,16 @@ export function MobileNav({
   loginLabel,
   trackByCodeLabel,
   speaksEnglishLabel,
+  isLoggedIn,
+  logoutLabel,
 }: {
   navLinks: { href: string; label: string }[];
   loginHref: string;
   loginLabel: string;
   trackByCodeLabel: string;
   speaksEnglishLabel: string;
+  isLoggedIn: boolean;
+  logoutLabel: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -77,6 +82,12 @@ export function MobileNav({
             >
               {loginLabel}
             </Link>
+            {isLoggedIn && (
+              <LogoutButton
+                label={logoutLabel}
+                className="rounded-md px-2 py-3 text-left text-muted transition-colors hover:bg-panel"
+              />
+            )}
             <Link
               href="/sledz"
               onClick={() => setOpen(false)}

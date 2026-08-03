@@ -70,6 +70,7 @@ export function BookingCard() {
   const [driverEta, setDriverEta] = useState<DriverEta | null>(null);
   const [etaLoading, setEtaLoading] = useState(false);
   const [availability, setAvailability] = useState<"checking" | "available" | "unavailable">("checking");
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -190,7 +191,10 @@ export function BookingCard() {
   }
 
   async function handleSubmit() {
-    if (!pickup || !dropoff || !date || !customerName) return;
+    if (!pickup || !dropoff || !date || !customerName) {
+      setAttemptedSubmit(true);
+      return;
+    }
     setStatus("submitting");
     try {
       const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
@@ -244,6 +248,8 @@ export function BookingCard() {
                 onFocus={() => setActiveField("pickup")}
                 onSelect={(s) => handleSelectSuggestion("pickup", s)}
                 onClear={() => setPickup(null)}
+                required
+                error={attemptedSubmit && !pickup}
               />
               <button
                 type="button"
@@ -262,6 +268,8 @@ export function BookingCard() {
               onFocus={() => setActiveField("dropoff")}
               onSelect={(s) => handleSelectSuggestion("dropoff", s)}
               onClear={() => setDropoff(null)}
+              required
+              error={attemptedSubmit && !dropoff}
             />
           </div>
         </div>
@@ -324,13 +332,15 @@ export function BookingCard() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
-                {t("date")}
+                {t("date")} <span className="text-red">*</span>
               </label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDateTime((prev) => ({ ...prev, date: e.target.value }))}
-                className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
+                className={`rounded-lg border bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber ${
+                  attemptedSubmit && !date ? "border-red" : "border-line"
+                }`}
               />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -379,14 +389,16 @@ export function BookingCard() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
-                {t("nameLabel")}
+                {t("nameLabel")} <span className="text-red">*</span>
               </label>
               <input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder={t("namePlaceholder")}
-                className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
+                className={`rounded-lg border bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber ${
+                  attemptedSubmit && !customerName ? "border-red" : "border-line"
+                }`}
               />
             </div>
             <div className="flex flex-col gap-1.5">
