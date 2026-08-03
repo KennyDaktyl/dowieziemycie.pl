@@ -1,8 +1,9 @@
 import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
-import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { siteLabel } from "@/lib/site";
@@ -18,6 +19,7 @@ export default function HistoryScreen() {
   const { accessToken } = useAuth();
   const [bookings, setBookings] = useState<DriverBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<DriverBooking | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -52,7 +54,7 @@ export default function HistoryScreen() {
             </View>
           }
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <Pressable onPress={() => setSelected(item)} style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.site}>{siteLabel(item.site)}</Text>
                 <Text
@@ -66,10 +68,11 @@ export default function HistoryScreen() {
               </Text>
               <Text style={styles.meta}>{new Date(item.scheduled_at).toLocaleString("pl-PL")}</Text>
               <Text style={styles.price}>{item.price ? `${Number(item.price).toFixed(0)} zł` : "Wycena indywidualna"}</Text>
-            </View>
+            </Pressable>
           )}
         />
       )}
+      <BookingDetailModal booking={selected} onClose={() => setSelected(null)} />
     </SafeAreaView>
   );
 }

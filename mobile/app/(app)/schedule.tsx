@@ -3,6 +3,7 @@ import { useFocusEffect } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { BookingDetailModal } from "@/components/BookingDetailModal";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { siteLabel } from "@/lib/site";
@@ -31,6 +32,7 @@ export default function ScheduleScreen() {
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<DriverBooking | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -59,12 +61,35 @@ export default function ScheduleScreen() {
       await apiFetch(`/api/fleet/driver/bookings/${booking.id}/${action.endpoint}/`, accessToken, {
         method: "POST",
       });
+      setSelected(null);
       load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się zaktualizować kursu.");
     } finally {
       setActingId(null);
     }
+  }
+
+  function renderActionButton(booking: DriverBooking) {
+    const action = NEXT_ACTION[booking.status];
+    if (!action) return null;
+    return (
+      <Pressable
+        onPress={() => handleAction(booking)}
+        disabled={actingId === booking.id}
+        style={({ pressed }) => [
+          styles.actionButton,
+          actingId === booking.id && styles.actionButtonDisabled,
+          pressed && { opacity: 0.85 },
+        ]}
+      >
+        {actingId === booking.id ? (
+          <ActivityIndicator size="small" color="#1A1305" />
+        ) : (
+          <Text style={styles.actionButtonText}>{action.label}</Text>
+        )}
+      </Pressable>
+    );
   }
 
   return (
@@ -84,41 +109,22 @@ export default function ScheduleScreen() {
               <Text style={styles.emptyText}>Brak zaplanowanych kursów.</Text>
             </View>
           }
-          renderItem={({ item }) => {
-            const action = NEXT_ACTION[item.status];
-            return (
-              <View style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <Text style={styles.site}>{siteLabel(item.site)}</Text>
-                  <Text style={styles.badge}>{STATUS_LABELS[item.status] ?? item.status}</Text>
-                </View>
-                <Text style={styles.route}>
-                  {item.pickup_address} → {item.dropoff_address}
-                </Text>
-                <Text style={styles.meta}>
-                  {new Date(item.scheduled_at).toLocaleString("pl-PL")} · {item.customer_name || item.customer_phone}
-                </Text>
-                <Text style={styles.meta}>{item.customer_phone}</Text>
-                {action && (
-                  <Pressable
-                    onPress={() => handleAction(item)}
-                    disabled={actingId === item.id}
-                    style={({ pressed }) => [
-                      styles.actionButton,
-                      actingId === item.id && styles.actionButtonDisabled,
-                      pressed && { opacity: 0.85 },
-                    ]}
-                  >
-                    {actingId === item.id ? (
-                      <ActivityIndicator size="small" color="#1A1305" />
-                    ) : (
-                      <Text style={styles.actionButtonText}>{action.label}</Text>
-                    )}
-                  </Pressable>
-                )}
+          renderItem={({ item }) => (
+            <Pressable onPress={() => setSelected(item)} style={styles.card}>
+              <View style={styles.cardHeader}>
+                <Text style={styles.site}>{siteLabel(item.site)}</Text>
+                <Text style={styles.badge}>{STATUS_LABELS[item.status] ?? item.status}</Text>
               </View>
-            );
-          }}
+              <Text style={styles.route}>
+                {item.pickup_address} → {item.dropoff_address}
+              </Text>
+              <Text style={styles.meta}>
+                {new Date(item.scheduled_at).toLocaleString("pl-PL")} · {item.customer_name || item.customer_phone}
+              </Text>
+              <Text style={styles.meta}>{item.customer_phone}</Text>
+              {renderActionButton(item)}
+            </Pressable>
+          )}
         />
       )}
       {error && (
@@ -126,6 +132,9 @@ export default function ScheduleScreen() {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
+      <BookingDetailModal booking={selected} onClose={() => setSelected(null)}>
+        {selected && renderActionButton(selected)}
+      </BookingDetailModal>
     </SafeAreaView>
   );
 }

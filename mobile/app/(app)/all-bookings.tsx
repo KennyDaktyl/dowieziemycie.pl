@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
   RefreshControl,
@@ -12,6 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { paymentStatusLabel } from "@/components/BookingDetailModal";
+import { BookingMap } from "@/components/BookingMap";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { siteLabel } from "@/lib/site";
@@ -240,6 +243,17 @@ export default function AllBookingsScreen() {
     }
   }
 
+  function handleCancel(booking: DriverBooking) {
+    Alert.alert(
+      "Anulować kurs?",
+      `${booking.pickup_address} → ${booking.dropoff_address}, ${formatDateTime(booking.scheduled_at)}. Klient dostanie SMS/e-mail o anulowaniu.`,
+      [
+        { text: "Nie", style: "cancel" },
+        { text: "Tak, anuluj", style: "destructive", onPress: () => handleLifecycleAction(booking, "cancel") },
+      ],
+    );
+  }
+
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       {loading ? (
@@ -287,6 +301,16 @@ export default function AllBookingsScreen() {
 
                 {expanded && (
                   <View style={styles.detail}>
+                    {item.pickup_lat && item.pickup_lng ? (
+                      <BookingMap
+                        pickup={{ lat: Number(item.pickup_lat), lng: Number(item.pickup_lng) }}
+                        dropoff={
+                          item.dropoff_lat && item.dropoff_lng
+                            ? { lat: Number(item.dropoff_lat), lng: Number(item.dropoff_lng) }
+                            : null
+                        }
+                      />
+                    ) : null}
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Klient</Text>
                       <Text style={styles.detailValue}>{item.customer_name || "—"}</Text>
@@ -295,6 +319,16 @@ export default function AllBookingsScreen() {
                       <Text style={styles.detailLabel}>Telefon</Text>
                       <Text style={styles.detailValue}>{item.customer_phone}</Text>
                     </View>
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Płatność</Text>
+                      <Text style={styles.detailValue}>{paymentStatusLabel(item)}</Text>
+                    </View>
+                    {item.duration_minutes ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Planowany czas zajętości</Text>
+                        <Text style={styles.detailValue}>{item.duration_minutes} min</Text>
+                      </View>
+                    ) : null}
                     {item.tracking_code ? (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Kod śledzenia</Text>
@@ -503,6 +537,16 @@ export default function AllBookingsScreen() {
                         )}
                       </Pressable>
                     )}
+
+                    {canEdit && (
+                      <Pressable
+                        onPress={() => handleCancel(item)}
+                        disabled={savingId === item.id}
+                        style={styles.cancelButton}
+                      >
+                        <Text style={styles.cancelButtonText}>Anuluj kurs</Text>
+                      </Pressable>
+                    )}
                   </View>
                 )}
               </Pressable>
@@ -570,6 +614,15 @@ const styles = StyleSheet.create({
   confirmButton: { backgroundColor: colors.amber, borderRadius: 9, paddingVertical: 12, alignItems: "center", marginTop: 8 },
   confirmButtonDisabled: { opacity: 0.6 },
   confirmButtonText: { color: "#1A1305", fontWeight: "700", fontSize: 14 },
+  cancelButton: {
+    borderWidth: 1,
+    borderColor: colors.red,
+    borderRadius: 9,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  cancelButtonText: { color: colors.red, fontWeight: "700", fontSize: 14 },
   smallButton: {
     backgroundColor: colors.amber,
     borderRadius: 8,

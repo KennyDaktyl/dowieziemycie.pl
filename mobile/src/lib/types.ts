@@ -13,11 +13,15 @@ export interface DriverBooking {
   passenger_count: number;
   status: string;
   distance_km: string | null;
+  duration_minutes: number | null;
   price: string | null;
   deposit_amount: string | null;
   confirmed_at: string | null;
   payment_deadline: string | null;
   paid_at: string | null;
+  remainder_paid_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
   created_at: string;
   tracking_code: string;
   tracking_code_valid_from: string | null;
