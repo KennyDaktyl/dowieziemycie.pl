@@ -50,6 +50,8 @@ class DriverBookingSerializer(serializers.ModelSerializer):
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "status", "distance_km", "price",
+            "deposit_amount", "confirmed_at", "payment_deadline", "paid_at", "created_at",
+            "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
         ]
         read_only_fields = fields
 

@@ -20,9 +20,9 @@ class TrackByCodeView(APIView):
     ws/booking/track/<id>/?code=<code> — a low-friction alternative to the
     logged-in customer's own /panel/kurs/<id> page, for sharing with anyone
     else who needs to see the driver (e.g. someone else picking up the
-    delivery). Only valid while the code hasn't expired (1h from accept)
-    and the ride is still actually trackable (driver en route or in
-    progress) — a finished ride's code just stops resolving.
+    delivery). Only valid within its ride-anchored window (see the model
+    field docstring) and while the ride is still actually trackable (driver
+    en route or in progress) — a finished ride's code just stops resolving.
     """
 
     permission_classes = [AllowAny]
@@ -31,11 +31,13 @@ class TrackByCodeView(APIView):
         serializer = TrackByCodeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         code = serializer.validated_data["code"]
+        now = timezone.now()
 
         booking = (
             Booking.objects.filter(
                 tracking_code=code,
-                tracking_code_expires_at__gte=timezone.now(),
+                tracking_code_valid_from__lte=now,
+                tracking_code_expires_at__gte=now,
                 status__in=[Booking.Status.KIEROWCA_W_DRODZE, Booking.Status.W_TRAKCIE],
             )
             .select_related("assigned_driver", "assigned_driver__vehicle")

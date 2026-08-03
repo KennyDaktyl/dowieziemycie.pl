@@ -34,9 +34,11 @@ def _lock_site_bookings(site: str) -> None:
         cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s)::bigint)", [site])
 
 
-def confirm_booking(booking: Booking, price=None) -> Booking:
+def confirm_booking(booking: Booking, price=None, deposit_amount=None) -> Booking:
     """Dispatcher review step — NOWA -> POTWIERDZONA. `price` lets the
-    dispatcher override the algorithm-computed price before locking it in."""
+    dispatcher override the algorithm-computed price before locking it in;
+    `deposit_amount` likewise overrides the site's flat default (the app's
+    own UI suggests 30% of price, but the dispatcher can set any split)."""
     with transaction.atomic():
         _lock_site_bookings(booking.site)
         booking.refresh_from_db()
@@ -57,7 +59,7 @@ def confirm_booking(booking: Booking, price=None) -> Booking:
         booking.status = Booking.Status.POTWIERDZONA
         booking.confirmed_at = timezone.now()
         booking.payment_deadline = booking.confirmed_at + timedelta(minutes=settings_row.payment_window_minutes)
-        booking.deposit_amount = settings_row.deposit_amount
+        booking.deposit_amount = deposit_amount if deposit_amount is not None else settings_row.deposit_amount
         booking.save(update_fields=["price", "status", "confirmed_at", "payment_deadline", "deposit_amount"])
 
     from .notifications import notify_customer_of_confirmation

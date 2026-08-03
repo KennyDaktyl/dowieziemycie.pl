@@ -88,10 +88,16 @@ class DriverLoginView(APIView):
             )
 
         refresh = RefreshToken.for_user(driver)
+        driver_data = DriverLiveStatusSerializer(driver).data
+        # is_dispatcher deliberately isn't on DriverLiveStatusSerializer —
+        # that serializer also feeds the public live-map WS broadcast, which
+        # has no business exposing who's a dispatcher. Added only here, to
+        # the driver's own login response.
+        driver_data["is_dispatcher"] = driver.is_dispatcher
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh),
-            "driver": DriverLiveStatusSerializer(driver).data,
+            "driver": driver_data,
         })
 
 

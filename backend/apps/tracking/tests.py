@@ -195,7 +195,8 @@ class BookingTrackConsumerTests(TestCase):
         customer = await Customer.objects.acreate(phone="+48500000006")
         booking = await Booking.objects.acreate(
             customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
-            tracking_code="1234", tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
+            tracking_code="1234", tracking_code_valid_from=timezone.now() - timezone.timedelta(minutes=5),
+            tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
         )
         communicator, connected = await self._connect_with_code(booking.id, "1234")
         self.assertTrue(connected)
@@ -205,7 +206,8 @@ class BookingTrackConsumerTests(TestCase):
         customer = await Customer.objects.acreate(phone="+48500000007")
         booking = await Booking.objects.acreate(
             customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
-            tracking_code="1234", tracking_code_expires_at=timezone.now() - timezone.timedelta(minutes=1),
+            tracking_code="1234", tracking_code_valid_from=timezone.now() - timezone.timedelta(minutes=5),
+            tracking_code_expires_at=timezone.now() - timezone.timedelta(minutes=1),
         )
         communicator, connected = await self._connect_with_code(booking.id, "1234")
         self.assertFalse(connected)
@@ -215,7 +217,8 @@ class BookingTrackConsumerTests(TestCase):
         customer = await Customer.objects.acreate(phone="+48500000008")
         booking = await Booking.objects.acreate(
             customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
-            tracking_code="1234", tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
+            tracking_code="1234", tracking_code_valid_from=timezone.now() - timezone.timedelta(minutes=5),
+            tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
         )
         communicator, connected = await self._connect_with_code(booking.id, "9999")
         self.assertFalse(connected)
@@ -238,7 +241,8 @@ class TrackByCodeViewTests(TestCase):
         booking = Booking.objects.create(
             customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
             assigned_driver=driver, status=Booking.Status.KIEROWCA_W_DRODZE,
-            tracking_code="4321", tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
+            tracking_code="4321", tracking_code_valid_from=timezone.now() - timezone.timedelta(minutes=5),
+            tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
         )
         res = self.client.post("/api/tracking/track-by-code/", {"code": "4321"})
         self.assertEqual(res.status_code, 200)
@@ -256,7 +260,8 @@ class TrackByCodeViewTests(TestCase):
         Booking.objects.create(
             customer=customer, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now(),
             assigned_driver=driver, status=Booking.Status.ZAKONCZONA,
-            tracking_code="5555", tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
+            tracking_code="5555", tracking_code_valid_from=timezone.now() - timezone.timedelta(minutes=5),
+            tracking_code_expires_at=timezone.now() + timezone.timedelta(hours=1),
         )
         res = self.client.post("/api/tracking/track-by-code/", {"code": "5555"})
         self.assertEqual(res.status_code, 404)

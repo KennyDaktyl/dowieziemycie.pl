@@ -61,12 +61,17 @@ class PendingConfirmationListView(generics.ListAPIView):
 
 class ConfirmBookingRequestSerializer(serializers.Serializer):
     price = serializers.DecimalField(max_digits=7, decimal_places=2, required=False)
+    deposit_amount = serializers.DecimalField(max_digits=7, decimal_places=2, required=False)
 
 
 class ConfirmBookingView(APIView):
-    """POST /api/fleet/driver/bookings/<id>/confirm/ {price?} — dispatcher-only.
-    Optionally overrides the algorithm-computed price before locking the
-    booking in and starting the customer's payment window."""
+    """POST /api/fleet/driver/bookings/<id>/confirm/ {price?, deposit_amount?}
+    — dispatcher-only. Optionally overrides the algorithm-computed price and
+    the site's flat default deposit before locking the booking in and
+    starting the customer's payment window. The app's own UI suggests a
+    deposit of 30% of price, but any split the dispatcher sets is honored
+    as-is — the two aren't validated against each other beyond both being
+    non-negative decimals."""
 
     authentication_classes = [DriverJWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -85,11 +90,34 @@ class ConfirmBookingView(APIView):
             return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            confirmed = confirm_booking(booking, price=serializer.validated_data.get("price"))
+            confirmed = confirm_booking(
+                booking,
+                price=serializer.validated_data.get("price"),
+                deposit_amount=serializer.validated_data.get("deposit_amount"),
+            )
         except BookingConfirmError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
 
         return Response(DriverBookingSerializer(confirmed).data)
+
+
+class AllBookingsListView(generics.ListAPIView):
+    """GET /api/fleet/driver/bookings/all/ — dispatcher-only: every booking
+    for this site, most recent first, regardless of status. This is the
+    "boss sees everything" list; a plain driver gets an empty list, same
+    pattern as PendingConfirmationListView."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = DriverBookingSerializer
+
+    def get_queryset(self):
+        if not self.request.user.is_dispatcher:
+            return Booking.objects.none()
+        # No site filter, deliberately — same shared driver pool sees bookings
+        # from both brands everywhere else in this file (OpenBookingsListView,
+        # PendingConfirmationListView), Driver itself has no site of its own.
+        return Booking.objects.select_related("customer").order_by("-scheduled_at")[:200]
 
 
 class MyScheduleView(generics.ListAPIView):
@@ -211,9 +239,18 @@ class AcceptBookingView(APIView):
             booking = Booking.objects.select_related("customer").get(id=booking_id)
             driver.status = Driver.Status.JADACY_PO_KLIENTA
             driver.save(update_fields=["status"])
+            # Anchored to the *ride's* scheduled time, not to accept time —
+            # a booking accepted days ahead of a 20:00 ride gets a code
+            # that only activates at 19:00 that day, not one that's already
+            # (uselessly) active the moment a driver claims it. If accept
+            # happens after that activation point, the code is simply
+            # usable right away, since valid_from is already in the past.
             booking.tracking_code = f"{random.randint(0, 9999):04d}"
-            booking.tracking_code_expires_at = timezone.now() + timedelta(hours=1)
-            booking.save(update_fields=["tracking_code", "tracking_code_expires_at"])
+            booking.tracking_code_valid_from = booking.scheduled_at - timedelta(hours=1)
+            booking.tracking_code_expires_at = booking.scheduled_at + timedelta(hours=4)
+            booking.save(
+                update_fields=["tracking_code", "tracking_code_valid_from", "tracking_code_expires_at"]
+            )
 
         self._notify_customer(booking, driver)
         return Response(DriverBookingSerializer(booking).data)
@@ -223,11 +260,12 @@ class AcceptBookingView(APIView):
         if not phone:
             return
         site_name = SITE_DISPLAY_NAMES[booking.site]
+        active_from = timezone.localtime(booking.tracking_code_valid_from).strftime("%d.%m %H:%M")
         try:
             get_sms_backend().send_message(
                 phone,
                 f"{site_name}: Kierowca {driver.name} jedzie do Ciebie! Kurs: {booking.pickup_address}. "
-                f"Śledź na żywo: kod {booking.tracking_code} (ważny 1h) na stronie /sledz.",
+                f"Kod do śledzenia: {booking.tracking_code}, aktywny od {active_from}.",
             )
         except Exception:
             import logging

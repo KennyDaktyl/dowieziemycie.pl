@@ -143,8 +143,10 @@ class BookingTrackConsumer(AsyncWebsocketConsumer):
         from apps.accounts.models import Customer
 
         if code:
+            now = timezone.now()
             return Booking.objects.filter(
-                id=booking_id, tracking_code=code, tracking_code_expires_at__gte=timezone.now(),
+                id=booking_id, tracking_code=code,
+                tracking_code_valid_from__lte=now, tracking_code_expires_at__gte=now,
             ).exists()
 
         if not token:

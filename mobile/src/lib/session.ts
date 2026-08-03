@@ -12,6 +12,7 @@ export interface DriverProfile {
   status: DriverStatus;
   vehicle_name: string | null;
   vehicle_plate: string | null;
+  is_dispatcher: boolean;
 }
 
 export async function saveSession(access: string, refresh: string, driver: DriverProfile) {
