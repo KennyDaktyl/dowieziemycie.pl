@@ -31,7 +31,7 @@ export function BookingCancelButton({ bookingId }: { bookingId: number }) {
         type="button"
         onClick={handleCancel}
         disabled={cancelling}
-        className="text-[12.5px] font-semibold text-muted underline decoration-muted/50 underline-offset-2 transition-colors hover:text-red disabled:opacity-60"
+        className="cursor-pointer text-[12.5px] font-semibold text-muted underline decoration-muted/50 underline-offset-2 transition-colors hover:text-red disabled:cursor-not-allowed disabled:opacity-60"
       >
         {cancelling ? t("cancelling") : t("cancel")}
       </button>

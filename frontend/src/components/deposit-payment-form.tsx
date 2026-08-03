@@ -13,6 +13,15 @@ import { netFromGross } from "@/lib/format";
 type Phase = "idle" | "loading" | "form" | "processing";
 export type PaymentKind = "deposit" | "full" | "remainder";
 
+function Spinner({ className = "text-amber" }: { className?: string }) {
+  return (
+    <svg className={`h-4 w-4 shrink-0 animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
+}
+
 const LABEL_KEYS: Record<PaymentKind, "payDeposit" | "payFull" | "payRemainder"> = {
   deposit: "payDeposit",
   full: "payFull",
@@ -61,7 +70,12 @@ export function DepositPaymentForm({
   }
 
   if (phase === "processing") {
-    return <p className="text-[13px] text-muted">{t("processing")}</p>;
+    return (
+      <div className="flex items-center gap-2.5 rounded-[9px] bg-panel-2 px-5 py-2.5 text-[13px] font-semibold text-muted">
+        <Spinner />
+        {t("processing")}
+      </div>
+    );
   }
 
   if (phase === "form" && clientSecret && stripePromiseRef.current) {
@@ -90,8 +104,9 @@ export function DepositPaymentForm({
         type="button"
         onClick={startPayment}
         disabled={phase === "loading"}
-        className="rounded-[9px] bg-amber px-5 py-2.5 text-[14px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:opacity-60"
+        className="flex cursor-pointer items-center gap-2 rounded-[9px] bg-amber px-5 py-2.5 text-[14px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
       >
+        {phase === "loading" && <Spinner className="text-[#1a1305]" />}
         {phase === "loading" ? t("paying") : t(LABEL_KEYS[kind], { amount: Number(amount).toFixed(0) })}
       </button>
       {showVatNote && <span className="text-[12px] text-muted">{t("vatNote", { net: net.toFixed(2) })}</span>}
@@ -147,8 +162,9 @@ function PaymentElementForm({
       <button
         type="submit"
         disabled={!stripe || submitting}
-        className="rounded-[9px] bg-amber px-5 py-2.5 text-[14px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:opacity-60"
+        className="flex cursor-pointer items-center gap-2 rounded-[9px] bg-amber px-5 py-2.5 text-[14px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
       >
+        {submitting && <Spinner className="text-[#1a1305]" />}
         {submitting ? t("paying") : t(LABEL_KEYS[kind], { amount: Number(amount).toFixed(0) })}
       </button>
     </form>

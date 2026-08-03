@@ -18,7 +18,12 @@ export function LogoutButton({ label, className }: { label: string; className?: 
   }
 
   return (
-    <button type="button" onClick={handleLogout} disabled={loading} className={className}>
+    <button
+      type="button"
+      onClick={handleLogout}
+      disabled={loading}
+      className={`cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${className ?? ""}`}
+    >
       {label}
     </button>
   );

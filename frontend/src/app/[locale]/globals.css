@@ -23,6 +23,15 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Tailwind's preflight resets <button> to cursor: default, unlike native
+   browser behavior — restore the pointer everywhere except while disabled. */
+button:not(:disabled) {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
 .prose-content {
   font-size: 16px;
   line-height: 1.75;
