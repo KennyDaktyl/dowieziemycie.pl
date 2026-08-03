@@ -162,6 +162,8 @@ export interface Booking {
   payment_deadline: string | null;
   deposit_amount: string | null;
   paid_at: string | null;
+  remainder_paid_at: string | null;
+  remaining_amount: string | null;
 }
 
 export interface BookingInput {

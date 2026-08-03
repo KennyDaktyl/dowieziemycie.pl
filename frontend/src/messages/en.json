@@ -198,7 +198,10 @@
     "price": "Price",
     "trackDriver": "Track driver",
     "trackingTitle": "Your driver is on the way",
-    "vatIncluded": "incl. 23% VAT, net: {net} zł"
+    "vatIncluded": "incl. 23% VAT, net: {net} zł",
+    "showArchive": "Show archived rides ({count})",
+    "hideArchive": "Show current rides only",
+    "emptyCurrent": "No current rides."
   },
   "BookingStatus": {
     "NOWA": "New (awaiting confirmation)",
@@ -219,6 +222,11 @@
     "processing": "Verifying your payment… this can take up to 2 minutes for BLIK.",
     "vatNote": "Gross amount, includes 23% VAT (net: {net} zł).",
     "securePayments": "Secure payments",
-    "paymentMethods": "Powered by Stripe · card and BLIK"
+    "paymentMethods": "Powered by Stripe · card and BLIK",
+    "payFull": "Pay in full {amount} zł",
+    "payRemainder": "Pay remaining {amount} zł",
+    "orPayFull": "or pay in full now",
+    "remainingAmount": "Remaining: {amount} zł",
+    "fullyPaid": "Ride paid in full."
   }
 }

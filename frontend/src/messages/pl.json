@@ -198,7 +198,10 @@
     "price": "Cena",
     "trackDriver": "Śledź kierowcę",
     "trackingTitle": "Twój kierowca w drodze",
-    "vatIncluded": "w tym VAT 23%, netto: {net} zł"
+    "vatIncluded": "w tym VAT 23%, netto: {net} zł",
+    "showArchive": "Pokaż archiwalne kursy ({count})",
+    "hideArchive": "Pokaż tylko aktualne kursy",
+    "emptyCurrent": "Brak aktualnych kursów."
   },
   "BookingStatus": {
     "NOWA": "Nowa (oczekuje na potwierdzenie)",
@@ -219,6 +222,11 @@
     "processing": "Weryfikujemy płatność… może to potrwać do 2 minut przy BLIK-u.",
     "vatNote": "Kwota brutto, zawiera VAT 23% (netto: {net} zł).",
     "securePayments": "Bezpieczne płatności",
-    "paymentMethods": "Obsługiwane przez Stripe · karta i BLIK"
+    "paymentMethods": "Obsługiwane przez Stripe · karta i BLIK",
+    "payFull": "Zapłać całość {amount} zł",
+    "payRemainder": "Dopłać {amount} zł",
+    "orPayFull": "albo zapłać całość od razu",
+    "remainingAmount": "Do dopłaty: {amount} zł",
+    "fullyPaid": "Kurs opłacony w całości."
   }
 }
