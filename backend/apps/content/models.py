@@ -315,6 +315,7 @@ class ContentPage(models.Model):
         KONTAKT = "KONTAKT", "Kontakt"
         BLOG = "BLOG", "Wpis blogowy"
         TRANSPORT_ROWEROW = "TRANSPORT_ROWEROW", "Transport rowerów"
+        REGULAMIN = "REGULAMIN", "Regulamin"
         INNE = "INNE", "Inne"
 
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)

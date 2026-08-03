@@ -68,45 +68,37 @@ def confirm_booking(booking: Booking, price=None, deposit_amount=None) -> Bookin
     return booking
 
 
-def pay_booking_deposit(booking_id: int) -> Booking:
-    """POTWIERDZONA -> OPLACONA. Re-validates everything at the moment of
-    payment (not just at confirm time) — the payment window may have
-    lapsed, or another booking may have grabbed the same slot in the
-    meantime, since a POTWIERDZONA booking that hasn't been paid yet is
-    still racing against every other request for that time.
+def validate_payable(booking: Booking) -> None:
+    """Fast-fail check run right before creating a Stripe PaymentIntent —
+    catches the "this booking is already dead" cases (payment window
+    expired and swept up by expire_unpaid_bookings, or another booking beat
+    it to the same slot) so we never charge a customer's card for a
+    reservation that can't actually be honored."""
+    if booking.status != Booking.Status.POTWIERDZONA:
+        raise BookingPaymentError("Ta rezerwacja nie oczekuje już na płatność.")
+    if booking.payment_deadline and timezone.now() > booking.payment_deadline:
+        raise BookingPaymentError("Czas na zapłatę zaliczki minął.")
+    if has_conflicting_booking(booking.scheduled_at, booking.site, exclude_booking_id=booking.id):
+        raise BookingPaymentError(
+            "Ten termin został w międzyczasie zajęty przez inną rezerwację. Skontaktuj się z nami."
+        )
 
-    Any failure branch below still needs its cancellation to survive — but
-    raising from inside `transaction.atomic()` rolls back everything written
-    in that block, including the very cancellation we're trying to persist.
-    So each branch commits its write first and the block exits normally;
-    the actual exception is raised afterwards, once that write is durable.
-    """
-    error: BookingPaymentError | None = None
 
+def mark_deposit_paid(booking_id: int) -> Booking:
+    """POTWIERDZONA -> OPLACONA, called from the Stripe webhook once
+    payment_intent.succeeded. Unlike validate_payable (run *before* charging
+    the customer), this never cancels the booking — by the time Stripe
+    confirms the charge, the money has already moved, so the booking is
+    honored unconditionally rather than risking a paid-but-canceled booking
+    over a since-expired deadline."""
     with transaction.atomic():
         booking = Booking.objects.select_for_update().get(id=booking_id)
         _lock_site_bookings(booking.site)
-
-        if booking.status != Booking.Status.POTWIERDZONA:
-            raise BookingPaymentError("Ta rezerwacja nie oczekuje już na płatność.")
-
-        if booking.payment_deadline and timezone.now() > booking.payment_deadline:
-            booking.status = Booking.Status.ANULOWANA
-            booking.save(update_fields=["status"])
-            error = BookingPaymentError("Czas na zapłatę zaliczki minął — rezerwacja została anulowana.")
-        elif has_conflicting_booking(booking.scheduled_at, booking.site, exclude_booking_id=booking.id):
-            booking.status = Booking.Status.ANULOWANA
-            booking.save(update_fields=["status"])
-            error = BookingPaymentError(
-                "Ten termin został w międzyczasie zajęty przez inną rezerwację. Skontaktuj się z nami."
-            )
-        else:
-            booking.status = Booking.Status.OPLACONA
-            booking.paid_at = timezone.now()
-            booking.save(update_fields=["status", "paid_at"])
-
-    if error:
-        raise error
+        if booking.status == Booking.Status.OPLACONA:
+            return booking  # Already processed — Stripe can redeliver events.
+        booking.status = Booking.Status.OPLACONA
+        booking.paid_at = timezone.now()
+        booking.save(update_fields=["status", "paid_at"])
 
     # Only now, once paid, is the booking genuinely open for any driver to
     # grab — matches OpenBookingsListView's queryset (status=OPLACONA).

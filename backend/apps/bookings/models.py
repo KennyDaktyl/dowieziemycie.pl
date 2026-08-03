@@ -256,3 +256,36 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"{self.customer} · {self.pickup_address} → {self.dropoff_address} ({self.scheduled_at:%Y-%m-%d %H:%M})"
+
+
+class Payment(models.Model):
+    """One row per Stripe PaymentIntent attempt — a log/audit layer under
+    Booking.paid_at/deposit_amount (those stay the single source of truth for
+    "is the deposit settled"). Needed so the webhook can look up which
+    booking a `payment_intent.succeeded` event belongs to, and so it can
+    no-op on a re-delivered event instead of double-processing it."""
+
+    class Kind(models.TextChoices):
+        DEPOSIT = "DEPOSIT", "Zaliczka"
+        REMAINDER = "REMAINDER", "Dopłata"
+
+    class Status(models.TextChoices):
+        PENDING = "PENDING", "Oczekuje"
+        SUCCEEDED = "SUCCEEDED", "Opłacone"
+        FAILED = "FAILED", "Nieudane"
+
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name="payments")
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.DEPOSIT)
+    amount = models.DecimalField(max_digits=7, decimal_places=2)
+    stripe_payment_intent_id = models.CharField(max_length=64, unique=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Płatność"
+        verbose_name_plural = "Płatności"
+
+    def __str__(self):
+        return f"{self.booking} · {self.get_kind_display()} · {self.amount} zł ({self.get_status_display()})"

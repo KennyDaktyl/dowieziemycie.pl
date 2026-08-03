@@ -3,9 +3,10 @@ from django.urls import path
 from .views import (
     BookingCreateView,
     BookingMineListView,
-    PayBookingDepositView,
+    CreatePaymentIntentView,
     PricingTierListView,
     RouteEstimateView,
+    StripeWebhookView,
 )
 
 urlpatterns = [
@@ -13,5 +14,10 @@ urlpatterns = [
     path("route-estimate/", RouteEstimateView.as_view(), name="route-estimate"),
     path("bookings/", BookingCreateView.as_view(), name="booking-create"),
     path("bookings/mine/", BookingMineListView.as_view(), name="booking-mine"),
-    path("bookings/<int:booking_id>/pay/", PayBookingDepositView.as_view(), name="booking-pay"),
+    path(
+        "bookings/<int:booking_id>/create-payment-intent/",
+        CreatePaymentIntentView.as_view(),
+        name="booking-create-payment-intent",
+    ),
+    path("payments/stripe-webhook/", StripeWebhookView.as_view(), name="stripe-webhook"),
 ]

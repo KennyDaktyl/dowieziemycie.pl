@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.shortcuts import redirect
 
-from .models import Booking, BookingSettings, Coupon, LocalFarePolicy, PricingTier
+from .models import Booking, BookingSettings, Coupon, LocalFarePolicy, Payment, PricingTier
 from .services import BookingConfirmError, confirm_booking
 
 
@@ -78,6 +78,19 @@ class BookingAdmin(admin.ModelAdmin):
             self.message_user(request, f"Potwierdzono {confirmed} rezerwacji.")
         if failed:
             self.message_user(request, f"Nie udało się potwierdzić {failed} rezerwacji.", level="warning")
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ("booking", "kind", "amount", "status", "created_at")
+    list_filter = ("kind", "status")
+    search_fields = ("stripe_payment_intent_id", "booking__customer__phone")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 admin.site.site_header = "dowieziemycie.pl — panel admina"

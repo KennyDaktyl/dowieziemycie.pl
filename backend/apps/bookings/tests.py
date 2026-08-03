@@ -1,7 +1,8 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -146,7 +147,7 @@ class ConfirmAndPayWorkflowTests(TestCase):
         self.assertEqual(res.status_code, 201)
         return self.Booking.objects.get(id=res.data["id"])
 
-    def test_confirm_sets_deadline_and_deposit_then_pay_succeeds(self):
+    def test_confirm_sets_deadline_and_deposit(self):
         from .services import confirm_booking
 
         booking = self._create_booking()
@@ -157,13 +158,42 @@ class ConfirmAndPayWorkflowTests(TestCase):
         self.assertIsNotNone(booking.payment_deadline)
         self.assertEqual(booking.deposit_amount, 50)
 
-        res = self.client.post(f"/api/bookings/{booking.id}/pay/")
-        self.assertEqual(res.status_code, 200)
-        booking.refresh_from_db()
-        self.assertEqual(booking.status, self.Booking.Status.OPLACONA)
-        self.assertIsNotNone(booking.paid_at)
+    @override_settings(STRIPE_SECRET_KEY="sk_test_fake", STRIPE_PUBLISHABLE_KEY="pk_test_fake")
+    def test_create_payment_intent_succeeds(self):
+        from types import SimpleNamespace
 
-    def test_pay_rejects_after_deadline_and_cancels(self):
+        from .models import Payment
+        from .services import confirm_booking
+
+        booking = self._create_booking()
+        confirm_booking(booking, price=123)
+
+        fake_intent = SimpleNamespace(id="pi_fake123", client_secret="pi_fake123_secret")
+        with patch("apps.bookings.payments.stripe.PaymentIntent.create", return_value=fake_intent):
+            res = self.client.post(f"/api/bookings/{booking.id}/create-payment-intent/")
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["client_secret"], "pi_fake123_secret")
+        self.assertEqual(res.data["publishable_key"], "pk_test_fake")
+        payment = Payment.objects.get(booking=booking)
+        self.assertEqual(payment.stripe_payment_intent_id, "pi_fake123")
+        self.assertEqual(payment.status, Payment.Status.PENDING)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, self.Booking.Status.POTWIERDZONA)  # webhook flips this, not this call
+
+    def test_create_payment_intent_returns_503_when_stripe_not_configured(self):
+        from .services import confirm_booking
+
+        booking = self._create_booking()
+        confirm_booking(booking)
+
+        res = self.client.post(f"/api/bookings/{booking.id}/create-payment-intent/")
+        self.assertEqual(res.status_code, 503)
+
+    def test_create_payment_intent_rejects_after_deadline_without_canceling(self):
+        """validate_payable() only rejects — it no longer auto-cancels on an
+        expired deadline. That's expire_unpaid_bookings's job (a periodic
+        sweep), not something the payment attempt itself should trigger."""
         from .services import confirm_booking
 
         booking = self._create_booking()
@@ -171,10 +201,28 @@ class ConfirmAndPayWorkflowTests(TestCase):
         booking.payment_deadline = timezone.now() - timedelta(minutes=1)
         booking.save(update_fields=["payment_deadline"])
 
-        res = self.client.post(f"/api/bookings/{booking.id}/pay/")
+        res = self.client.post(f"/api/bookings/{booking.id}/create-payment-intent/")
         self.assertEqual(res.status_code, 409)
         booking.refresh_from_db()
-        self.assertEqual(booking.status, self.Booking.Status.ANULOWANA)
+        self.assertEqual(booking.status, self.Booking.Status.POTWIERDZONA)
+
+    def test_mark_deposit_paid_transitions_to_oplacona_and_is_idempotent(self):
+        from .services import confirm_booking, mark_deposit_paid
+
+        booking = self._create_booking()
+        confirm_booking(booking)
+
+        mark_deposit_paid(booking.id)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, self.Booking.Status.OPLACONA)
+        first_paid_at = booking.paid_at
+        self.assertIsNotNone(first_paid_at)
+
+        # Stripe can redeliver the same event — must not error or re-stamp paid_at.
+        mark_deposit_paid(booking.id)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, self.Booking.Status.OPLACONA)
+        self.assertEqual(booking.paid_at, first_paid_at)
 
     def test_confirm_rejects_a_second_booking_already_confirmed_for_the_same_slot(self):
         """confirm_booking() itself is the first line of defense — a second
@@ -193,11 +241,12 @@ class ConfirmAndPayWorkflowTests(TestCase):
         with self.assertRaises(BookingConfirmError):
             confirm_booking(booking_b)
 
-    def test_pay_rejects_when_slot_was_taken_by_another_confirmed_booking_meanwhile(self):
+    def test_create_payment_intent_rejects_when_slot_was_taken_by_another_confirmed_booking_meanwhile(self):
         """Defense in depth at the payment layer: even if two bookings
         somehow both ended up POTWIERDZONA for an overlapping slot (data
-        fix, manual override, a bug elsewhere), payment for the second one
-        must still catch the conflict rather than trust the status alone."""
+        fix, manual override, a bug elsewhere), starting a payment for the
+        second one must still catch the conflict rather than trust the
+        status alone — and must reject *before* any card gets charged."""
         from .services import confirm_booking
 
         booking_a = self._create_booking()
@@ -213,15 +262,101 @@ class ConfirmAndPayWorkflowTests(TestCase):
         other_token = str(RefreshToken.for_user(other_customer).access_token)
         other_client = APIClient()
         other_client.credentials(HTTP_AUTHORIZATION=f"Bearer {other_token}")
-        res = other_client.post(f"/api/bookings/{booking_b.id}/pay/")
+        res = other_client.post(f"/api/bookings/{booking_b.id}/create-payment-intent/")
         self.assertEqual(res.status_code, 409)
         booking_b.refresh_from_db()
-        self.assertEqual(booking_b.status, self.Booking.Status.ANULOWANA)
+        self.assertEqual(booking_b.status, self.Booking.Status.POTWIERDZONA)
 
-    def test_pay_requires_confirmation_first(self):
+    def test_create_payment_intent_requires_confirmation_first(self):
         booking = self._create_booking()
-        res = self.client.post(f"/api/bookings/{booking.id}/pay/")
+        res = self.client.post(f"/api/bookings/{booking.id}/create-payment-intent/")
         self.assertEqual(res.status_code, 409)
+
+
+class StripeWebhookTests(TestCase):
+    def setUp(self):
+        from .models import Booking, Payment
+
+        self.client = APIClient()
+        self.customer = Customer.objects.create(phone="+48500222333")
+        self.booking = Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=timezone.now() + timedelta(hours=5),
+            status=Booking.Status.POTWIERDZONA, deposit_amount=50,
+            payment_deadline=timezone.now() + timedelta(minutes=60),
+        )
+        self.payment = Payment.objects.create(
+            booking=self.booking, kind=Payment.Kind.DEPOSIT, amount=50,
+            stripe_payment_intent_id="pi_fake123",
+        )
+        self.Booking = Booking
+        self.Payment = Payment
+
+    def _fake_event(self, event_type):
+        return {"type": event_type, "data": {"object": {"id": "pi_fake123"}}}
+
+    def test_rejects_invalid_signature(self):
+        import stripe
+
+        with patch(
+            "apps.bookings.views.stripe.Webhook.construct_event",
+            side_effect=stripe.SignatureVerificationError("bad sig", "sig_header"),
+        ):
+            res = self.client.post(
+                "/api/payments/stripe-webhook/", data=b"{}", content_type="application/json",
+                HTTP_STRIPE_SIGNATURE="bad",
+            )
+        self.assertEqual(res.status_code, 400)
+
+    def test_succeeded_event_marks_payment_and_booking_paid(self):
+        with patch(
+            "apps.bookings.views.stripe.Webhook.construct_event",
+            return_value=self._fake_event("payment_intent.succeeded"),
+        ):
+            res = self.client.post(
+                "/api/payments/stripe-webhook/", data=b"{}", content_type="application/json",
+                HTTP_STRIPE_SIGNATURE="valid",
+            )
+        self.assertEqual(res.status_code, 200)
+        self.payment.refresh_from_db()
+        self.booking.refresh_from_db()
+        self.assertEqual(self.payment.status, self.Payment.Status.SUCCEEDED)
+        self.assertEqual(self.booking.status, self.Booking.Status.OPLACONA)
+
+    def test_succeeded_event_is_idempotent_on_redelivery(self):
+        with patch(
+            "apps.bookings.views.stripe.Webhook.construct_event",
+            return_value=self._fake_event("payment_intent.succeeded"),
+        ):
+            self.client.post(
+                "/api/payments/stripe-webhook/", data=b"{}", content_type="application/json",
+                HTTP_STRIPE_SIGNATURE="valid",
+            )
+            self.booking.refresh_from_db()
+            first_paid_at = self.booking.paid_at
+
+            res = self.client.post(
+                "/api/payments/stripe-webhook/", data=b"{}", content_type="application/json",
+                HTTP_STRIPE_SIGNATURE="valid",
+            )
+        self.assertEqual(res.status_code, 200)
+        self.booking.refresh_from_db()
+        self.assertEqual(self.booking.paid_at, first_paid_at)
+
+    def test_failed_event_marks_payment_failed_without_touching_booking(self):
+        with patch(
+            "apps.bookings.views.stripe.Webhook.construct_event",
+            return_value=self._fake_event("payment_intent.payment_failed"),
+        ):
+            res = self.client.post(
+                "/api/payments/stripe-webhook/", data=b"{}", content_type="application/json",
+                HTTP_STRIPE_SIGNATURE="valid",
+            )
+        self.assertEqual(res.status_code, 200)
+        self.payment.refresh_from_db()
+        self.booking.refresh_from_db()
+        self.assertEqual(self.payment.status, self.Payment.Status.FAILED)
+        self.assertEqual(self.booking.status, self.Booking.Status.POTWIERDZONA)
 
 
 class ExpireUnpaidBookingsCommandTests(TestCase):

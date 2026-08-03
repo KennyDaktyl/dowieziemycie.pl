@@ -234,3 +234,10 @@ if os.environ.get("EMAIL_BACKEND", "console") == "smtp":
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@dowieziemycie.pl")
+
+# Stripe — one shared account for both brands (see apps/bookings/payments.py).
+# Empty by default; create_payment_intent() raises a clear PaymentError instead
+# of hitting the Stripe API when STRIPE_SECRET_KEY isn't set yet.
+STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")

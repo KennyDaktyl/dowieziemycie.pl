@@ -1,9 +1,14 @@
+import logging
+
+import stripe
+from django.conf import settings
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Booking, PricingTier
+from .models import Booking, Payment, PricingTier
+from .payments import PaymentError, create_payment_intent
 from .pricing import estimate_price
 from .routing import get_route_details
 from .serializers import (
@@ -12,7 +17,9 @@ from .serializers import (
     PricingTierSerializer,
     RouteEstimateRequestSerializer,
 )
-from .services import BookingPaymentError, pay_booking_deposit
+from .services import BookingPaymentError, mark_deposit_paid, validate_payable
+
+logger = logging.getLogger("apps.bookings.views")
 
 
 class PricingTierListView(generics.ListAPIView):
@@ -67,12 +74,12 @@ class BookingMineListView(generics.ListAPIView):
         return Booking.objects.filter(customer=self.request.user)
 
 
-class PayBookingDepositView(APIView):
-    """POST /api/bookings/<id>/pay/ — mock deposit payment (no real gateway
-    yet, see project notes). Re-validates the payment window and the time-slot
-    conflict at the moment of payment, not just at confirm time — see
-    apps.bookings.services.pay_booking_deposit for why that re-check matters.
-    """
+class CreatePaymentIntentView(APIView):
+    """POST /api/bookings/<id>/create-payment-intent/ — starts a Stripe
+    PaymentIntent for this booking's deposit. Re-validates the payment
+    window and the time-slot conflict right here (see
+    apps.bookings.services.validate_payable), so we never charge a card for
+    a booking that's already expired or lost its slot."""
 
     permission_classes = [IsAuthenticated]
 
@@ -82,8 +89,51 @@ class PayBookingDepositView(APIView):
             return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            paid_booking = pay_booking_deposit(booking.id)
+            validate_payable(booking)
         except BookingPaymentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
 
-        return Response(BookingSerializer(paid_booking).data)
+        try:
+            result = create_payment_intent(booking, Payment.Kind.DEPOSIT, booking.deposit_amount)
+        except PaymentError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response(result)
+
+
+class StripeWebhookView(APIView):
+    """POST /api/payments/stripe-webhook/ — public (Stripe signs the payload
+    instead of us authenticating the caller). Raw body is required for
+    signature verification, so this reads request.body directly rather than
+    the DRF-parsed request.data."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
+        try:
+            event = stripe.Webhook.construct_event(
+                request.body, sig_header, settings.STRIPE_WEBHOOK_SECRET,
+            )
+        except (ValueError, stripe.SignatureVerificationError):
+            return Response({"detail": "Nieprawidłowy webhook."}, status=status.HTTP_400_BAD_REQUEST)
+
+        intent = event["data"]["object"]
+        payment_intent_id = intent.get("id")
+
+        if event["type"] == "payment_intent.succeeded":
+            payment = Payment.objects.filter(stripe_payment_intent_id=payment_intent_id).first()
+            if payment and payment.status != Payment.Status.SUCCEEDED:
+                payment.status = Payment.Status.SUCCEEDED
+                payment.save(update_fields=["status"])
+                if payment.kind == Payment.Kind.DEPOSIT:
+                    mark_deposit_paid(payment.booking_id)
+        elif event["type"] == "payment_intent.payment_failed":
+            Payment.objects.filter(
+                stripe_payment_intent_id=payment_intent_id,
+            ).exclude(status=Payment.Status.SUCCEEDED).update(status=Payment.Status.FAILED)
+        else:
+            logger.info("Nieobsłużony typ eventu Stripe: %s", event["type"])
+
+        return Response({"received": True})

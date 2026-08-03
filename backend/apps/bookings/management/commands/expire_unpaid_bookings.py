@@ -1,7 +1,7 @@
 """Run periodically (cron/systemd timer, every few minutes) — cancels any
 POTWIERDZONA booking whose payment_deadline has passed without payment,
 freeing up the time slot for someone else to book. See
-apps.bookings.services.pay_booking_deposit for the payment-time re-check
+apps.bookings.services.validate_payable for the payment-time re-check
 that this expiry makes necessary in the first place."""
 
 from django.core.management.base import BaseCommand
