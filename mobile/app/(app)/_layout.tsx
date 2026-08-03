@@ -23,6 +23,10 @@ export default function AppLayout() {
       <Tabs.Screen name="bookings" options={{ title: "Kursy" }} />
       <Tabs.Screen name="schedule" options={{ title: "Harmonogram" }} />
       <Tabs.Screen name="history" options={{ title: "Historia" }} />
+      <Tabs.Screen
+        name="all-bookings"
+        options={{ title: "Szef", href: driver.is_dispatcher ? undefined : null }}
+      />
     </Tabs>
   );
 }
