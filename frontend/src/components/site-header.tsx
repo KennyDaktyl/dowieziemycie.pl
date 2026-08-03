@@ -3,8 +3,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getSession } from "@/lib/auth";
 
+import { CustomerMenu } from "./customer-menu";
 import { LocaleSwitcher } from "./locale-switcher";
-import { LogoutButton } from "./logout-button";
 import { MobileNav } from "./mobile-nav";
 
 export async function SiteHeader() {
@@ -66,18 +66,18 @@ export async function SiteHeader() {
             <div className="hidden xl:block">
               <LocaleSwitcher />
             </div>
-            <Link
-              href={customer ? "/panel" : "/logowanie"}
-              className="hidden text-[14.5px] font-semibold text-muted transition-colors hover:text-text xl:inline"
-            >
-              {customer ? t("myTrips") : t("login")}
-            </Link>
-            {customer && (
-              <LogoutButton
-                label={t("logout")}
-                className="hidden text-[13px] font-medium text-muted underline transition-colors hover:text-text xl:inline"
-              />
-            )}
+            <div className="hidden xl:block">
+              {customer ? (
+                <CustomerMenu myTripsLabel={t("myTrips")} logoutLabel={t("logout")} />
+              ) : (
+                <Link
+                  href="/logowanie"
+                  className="text-[14.5px] font-semibold text-muted transition-colors hover:text-text"
+                >
+                  {t("login")}
+                </Link>
+              )}
+            </div>
             <Link
               href="/sledz"
               className="hidden rounded-md border border-amber px-[14px] py-[9px] text-sm font-semibold whitespace-nowrap text-amber transition-colors hover:bg-amber/10 sm:inline-block"
