@@ -2,7 +2,7 @@ import logging
 
 import stripe
 from django.conf import settings
-from rest_framework import generics, status
+from rest_framework import generics, serializers, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -18,7 +18,13 @@ from .serializers import (
     PricingTierSerializer,
     RouteEstimateRequestSerializer,
 )
-from .services import BookingPaymentError, mark_deposit_paid, validate_payable
+from .services import (
+    BookingPaymentError,
+    mark_deposit_paid,
+    mark_full_payment,
+    mark_remainder_paid,
+    resolve_payable_amount,
+)
 
 logger = logging.getLogger("apps.bookings.views")
 
@@ -83,12 +89,19 @@ class BookingMineListView(generics.ListAPIView):
         return Booking.objects.filter(customer=self.request.user)
 
 
+class CreatePaymentIntentRequestSerializer(serializers.Serializer):
+    kind = serializers.ChoiceField(choices=["deposit", "full", "remainder"], default="deposit")
+
+
 class CreatePaymentIntentView(APIView):
-    """POST /api/bookings/<id>/create-payment-intent/ — starts a Stripe
-    PaymentIntent for this booking's deposit. Re-validates the payment
-    window and the time-slot conflict right here (see
-    apps.bookings.services.validate_payable), so we never charge a card for
-    a booking that's already expired or lost its slot."""
+    """POST /api/bookings/<id>/create-payment-intent/ {kind?} — starts a
+    Stripe PaymentIntent for this booking. `kind` picks what's being paid:
+    "deposit" (default) or "full" — both only while still POTWIERDZONA — or
+    "remainder", payable any time after the deposit has landed. See
+    apps.bookings.services.resolve_payable_amount for exactly what's
+    allowed when, and validate_payable for the re-checked payment-window/
+    conflict rules — we never charge a card for a booking that's already
+    expired or lost its slot."""
 
     permission_classes = [IsAuthenticated]
 
@@ -97,13 +110,16 @@ class CreatePaymentIntentView(APIView):
         if not booking:
             return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
 
+        request_serializer = CreatePaymentIntentRequestSerializer(data=request.data)
+        request_serializer.is_valid(raise_exception=True)
+
         try:
-            validate_payable(booking)
+            amount, payment_kind = resolve_payable_amount(booking, request_serializer.validated_data["kind"])
         except BookingPaymentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
 
         try:
-            result = create_payment_intent(booking, Payment.Kind.DEPOSIT, booking.deposit_amount)
+            result = create_payment_intent(booking, payment_kind, amount)
         except PaymentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -138,6 +154,10 @@ class StripeWebhookView(APIView):
                 payment.save(update_fields=["status"])
                 if payment.kind == Payment.Kind.DEPOSIT:
                     mark_deposit_paid(payment.booking_id)
+                elif payment.kind == Payment.Kind.FULL:
+                    mark_full_payment(payment.booking_id)
+                elif payment.kind == Payment.Kind.REMAINDER:
+                    mark_remainder_paid(payment.booking_id)
         elif event["type"] == "payment_intent.payment_failed":
             Payment.objects.filter(
                 stripe_payment_intent_id=payment_intent_id,

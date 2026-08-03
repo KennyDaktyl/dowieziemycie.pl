@@ -66,6 +66,14 @@ class Tour(models.Model):
     h1_en = models.CharField(max_length=200, blank=True)
     h1_de = models.CharField(max_length=200, blank=True)
     duration = models.CharField(max_length=40, blank=True, help_text="Np. „do 6 h” — tekst dowolny.")
+    duration_minutes = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text=(
+            "Ile minut zajmuje kierowcy cała wycieczka w obie strony (dojazd + czas na miejscu + powrót). "
+            "Blokuje ten czas w harmonogramie, żeby nikt inny nie mógł zarezerwować kursu, gdy kierowca "
+            "jeszcze nie wrócił. Puste = używany jest domyślny bufor z Ustawień rezerwacji."
+        ),
+    )
     summary_pl = models.CharField(max_length=240, blank=True, help_text="Krótki opis pod kartę na liście.")
     summary_en = models.CharField(max_length=240, blank=True)
     summary_de = models.CharField(max_length=240, blank=True)
@@ -206,6 +214,14 @@ class FixedRoute(models.Model):
     h1_en = models.CharField(max_length=200, blank=True)
     h1_de = models.CharField(max_length=200, blank=True)
     duration = models.CharField(max_length=40, blank=True, help_text="Np. „~25 min” — tekst dowolny.")
+    duration_minutes = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text=(
+            "Ile minut zajmuje kierowcy cały kurs w obie strony (dojazd na miejsce + powrót). Blokuje ten "
+            "czas w harmonogramie, żeby nikt inny nie mógł zarezerwować kursu, gdy kierowca jeszcze nie "
+            "wrócił. Puste = używany jest domyślny bufor z Ustawień rezerwacji."
+        ),
+    )
     body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown) — wstęp, sekcje, FAQ.")
     body_en = models.TextField(blank=True)
     body_de = models.TextField(blank=True)

@@ -74,7 +74,7 @@ class TourAdmin(admin.ModelAdmin):
     inlines = [TourVehiclePriceInline, TourPhotoInline]
     fieldsets = (
         (None, {"fields": (
-            "site", "slug", "duration", "cover_image", "is_published", "order",
+            "site", "slug", "duration", "duration_minutes", "cover_image", "is_published", "order",
         )}),
         (
             "Polski",
@@ -138,7 +138,7 @@ class FixedRouteAdmin(admin.ModelAdmin):
     inlines = [FixedRouteVehiclePriceInline, FixedRoutePhotoInline]
     fieldsets = (
         (None, {"fields": (
-            "site", "category", "slug", "duration", "is_published", "order",
+            "site", "category", "slug", "duration", "duration_minutes", "is_published", "order",
         )}),
         ("Polski", {"fields": ("name_pl", "h1_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("name_en", "h1_en", "body_en", "seo_title_en", "seo_description_en")}),

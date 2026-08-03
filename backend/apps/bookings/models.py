@@ -203,6 +203,14 @@ class Booking(models.Model):
         max_digits=6, decimal_places=1, null=True, blank=True,
         help_text="Rzeczywista odległość trasy (OSRM), zapisana w momencie rezerwacji.",
     )
+    duration_minutes = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text=(
+            "Ile minut ten kurs zajmuje kierowcy w obie strony — zrzut z FixedRoute/Tour.duration_minutes "
+            "w momencie rezerwacji (katalogowe rezerwacje transfer247.pl). Puste = używany jest domyślny "
+            "bufor z Ustawień rezerwacji (has_conflicting_booking w apps.bookings.availability)."
+        ),
+    )
     pricing_tier = models.ForeignKey(
         PricingTier, on_delete=models.SET_NULL, null=True, blank=True,
         help_text="Taryfa dopasowana wg dystansu w momencie rezerwacji (puste przy taryfie lokalnej).",
@@ -252,7 +260,15 @@ class Booking(models.Model):
         max_digits=7, decimal_places=2, null=True, blank=True,
         help_text="Zaliczka do zapłaty — zrzut z ustawień w momencie potwierdzenia rezerwacji.",
     )
-    paid_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True, help_text="Kiedy zaliczka (lub pełna kwota) wpłynęła.")
+    remainder_paid_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text=(
+            "Kiedy reszta należności (price - deposit_amount) wpłynęła — ustawiane też razem z paid_at "
+            "przy płatności całej kwoty od razu. Kurs jest opłacony w całości dokładnie wtedy, gdy to pole "
+            "nie jest puste."
+        ),
+    )
 
     # Low-friction alternative to logging in to watch a driver: a 4-digit
     # code, generated when a driver accepts the booking. Its validity
@@ -289,6 +305,7 @@ class Payment(models.Model):
     class Kind(models.TextChoices):
         DEPOSIT = "DEPOSIT", "Zaliczka"
         REMAINDER = "REMAINDER", "Dopłata"
+        FULL = "FULL", "Pełna kwota"
 
     class Status(models.TextChoices):
         PENDING = "PENDING", "Oczekuje"

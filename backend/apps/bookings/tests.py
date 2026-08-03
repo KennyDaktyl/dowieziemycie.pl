@@ -154,6 +154,57 @@ class TimeSlotConflictTests(TestCase):
         self.assertEqual(res.status_code, 201)
 
 
+class DurationAwareConflictTests(TestCase):
+    """A long booking (e.g. a multi-hour tour) must block its whole busy
+    window, not just a flat buffer around its start time — otherwise
+    someone could book the same driver for the middle of a trip they
+    haven't returned from yet. See apps.bookings.availability."""
+
+    def setUp(self):
+        from .models import Booking
+
+        self.customer = Customer.objects.create(phone="+48500222333")
+        self.Booking = Booking
+
+    def test_a_long_existing_booking_blocks_a_new_one_well_after_its_start_time(self):
+        from .availability import has_conflicting_booking
+
+        anchor = timezone.now() + timedelta(hours=5)
+        self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=anchor, status=self.Booking.Status.POTWIERDZONA, duration_minutes=360,  # 6h tour
+        )
+        # 4 hours after the tour started — well past the old flat 60-minute
+        # buffer, but still inside the tour's actual 6-hour busy window.
+        self.assertTrue(
+            has_conflicting_booking(anchor + timedelta(hours=4), site="dowieziemycie", duration_minutes=None)
+        )
+
+    def test_a_short_existing_booking_does_not_block_hours_later(self):
+        from .availability import has_conflicting_booking
+
+        anchor = timezone.now() + timedelta(hours=5)
+        self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=anchor, status=self.Booking.Status.POTWIERDZONA, duration_minutes=25,  # airport transfer
+        )
+        self.assertFalse(
+            has_conflicting_booking(anchor + timedelta(hours=4), site="dowieziemycie", duration_minutes=None)
+        )
+
+    def test_a_new_long_booking_is_rejected_if_it_would_overlap_a_later_one(self):
+        from .availability import has_conflicting_booking
+
+        anchor = timezone.now() + timedelta(hours=5)
+        self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=anchor + timedelta(hours=3), status=self.Booking.Status.POTWIERDZONA,
+        )
+        # A 4-hour tour starting now would still be running when the other
+        # booking (3h from now) is due.
+        self.assertTrue(has_conflicting_booking(anchor, site="dowieziemycie", duration_minutes=240))
+
+
 class ConfirmAndPayWorkflowTests(TestCase):
     def setUp(self):
         from .models import Booking
@@ -206,6 +257,54 @@ class ConfirmAndPayWorkflowTests(TestCase):
         self.assertEqual(payment.status, Payment.Status.PENDING)
         booking.refresh_from_db()
         self.assertEqual(booking.status, self.Booking.Status.POTWIERDZONA)  # webhook flips this, not this call
+
+    @override_settings(STRIPE_SECRET_KEY="sk_test_fake", STRIPE_PUBLISHABLE_KEY="pk_test_fake")
+    def test_create_payment_intent_kind_full_charges_the_whole_price(self):
+        from types import SimpleNamespace
+
+        from .models import Payment
+        from .services import confirm_booking
+
+        booking = self._create_booking()
+        confirm_booking(booking, price=349, deposit_amount=50)
+
+        fake_intent = SimpleNamespace(id="pi_full123", client_secret="pi_full123_secret")
+        with patch("apps.bookings.payments.stripe.PaymentIntent.create", return_value=fake_intent) as mock_create:
+            res = self.client.post(f"/api/bookings/{booking.id}/create-payment-intent/", {"kind": "full"})
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(mock_create.call_args.kwargs["amount"], 34900)  # 349.00 zł in grosze
+        payment = Payment.objects.get(booking=booking)
+        self.assertEqual(payment.kind, Payment.Kind.FULL)
+        self.assertEqual(payment.amount, 349)
+
+    def test_create_payment_intent_kind_remainder_requires_a_deposit_first(self):
+        from .services import confirm_booking
+
+        booking = self._create_booking()
+        confirm_booking(booking, price=349, deposit_amount=50)
+        # Still POTWIERDZONA — no deposit paid yet, nothing to "top up".
+        res = self.client.post(f"/api/bookings/{booking.id}/create-payment-intent/", {"kind": "remainder"})
+        self.assertEqual(res.status_code, 409)
+
+    @override_settings(STRIPE_SECRET_KEY="sk_test_fake", STRIPE_PUBLISHABLE_KEY="pk_test_fake")
+    def test_create_payment_intent_kind_remainder_charges_the_outstanding_balance(self):
+        from types import SimpleNamespace
+
+        from .models import Payment
+        from .services import confirm_booking, mark_deposit_paid
+
+        booking = self._create_booking()
+        confirm_booking(booking, price=349, deposit_amount=50)
+        mark_deposit_paid(booking.id)  # simulates the webhook after the deposit lands
+
+        fake_intent = SimpleNamespace(id="pi_rem123", client_secret="pi_rem123_secret")
+        with patch("apps.bookings.payments.stripe.PaymentIntent.create", return_value=fake_intent):
+            res = self.client.post(f"/api/bookings/{booking.id}/create-payment-intent/", {"kind": "remainder"})
+
+        self.assertEqual(res.status_code, 200)
+        payment = Payment.objects.get(booking=booking, kind=Payment.Kind.REMAINDER)
+        self.assertEqual(payment.amount, 299)  # 349 - 50
 
     @override_settings(STRIPE_SECRET_KEY="", STRIPE_PUBLISHABLE_KEY="")
     def test_create_payment_intent_returns_503_when_stripe_not_configured(self):
@@ -350,6 +449,53 @@ class StripeWebhookTests(TestCase):
         self.assertEqual(self.payment.status, self.Payment.Status.SUCCEEDED)
         self.assertEqual(self.booking.status, self.Booking.Status.OPLACONA)
 
+    def test_succeeded_event_for_full_payment_marks_booking_fully_paid(self):
+        self.booking.price = 349
+        self.booking.save(update_fields=["price"])
+        full_payment = self.Payment.objects.create(
+            booking=self.booking, kind=self.Payment.Kind.FULL, amount=349,
+            stripe_payment_intent_id="pi_full456",
+        )
+        with patch(
+            "apps.bookings.views.stripe.Webhook.construct_event",
+            return_value={"type": "payment_intent.succeeded", "data": {"object": {"id": "pi_full456"}}},
+        ):
+            res = self.client.post(
+                "/api/payments/stripe-webhook/", data=b"{}", content_type="application/json",
+                HTTP_STRIPE_SIGNATURE="valid",
+            )
+        self.assertEqual(res.status_code, 200)
+        full_payment.refresh_from_db()
+        self.booking.refresh_from_db()
+        self.assertEqual(full_payment.status, self.Payment.Status.SUCCEEDED)
+        self.assertEqual(self.booking.status, self.Booking.Status.OPLACONA)
+        self.assertIsNotNone(self.booking.paid_at)
+        self.assertIsNotNone(self.booking.remainder_paid_at)
+
+    def test_succeeded_event_for_remainder_payment_settles_the_balance_without_changing_status(self):
+        self.booking.status = self.Booking.Status.W_TRAKCIE
+        self.booking.price = 349
+        self.booking.paid_at = timezone.now()
+        self.booking.save(update_fields=["status", "price", "paid_at"])
+        remainder_payment = self.Payment.objects.create(
+            booking=self.booking, kind=self.Payment.Kind.REMAINDER, amount=299,
+            stripe_payment_intent_id="pi_rem456",
+        )
+        with patch(
+            "apps.bookings.views.stripe.Webhook.construct_event",
+            return_value={"type": "payment_intent.succeeded", "data": {"object": {"id": "pi_rem456"}}},
+        ):
+            res = self.client.post(
+                "/api/payments/stripe-webhook/", data=b"{}", content_type="application/json",
+                HTTP_STRIPE_SIGNATURE="valid",
+            )
+        self.assertEqual(res.status_code, 200)
+        remainder_payment.refresh_from_db()
+        self.booking.refresh_from_db()
+        self.assertEqual(remainder_payment.status, self.Payment.Status.SUCCEEDED)
+        self.assertEqual(self.booking.status, self.Booking.Status.W_TRAKCIE)  # unchanged
+        self.assertIsNotNone(self.booking.remainder_paid_at)
+
     def test_succeeded_event_is_idempotent_on_redelivery(self):
         with patch(
             "apps.bookings.views.stripe.Webhook.construct_event",
@@ -429,6 +575,7 @@ class CatalogBookingCreateViewTests(TestCase):
 
         self.route = FixedRoute.objects.create(
             site="transfer247", slug="test-balice-krakow", name_pl="Balice → Kraków", name_en="Balice → Kraków",
+            duration_minutes=45,
         )
         FixedRouteVehiclePrice.objects.create(route=self.route, vehicle=self.vehicle, price="180.00")
 
@@ -460,6 +607,7 @@ class CatalogBookingCreateViewTests(TestCase):
         self.assertEqual(booking.fixed_route_id, self.route.id)
         self.assertEqual(booking.vehicle_id, self.vehicle.id)
         self.assertEqual(booking.pickup_address, "Hotel Wawel, ul. Poselska 22")
+        self.assertEqual(booking.duration_minutes, 45)  # snapshotted from self.route
 
     def test_rejects_more_passengers_than_the_vehicle_seats(self):
         res = self._post(fixed_route_slug=self.route.slug, passenger_count=5)  # self.vehicle only has 4 seats

@@ -45,6 +45,7 @@ class BookingSerializer(serializers.ModelSerializer):
     # link to /flota#vehicle-<id> so the customer can see what they picked.
     booked_vehicle_id = serializers.IntegerField(source="vehicle.id", read_only=True, default=None)
     booked_vehicle_name = serializers.CharField(source="vehicle.name", read_only=True, default=None)
+    remaining_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -53,10 +54,16 @@ class BookingSerializer(serializers.ModelSerializer):
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "status", "distance_km", "is_reserved",
             "price", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle", "created_at",
-            "confirmed_at", "payment_deadline", "deposit_amount", "paid_at",
-            "booked_vehicle_id", "booked_vehicle_name",
+            "confirmed_at", "payment_deadline", "deposit_amount", "paid_at", "remainder_paid_at",
+            "remaining_amount", "booked_vehicle_id", "booked_vehicle_name",
         ]
         read_only_fields = fields
+
+    def get_remaining_amount(self, obj):
+        if obj.price is None or obj.deposit_amount is None or obj.remainder_paid_at is not None:
+            return None
+        remaining = obj.price - obj.deposit_amount
+        return remaining if remaining > 0 else None
 
 
 class DriverBookingSerializer(serializers.ModelSerializer):
@@ -76,7 +83,7 @@ class DriverBookingSerializer(serializers.ModelSerializer):
             "id", "site", "customer_phone", "customer_name",
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
-            "scheduled_at", "passenger_count", "status", "distance_km", "price",
+            "scheduled_at", "passenger_count", "status", "distance_km", "duration_minutes", "price",
             "deposit_amount", "confirmed_at", "payment_deadline", "paid_at", "created_at",
             "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
             "assigned_driver_id", "assigned_driver_name", "fixed_route_name", "tour_name",
@@ -193,12 +200,25 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
     customer_email = serializers.EmailField(required=False, allow_blank=True)
 
     def validate(self, attrs):
+        from apps.content.models import FixedRoute, Tour
+
         if bool(attrs.get("fixed_route_slug")) == bool(attrs.get("tour_slug")):
             raise serializers.ValidationError("Podaj dokładnie jedno: trasę albo wycieczkę.")
 
         site_code = self.context["request"].site_code
         assert_bookings_open(site_code)
-        if has_conflicting_booking(attrs["scheduled_at"], site_code):
+
+        # Only fetched here for its duration_minutes, ahead of the full
+        # lookup (with price/vehicle validation) in create() — a long tour
+        # needs to block its whole busy window, not just a flat buffer
+        # around its start time.
+        if attrs.get("fixed_route_slug"):
+            catalog_item = FixedRoute.objects.filter(slug=attrs["fixed_route_slug"], site=site_code).first()
+        else:
+            catalog_item = Tour.objects.filter(slug=attrs["tour_slug"], site=site_code).first()
+        duration_minutes = catalog_item.duration_minutes if catalog_item else None
+
+        if has_conflicting_booking(attrs["scheduled_at"], site_code, duration_minutes=duration_minutes):
             raise serializers.ValidationError(
                 "Ten termin nie jest dostępny — inny kurs jest zaplanowany zbyt blisko tej godziny. "
                 "Wybierz proszę inną godzinę."
@@ -234,6 +254,7 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             price_row = FixedRouteVehiclePrice.objects.filter(route=fixed_route_obj, vehicle=vehicle).first()
             if not price_row:
                 raise serializers.ValidationError({"vehicle_id": "Ten pojazd nie jest dostępny dla tej trasy."})
+            duration_minutes = fixed_route_obj.duration_minutes
         else:
             tour_obj = Tour.objects.filter(
                 slug=validated_data["tour_slug"], site=site_code, is_published=True,
@@ -243,6 +264,7 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             price_row = TourVehiclePrice.objects.filter(tour=tour_obj, vehicle=vehicle).first()
             if not price_row:
                 raise serializers.ValidationError({"vehicle_id": "Ten pojazd nie jest dostępny dla tej wycieczki."})
+            duration_minutes = tour_obj.duration_minutes
 
         booking = Booking.objects.create(
             customer=self.context["request"].user,
@@ -256,6 +278,7 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             scheduled_at=validated_data["scheduled_at"],
             passenger_count=validated_data["passenger_count"],
             price=price_row.price,
+            duration_minutes=duration_minutes,
             fixed_route=fixed_route_obj,
             tour=tour_obj,
             vehicle=vehicle,

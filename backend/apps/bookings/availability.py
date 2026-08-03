@@ -30,17 +30,32 @@ COMMITTED_STATUSES = [
 ]
 
 
-def has_conflicting_booking(scheduled_at, site: str, exclude_booking_id: int | None = None) -> bool:
+def has_conflicting_booking(
+    scheduled_at, site: str, exclude_booking_id: int | None = None, duration_minutes: int | None = None,
+) -> bool:
+    """A booking occupies [scheduled_at - buffer, scheduled_at + duration + buffer]
+    — duration_minutes lets a long booking (a multi-hour tour, say) actually
+    block that whole window instead of just a flat buffer around its start
+    time, which would let someone else book the driver for the middle of a
+    trip they haven't returned from yet. Falls back to buffer-only (duration
+    treated as 0) when duration_minutes is unknown — the old behavior,
+    unchanged, for bookings that don't carry a known duration (dowieziemycie.pl's
+    map-based flow doesn't compute one today)."""
     buffer_minutes = BookingSettings.for_site(site).driver_buffer_minutes
-    window_start = scheduled_at - timedelta(minutes=buffer_minutes)
-    window_end = scheduled_at + timedelta(minutes=buffer_minutes)
+    buffer = timedelta(minutes=buffer_minutes)
+    new_start = scheduled_at - buffer
+    new_end = scheduled_at + timedelta(minutes=duration_minutes or 0) + buffer
 
-    qs = Booking.objects.filter(
-        site=site, status__in=COMMITTED_STATUSES, scheduled_at__range=(window_start, window_end),
-    )
+    qs = Booking.objects.filter(site=site, status__in=COMMITTED_STATUSES)
     if exclude_booking_id is not None:
         qs = qs.exclude(id=exclude_booking_id)
-    return qs.exists()
+
+    for existing in qs.only("scheduled_at", "duration_minutes"):
+        existing_start = existing.scheduled_at - buffer
+        existing_end = existing.scheduled_at + timedelta(minutes=existing.duration_minutes or 0) + buffer
+        if new_start < existing_end and existing_start < new_end:
+            return True
+    return False
 
 
 def assert_bookings_open(site: str) -> None:
