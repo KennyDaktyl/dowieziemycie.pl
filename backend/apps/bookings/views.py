@@ -190,7 +190,7 @@ class StripeWebhookView(APIView):
             return Response({"detail": "Nieprawidłowy webhook."}, status=status.HTTP_400_BAD_REQUEST)
 
         intent = event["data"]["object"]
-        payment_intent_id = intent.get("id")
+        payment_intent_id = intent["id"]
 
         if event["type"] == "payment_intent.succeeded":
             payment = Payment.objects.filter(stripe_payment_intent_id=payment_intent_id).first()
