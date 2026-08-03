@@ -209,7 +209,16 @@
     "hideArchive": "Pokaż tylko aktualne kursy",
     "emptyCurrent": "Brak aktualnych kursów.",
     "km": "km",
-    "min": "min"
+    "min": "min",
+    "tabUpcoming": "Nadchodzące",
+    "tabHistory": "Historia",
+    "tabCancelled": "Anulowane",
+    "emptyUpcoming": "Brak nadchodzących kursów.",
+    "emptyHistory": "Brak zakończonych kursów.",
+    "emptyCancelled": "Nie masz żadnych anulowanych kursów.",
+    "seats": "{count} miejsc",
+    "downloadConfirmation": "Pobierz potwierdzenie",
+    "bookSimilar": "Zamów podobny kurs"
   },
   "BookingStatus": {
     "NOWA": "Nowa (oczekuje na potwierdzenie)",
@@ -235,6 +244,12 @@
     "payRemainder": "Dopłać {amount} zł",
     "orPayFull": "albo zapłać całość od razu",
     "remainingAmount": "Do dopłaty: {amount} zł",
-    "fullyPaid": "Kurs opłacony w całości."
+    "fullyPaid": "Kurs opłacony w całości.",
+    "urgencyCountdown": "Zapłać zaliczkę do {time} dziś — inaczej rezerwacja zostanie anulowana za {countdown}",
+    "cancel": "Anuluj rezerwację",
+    "cancelConfirm": "Na pewno anulować ten kurs? Tej operacji nie można cofnąć.",
+    "cancelling": "Anuluję…",
+    "cancelError": "Nie udało się anulować rezerwacji. Spróbuj ponownie.",
+    "securedByStripe": "Płatność zabezpieczona przez Stripe"
   }
 }

@@ -209,7 +209,16 @@
     "hideArchive": "Show current rides only",
     "emptyCurrent": "No current rides.",
     "km": "km",
-    "min": "min"
+    "min": "min",
+    "tabUpcoming": "Upcoming",
+    "tabHistory": "History",
+    "tabCancelled": "Cancelled",
+    "emptyUpcoming": "No upcoming rides.",
+    "emptyHistory": "No completed rides.",
+    "emptyCancelled": "You don't have any cancelled rides.",
+    "seats": "{count} seats",
+    "downloadConfirmation": "Download confirmation",
+    "bookSimilar": "Book a similar ride"
   },
   "BookingStatus": {
     "NOWA": "New (awaiting confirmation)",
@@ -235,6 +244,12 @@
     "payRemainder": "Pay remaining {amount} zł",
     "orPayFull": "or pay in full now",
     "remainingAmount": "Remaining: {amount} zł",
-    "fullyPaid": "Ride paid in full."
+    "fullyPaid": "Ride paid in full.",
+    "urgencyCountdown": "Pay the deposit by {time} today — or the booking is cancelled in {countdown}",
+    "cancel": "Cancel booking",
+    "cancelConfirm": "Cancel this ride? This can't be undone.",
+    "cancelling": "Cancelling…",
+    "cancelError": "Couldn't cancel the booking. Please try again.",
+    "securedByStripe": "Payment secured by Stripe"
   }
 }

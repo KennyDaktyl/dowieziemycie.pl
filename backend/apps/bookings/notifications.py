@@ -127,6 +127,29 @@ def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
     _send_email(booking.customer.email, f"{site_name}: zmiana terminu kursu", text)
 
 
+def notify_dispatcher_of_customer_cancellation(booking) -> None:
+    """The customer (not the dispatcher/driver) cancelled their own
+    booking — the dispatcher needs to know so no driver gets sent."""
+    site_name = SITE_DISPLAY_NAMES[booking.site]
+    booking_settings = BookingSettings.for_site(booking.site)
+    text = (
+        f"{site_name}: klient anulował rezerwację na {booking.scheduled_at:%d.%m %H:%M} "
+        f"({booking.pickup_address} → {booking.dropoff_address})."
+    )
+    _send_sms(booking_settings.dispatcher_phone, text)
+    _send_email(booking_settings.dispatcher_email, f"{site_name}: rezerwacja #{booking.id} anulowana przez klienta", text)
+
+    if booking.assigned_driver and booking.assigned_driver.expo_push_token:
+        from apps.fleet.push import send_push
+
+        send_push(
+            booking.assigned_driver.expo_push_token,
+            title="Kurs anulowany przez klienta",
+            body=f"{booking.pickup_address} → {booking.dropoff_address}",
+            data={"type": "booking_cancelled", "booking_id": booking.id},
+        )
+
+
 def notify_customer_of_cancellation(booking) -> None:
     """Dispatcher cancelled the booking."""
     site_name = SITE_DISPLAY_NAMES[booking.site]

@@ -40,12 +40,16 @@ class BookingSerializer(serializers.ModelSerializer):
     coupon_code = serializers.CharField(source="coupon.code", read_only=True, default=None)
     driver_name = serializers.CharField(source="assigned_driver.name", read_only=True, default=None)
     driver_vehicle = serializers.CharField(source="assigned_driver.vehicle.name", read_only=True, default=None)
+    driver_vehicle_plate = serializers.CharField(source="assigned_driver.vehicle.plate", read_only=True, default=None)
+    driver_vehicle_seats = serializers.IntegerField(source="assigned_driver.vehicle.seats", read_only=True, default=None)
     # The vehicle class the customer picked at booking time (transfer247.pl's
     # catalog flow) — distinct from driver_vehicle above, which is whatever
     # vehicle the driver who actually gets assigned drives. Lets the panel
     # link to /flota#vehicle-<id> so the customer can see what they picked.
     booked_vehicle_id = serializers.IntegerField(source="vehicle.id", read_only=True, default=None)
     booked_vehicle_name = serializers.CharField(source="vehicle.name", read_only=True, default=None)
+    booked_vehicle_plate = serializers.CharField(source="vehicle.plate", read_only=True, default=None)
+    booked_vehicle_seats = serializers.IntegerField(source="vehicle.seats", read_only=True, default=None)
     remaining_amount = serializers.SerializerMethodField()
 
     class Meta:
@@ -54,9 +58,11 @@ class BookingSerializer(serializers.ModelSerializer):
             "id", "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "status", "distance_km", "duration_minutes", "is_reserved",
-            "price", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle", "created_at",
+            "price", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle",
+            "driver_vehicle_plate", "driver_vehicle_seats", "created_at",
             "confirmed_at", "payment_deadline", "deposit_amount", "paid_at", "remainder_paid_at",
             "remaining_amount", "booked_vehicle_id", "booked_vehicle_name",
+            "booked_vehicle_plate", "booked_vehicle_seats",
         ]
         read_only_fields = fields
 

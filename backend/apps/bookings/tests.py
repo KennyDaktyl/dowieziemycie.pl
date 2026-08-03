@@ -436,6 +436,59 @@ class ConfirmAndPayWorkflowTests(TestCase):
         self.assertEqual(res.status_code, 409)
 
 
+class CancelMyBookingTests(TestCase):
+    def setUp(self):
+        from .models import Booking
+
+        self.client = APIClient()
+        self.customer = Customer.objects.create(phone="+48500222333")
+        token = str(RefreshToken.for_user(self.customer).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.Booking = Booking
+
+    def test_customer_can_cancel_own_booking_for_free(self):
+        booking = self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=timezone.now() + timedelta(hours=5), status=self.Booking.Status.POTWIERDZONA,
+        )
+        res = self.client.post(f"/api/bookings/{booking.id}/cancel/")
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, self.Booking.Status.ANULOWANA)
+
+    def test_cancel_frees_an_assigned_driver(self):
+        driver = Driver.objects.create(
+            user=User.objects.create_user(username="cancel-driver"), name="D",
+            status=Driver.Status.JADACY_PO_KLIENTA,
+        )
+        booking = self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=timezone.now() + timedelta(hours=5), status=self.Booking.Status.KIEROWCA_W_DRODZE,
+            assigned_driver=driver,
+        )
+        res = self.client.post(f"/api/bookings/{booking.id}/cancel/")
+        self.assertEqual(res.status_code, 200)
+        driver.refresh_from_db()
+        self.assertEqual(driver.status, Driver.Status.DOSTEPNY)
+
+    def test_cannot_cancel_someone_elses_booking(self):
+        other = Customer.objects.create(phone="+48500333444")
+        booking = self.Booking.objects.create(
+            customer=other, pickup_address="X", dropoff_address="Y",
+            scheduled_at=timezone.now() + timedelta(hours=5), status=self.Booking.Status.POTWIERDZONA,
+        )
+        res = self.client.post(f"/api/bookings/{booking.id}/cancel/")
+        self.assertEqual(res.status_code, 404)
+
+    def test_cannot_cancel_already_finished_booking(self):
+        booking = self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=timezone.now(), status=self.Booking.Status.ZAKONCZONA,
+        )
+        res = self.client.post(f"/api/bookings/{booking.id}/cancel/")
+        self.assertEqual(res.status_code, 409)
+
+
 class StripeWebhookTests(TestCase):
     def setUp(self):
         from .models import Booking, Payment

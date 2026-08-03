@@ -158,6 +158,8 @@ export interface Booking {
   coupon_code: string | null;
   driver_name: string | null;
   driver_vehicle: string | null;
+  driver_vehicle_plate: string | null;
+  driver_vehicle_seats: number | null;
   created_at: string;
   confirmed_at: string | null;
   payment_deadline: string | null;

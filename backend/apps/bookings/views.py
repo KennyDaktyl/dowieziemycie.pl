@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Booking, Payment, PricingTier
+from .notifications import notify_dispatcher_of_customer_cancellation
 from .payments import PaymentError, create_payment_intent
 from .pricing import estimate_price
 from .routing import get_route_details
@@ -90,6 +91,37 @@ class BookingMineListView(generics.ListAPIView):
         # ordering is by scheduled_at, which buries a brand new booking
         # under an older one whose ride happens to be scheduled further out.
         return Booking.objects.filter(customer=self.request.user).order_by("-created_at")
+
+
+class CancelMyBookingView(APIView):
+    """POST /api/bookings/<id>/cancel/ — the customer cancels their own
+    booking. Always free, no cutoff — any non-terminal status can be
+    cancelled. Frees the assigned driver if they were already mid-flow on
+    this specific booking, and tells the dispatcher, since otherwise they
+    wouldn't find out a driver they might be about to send isn't needed."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        booking = Booking.objects.filter(id=booking_id, customer=request.user).first()
+        if not booking:
+            return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
+        if booking.status in (Booking.Status.ZAKONCZONA, Booking.Status.ANULOWANA):
+            return Response(
+                {"detail": "Ten kurs jest już zakończony albo anulowany."}, status=status.HTTP_409_CONFLICT,
+            )
+
+        from apps.fleet.models import Driver
+
+        driver = booking.assigned_driver
+        booking.status = Booking.Status.ANULOWANA
+        booking.save(update_fields=["status"])
+        if driver and driver.status in (Driver.Status.JADACY_PO_KLIENTA, Driver.Status.W_KURSIE):
+            driver.status = Driver.Status.DOSTEPNY
+            driver.save(update_fields=["status"])
+
+        notify_dispatcher_of_customer_cancellation(booking)
+        return Response(BookingSerializer(booking).data)
 
 
 class CreatePaymentIntentRequestSerializer(serializers.Serializer):
