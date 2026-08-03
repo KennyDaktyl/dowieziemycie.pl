@@ -16,6 +16,11 @@ DEFAULT_SITE = SITE_DOWIEZIEMYCIE
 
 VALID_SITE_CODES = {code for code, _ in SITE_CHOICES}
 
-# Used to brand outgoing SMS text ("dowieziemycie.pl - Twoj kod: ...") since
-# the two frontends share one SMSAPI account/sender for now.
-SITE_DISPLAY_NAMES = dict(SITE_CHOICES)
+# Used to brand outgoing SMS text ("transfer247 - Twoj kod: ...") — no ".pl"
+# suffix on purpose: SMSAPI's spam filter (error 94, "not allowed to send
+# messages with link") rejects any text that looks like a domain name, and
+# both "dowieziemycie.pl" and "transfer247.pl" match that pattern.
+SITE_DISPLAY_NAMES = {
+    SITE_DOWIEZIEMYCIE: "dowieziemycie",
+    SITE_TRANSFER247: "transfer247",
+}
