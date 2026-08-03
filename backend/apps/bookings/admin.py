@@ -63,6 +63,18 @@ class BookingAdmin(admin.ModelAdmin):
     date_hierarchy = "scheduled_at"
     autocomplete_fields = ("customer", "coupon")
     actions = ["confirm_selected"]
+    # These are only ever meant to be set by the service functions in
+    # .services (confirm_booking, mark_deposit_paid, mark_full_payment,
+    # mark_remainder_paid) or the driver-app endpoints in apps.fleet — each
+    # of those has side effects (payment_deadline snapshot, tracking-code
+    # generation, customer/dispatcher notifications) that a direct edit here
+    # would silently skip, producing states nothing else in the codebase can
+    # actually produce (e.g. paid_at set with zero real Stripe Payment
+    # records, or a stale tracking_code that was never regenerated).
+    readonly_fields = (
+        "status", "created_at", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at",
+        "started_at", "completed_at", "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
+    )
 
     @admin.action(description="Potwierdź wybrane rezerwacje (wysyła SMS/e-mail do klienta)")
     def confirm_selected(self, request, queryset):
