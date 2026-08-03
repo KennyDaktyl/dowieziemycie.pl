@@ -63,7 +63,8 @@
     "unavailableBody": "Nie przyjmujemy teraz nowych rezerwacji — wróć wkrótce albo zadzwoń, żeby ustalić termin.",
     "success": "Zgłoszenie przyjęte — czeka na potwierdzenie.",
     "successPanelLink": "Sprawdź status",
-    "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie."
+    "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie.",
+    "vatNote": "Cena zawiera VAT (23%)."
   },
   "DriverEta": {
     "title": "Czas dojazdu kierowcy",
@@ -94,7 +95,8 @@
     "upTo": "Do {km} km",
     "reserved": "Rezerwacja z wyprzedzeniem",
     "onDemand": "Zamówienie na już",
-    "beyond": "Dalej niż {km} km — wycena indywidualna"
+    "beyond": "Dalej niż {km} km — wycena indywidualna",
+    "vatNote": "Wszystkie ceny zawierają VAT (23%)."
   },
   "HowItWorks": {
     "eyebrow": "Proces",
@@ -120,7 +122,8 @@
     "exampleFrom": "Trasa z Rynku Głównego w Krakowie, rezerwacja z wyprzedzeniem",
     "exampleDistance": "{km} km",
     "bookCta": "Zarezerwuj ten kurs",
-    "otherRoutes": "Inne obsługiwane kierunki"
+    "otherRoutes": "Inne obsługiwane kierunki",
+    "vatNote": "Cena zawiera VAT (23%)."
   },
   "Fleet": {
     "eyebrow": "Flota",
@@ -209,6 +212,8 @@
     "paidConfirmed": "Zaliczka opłacona — kurs jest ważny.",
     "error": "Nie udało się zapłacić zaliczki. Spróbuj ponownie.",
     "processing": "Weryfikujemy płatność… może to potrwać do 2 minut przy BLIK-u.",
-    "vatNote": "Kwota brutto, zawiera VAT 23% (netto: {net} zł)."
+    "vatNote": "Kwota brutto, zawiera VAT 23% (netto: {net} zł).",
+    "securePayments": "Bezpieczne płatności",
+    "paymentMethods": "Obsługiwane przez Stripe · karta i BLIK"
   }
 }

@@ -383,7 +383,10 @@ export function BookingCard() {
               ) : estimating ? (
                 <div className="text-[13px] text-muted">{t("estimating")}</div>
               ) : estimate?.price != null ? (
-                <PriceMeter target={estimate.price} />
+                <div>
+                  <PriceMeter target={estimate.price} />
+                  <div className="mt-0.5 text-right text-[11px] text-muted">{t("vatNote")}</div>
+                </div>
               ) : (
                 <div className="font-heading text-lg font-semibold text-muted">{t("customQuote")}</div>
               )}

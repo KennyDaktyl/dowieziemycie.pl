@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useRef, useState } from "react";
 
+import { PaymentBadge } from "@/components/payment-badge";
 import { netFromGross } from "@/lib/format";
 
 type Phase = "idle" | "loading" | "form" | "processing";
@@ -61,7 +62,8 @@ export function DepositPaymentForm({ bookingId, depositAmount }: { bookingId: nu
   const net = netFromGross(depositAmount);
 
   return (
-    <div className="flex flex-col items-start gap-1">
+    <div className="flex flex-col items-start gap-2">
+      <PaymentBadge label={t("securePayments")} sublabel={t("paymentMethods")} />
       <button
         type="button"
         onClick={startPayment}

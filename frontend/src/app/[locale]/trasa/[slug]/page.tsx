@@ -88,9 +88,12 @@ export default async function RoutePage({
           </div>
           <div className="text-right">
             {route.example_price != null ? (
-              <div className="font-heading text-3xl font-bold text-green">
-                {route.example_price.toFixed(0)} zł
-              </div>
+              <>
+                <div className="font-heading text-3xl font-bold text-green">
+                  {route.example_price.toFixed(0)} zł
+                </div>
+                <div className="text-xs text-muted">{t("vatNote")}</div>
+              </>
             ) : (
               <div className="font-heading text-xl font-semibold text-muted">
                 {locale === "en" ? "Custom quote" : "Wycena indywidualna"}

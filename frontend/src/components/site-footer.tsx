@@ -1,10 +1,11 @@
 import { getTranslations } from "next-intl/server";
 
+import { PaymentBadge } from "@/components/payment-badge";
 import { Link } from "@/i18n/navigation";
 import { apiBaseUrl } from "@/lib/api";
 
 export async function SiteFooter() {
-  const t = await getTranslations("Footer");
+  const [t, tPayment] = await Promise.all([getTranslations("Footer"), getTranslations("BookingPayment")]);
 
   return (
     <footer className="border-t border-line px-6 pt-11 pb-[30px]">
@@ -31,6 +32,7 @@ export async function SiteFooter() {
               {t("terms")}
             </Link>
           </div>
+          <PaymentBadge label={tPayment("securePayments")} sublabel={tPayment("paymentMethods")} />
         </div>
         <div className="mt-[30px] flex flex-wrap justify-between gap-2.5 border-t border-line pt-5 text-[12.5px] text-muted">
           <span>

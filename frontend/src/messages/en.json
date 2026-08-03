@@ -63,7 +63,8 @@
     "unavailableBody": "We're not taking new bookings right now — check back soon, or call us to arrange a time.",
     "success": "Request received — awaiting confirmation.",
     "successPanelLink": "Check status",
-    "error": "Couldn't book the ride. Please try again."
+    "error": "Couldn't book the ride. Please try again.",
+    "vatNote": "Price includes VAT (23%)."
   },
   "DriverEta": {
     "title": "Driver ETA",
@@ -94,7 +95,8 @@
     "upTo": "Up to {km} km",
     "reserved": "Booked in advance",
     "onDemand": "On-demand",
-    "beyond": "Beyond {km} km — custom quote"
+    "beyond": "Beyond {km} km — custom quote",
+    "vatNote": "All prices include VAT (23%)."
   },
   "HowItWorks": {
     "eyebrow": "Process",
@@ -120,7 +122,8 @@
     "exampleFrom": "Route from Kraków's Main Square, booked in advance",
     "exampleDistance": "{km} km",
     "bookCta": "Book this ride",
-    "otherRoutes": "Other directions we cover"
+    "otherRoutes": "Other directions we cover",
+    "vatNote": "Price includes VAT (23%)."
   },
   "Fleet": {
     "eyebrow": "Fleet",
@@ -209,6 +212,8 @@
     "paidConfirmed": "Deposit paid — the ride is confirmed.",
     "error": "Couldn't pay the deposit. Please try again.",
     "processing": "Verifying your payment… this can take up to 2 minutes for BLIK.",
-    "vatNote": "Gross amount, includes 23% VAT (net: {net} zł)."
+    "vatNote": "Gross amount, includes 23% VAT (net: {net} zł).",
+    "securePayments": "Secure payments",
+    "paymentMethods": "Powered by Stripe · card and BLIK"
   }
 }

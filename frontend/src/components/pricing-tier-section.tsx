@@ -37,6 +37,7 @@ export async function PricingTierSection() {
           ))}
         </div>
         {maxKm !== null && <p className="mt-5 text-[13px] text-muted">{t("beyond", { km: maxKm })}</p>}
+        <p className="mt-1.5 text-[12px] text-muted">{t("vatNote")}</p>
       </div>
     </section>
   );
