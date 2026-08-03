@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .driver_views import (
     AcceptBookingView,
     AllBookingsListView,
+    CancelBookingView,
     ConfirmBookingView,
     DriverBookingHistoryView,
     FinishBookingView,
@@ -44,6 +45,7 @@ urlpatterns = [
     ),
     path("driver/bookings/<int:booking_id>/start/", StartBookingView.as_view(), name="driver-booking-start"),
     path("driver/bookings/<int:booking_id>/finish/", FinishBookingView.as_view(), name="driver-booking-finish"),
+    path("driver/bookings/<int:booking_id>/cancel/", CancelBookingView.as_view(), name="driver-booking-cancel"),
     path("driver/push-token/", RegisterPushTokenView.as_view(), name="driver-push-token"),
     path("driver/position/", UpdatePositionView.as_view(), name="driver-position"),
 ]

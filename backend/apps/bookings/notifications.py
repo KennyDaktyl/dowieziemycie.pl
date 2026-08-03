@@ -11,6 +11,7 @@ import logging
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.utils import timezone
 
 from config.sites import SITE_DISPLAY_NAMES
 
@@ -85,3 +86,53 @@ def notify_customer_of_confirmation(booking) -> None:
         f"{site_name}: rezerwacja potwierdzona — zapłać zaliczkę",
         text,
     )
+
+
+def notify_customer_driver_en_route(booking, driver) -> None:
+    """A driver just claimed the booking (self-service accept, or a
+    dispatcher hand-assigning one from the Szef tab) — OPLACONA ->
+    KIEROWCA_W_DRODZE. Texts the tracking code; email is skipped here since
+    the code is time-boxed and short-lived, not worth a separate template."""
+    site_name = SITE_DISPLAY_NAMES[booking.site]
+    active_from = timezone.localtime(booking.tracking_code_valid_from).strftime("%d.%m %H:%M")
+    _send_sms(
+        booking.customer.phone,
+        f"{site_name}: Kierowca {driver.name} jedzie do Ciebie! Kurs: {booking.pickup_address}. "
+        f"Kod do śledzenia: {booking.tracking_code}, aktywny od {active_from}.",
+    )
+
+
+def notify_customer_ride_started(booking) -> None:
+    """Driver just picked the customer up — KIEROWCA_W_DRODZE -> W_TRAKCIE."""
+    site_name = SITE_DISPLAY_NAMES[booking.site]
+    _send_sms(booking.customer.phone, f"{site_name}: Kurs się rozpoczął. Miłej podróży!")
+
+
+def notify_customer_ride_finished(booking) -> None:
+    """Driver just dropped the customer off — W_TRAKCIE -> ZAKONCZONA."""
+    site_name = SITE_DISPLAY_NAMES[booking.site]
+    text = f"{site_name}: Kurs zakończony. Dziękujemy za skorzystanie z naszych usług!"
+    _send_sms(booking.customer.phone, text)
+    _send_email(booking.customer.email, f"{site_name}: kurs zakończony — dziękujemy", text)
+
+
+def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
+    """Dispatcher changed scheduled_at on an already-created booking."""
+    site_name = SITE_DISPLAY_NAMES[booking.site]
+    text = (
+        f"{site_name}: Termin Twojego kursu ({booking.pickup_address} → {booking.dropoff_address}) "
+        f"został zmieniony z {old_scheduled_at:%d.%m %H:%M} na {booking.scheduled_at:%d.%m %H:%M}."
+    )
+    _send_sms(booking.customer.phone, text)
+    _send_email(booking.customer.email, f"{site_name}: zmiana terminu kursu", text)
+
+
+def notify_customer_of_cancellation(booking) -> None:
+    """Dispatcher cancelled the booking."""
+    site_name = SITE_DISPLAY_NAMES[booking.site]
+    text = (
+        f"{site_name}: Twój kurs na {booking.scheduled_at:%d.%m %H:%M} "
+        f"({booking.pickup_address} → {booking.dropoff_address}) został anulowany. Przepraszamy za utrudnienia."
+    )
+    _send_sms(booking.customer.phone, text)
+    _send_email(booking.customer.email, f"{site_name}: kurs anulowany", text)

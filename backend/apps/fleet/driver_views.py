@@ -8,19 +8,27 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import generics, serializers, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.accounts.sms import get_sms_backend
 from apps.bookings.models import Booking
+from apps.bookings.notifications import (
+    notify_customer_driver_en_route,
+    notify_customer_of_cancellation,
+    notify_customer_of_reschedule,
+    notify_customer_ride_finished,
+    notify_customer_ride_started,
+)
 from apps.bookings.serializers import DriverBookingSerializer
 from apps.bookings.services import BookingConfirmError, confirm_booking
 from apps.tracking.services import broadcast_driver_update, update_driver_position
-from config.sites import SITE_DISPLAY_NAMES
 
 from .authentication import DriverJWTAuthentication
 from .models import Driver
+
+ACTIVE_DRIVER_STATUSES = (Driver.Status.JADACY_PO_KLIENTA, Driver.Status.W_KURSIE)
 
 
 class OpenBookingsListView(generics.ListAPIView):
@@ -157,6 +165,7 @@ class UpdateBookingView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
 
+        old_scheduled_at = booking.scheduled_at
         update_fields = []
         for field in ("pickup_address", "dropoff_address", "scheduled_at", "passenger_count"):
             if field in data:
@@ -171,19 +180,45 @@ class UpdateBookingView(APIView):
             booking.tracking_code_expires_at = booking.scheduled_at + timedelta(hours=4)
             update_fields += ["tracking_code_valid_from", "tracking_code_expires_at"]
 
+        # Hand-assigning a driver to a still-unclaimed (OPLACONA) booking is
+        # the "Przypisz do mnie/kierowcy" action from the Szef tab — it needs
+        # to do everything AcceptBookingView does (advance the status, mint a
+        # tracking code, flip the driver's own status, text the customer),
+        # otherwise the booking gets a driver but never leaves OPLACONA and
+        # has no action button anywhere to move it forward. Reassigning a
+        # driver on a booking that's already past that point (e.g.
+        # KIEROWCA_W_DRODZE) just swaps the driver, no side effects.
+        just_claimed = False
+        new_driver = None
         if "assigned_driver_id" in data:
             driver_id = data["assigned_driver_id"]
             if driver_id is None:
                 booking.assigned_driver = None
             else:
-                driver = Driver.objects.filter(id=driver_id).first()
-                if not driver:
+                new_driver = Driver.objects.filter(id=driver_id).first()
+                if not new_driver:
                     return Response({"detail": "Nie znaleziono kierowcy."}, status=status.HTTP_404_NOT_FOUND)
-                booking.assigned_driver = driver
+                booking.assigned_driver = new_driver
+                if booking.status == Booking.Status.OPLACONA:
+                    just_claimed = True
+                    booking.status = Booking.Status.KIEROWCA_W_DRODZE
+                    booking.tracking_code = f"{random.randint(0, 9999):04d}"
+                    booking.tracking_code_valid_from = booking.scheduled_at - timedelta(hours=1)
+                    booking.tracking_code_expires_at = booking.scheduled_at + timedelta(hours=4)
+                    update_fields += [
+                        "status", "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
+                    ]
             update_fields.append("assigned_driver")
 
         if update_fields:
             booking.save(update_fields=update_fields)
+
+        if just_claimed and new_driver:
+            new_driver.status = Driver.Status.JADACY_PO_KLIENTA
+            new_driver.save(update_fields=["status"])
+            notify_customer_driver_en_route(booking, new_driver)
+        elif "scheduled_at" in data and data["scheduled_at"] != old_scheduled_at:
+            notify_customer_of_reschedule(booking, old_scheduled_at)
 
         return Response(DriverBookingSerializer(booking).data)
 
@@ -240,7 +275,7 @@ class StartBookingView(APIView):
         with transaction.atomic():
             updated = Booking.objects.filter(
                 id=booking_id, assigned_driver=driver, status=Booking.Status.KIEROWCA_W_DRODZE,
-            ).update(status=Booking.Status.W_TRAKCIE)
+            ).update(status=Booking.Status.W_TRAKCIE, started_at=timezone.now())
             if not updated:
                 return Response(
                     {"detail": "Ten kurs nie jest przypisany do Ciebie albo nie jest w drodze do klienta."},
@@ -250,6 +285,7 @@ class StartBookingView(APIView):
             driver.status = Driver.Status.W_KURSIE
             driver.save(update_fields=["status"])
 
+        notify_customer_ride_started(booking)
         return Response(DriverBookingSerializer(booking).data)
 
 
@@ -267,7 +303,7 @@ class FinishBookingView(APIView):
         with transaction.atomic():
             updated = Booking.objects.filter(
                 id=booking_id, assigned_driver=driver, status=Booking.Status.W_TRAKCIE,
-            ).update(status=Booking.Status.ZAKONCZONA)
+            ).update(status=Booking.Status.ZAKONCZONA, completed_at=timezone.now())
             if not updated:
                 return Response(
                     {"detail": "Ten kurs nie jest przypisany do Ciebie albo nie jest w trakcie realizacji."},
@@ -277,6 +313,40 @@ class FinishBookingView(APIView):
             driver.status = Driver.Status.DOSTEPNY
             driver.save(update_fields=["status"])
 
+        notify_customer_ride_finished(booking)
+        return Response(DriverBookingSerializer(booking).data)
+
+
+class CancelBookingView(APIView):
+    """POST /api/fleet/driver/bookings/<id>/cancel/ — dispatcher-only. Any
+    non-terminal status -> ANULOWANA. If a driver was already mid-flow
+    (JADACY_PO_KLIENTA/W_KURSIE) on this booking specifically, frees them
+    back to DOSTEPNY so they aren't stuck marked busy on a cancelled ride."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        if not request.user.is_dispatcher:
+            raise PermissionDenied("Tylko dyspozytor może anulować rezerwacje.")
+
+        booking = Booking.objects.select_related("customer", "assigned_driver").filter(id=booking_id).first()
+        if not booking:
+            return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
+        if booking.status in (Booking.Status.ZAKONCZONA, Booking.Status.ANULOWANA):
+            return Response(
+                {"detail": "Ten kurs jest już zakończony albo anulowany."}, status=status.HTTP_409_CONFLICT,
+            )
+
+        driver = booking.assigned_driver
+        with transaction.atomic():
+            booking.status = Booking.Status.ANULOWANA
+            booking.save(update_fields=["status"])
+            if driver and driver.status in ACTIVE_DRIVER_STATUSES:
+                driver.status = Driver.Status.DOSTEPNY
+                driver.save(update_fields=["status"])
+
+        notify_customer_of_cancellation(booking)
         return Response(DriverBookingSerializer(booking).data)
 
 
@@ -320,27 +390,8 @@ class AcceptBookingView(APIView):
                 update_fields=["tracking_code", "tracking_code_valid_from", "tracking_code_expires_at"]
             )
 
-        self._notify_customer(booking, driver)
+        notify_customer_driver_en_route(booking, driver)
         return Response(DriverBookingSerializer(booking).data)
-
-    def _notify_customer(self, booking, driver):
-        phone = booking.customer.phone
-        if not phone:
-            return
-        site_name = SITE_DISPLAY_NAMES[booking.site]
-        active_from = timezone.localtime(booking.tracking_code_valid_from).strftime("%d.%m %H:%M")
-        try:
-            get_sms_backend().send_message(
-                phone,
-                f"{site_name}: Kierowca {driver.name} jedzie do Ciebie! Kurs: {booking.pickup_address}. "
-                f"Kod do śledzenia: {booking.tracking_code}, aktywny od {active_from}.",
-            )
-        except Exception:
-            import logging
-
-            logging.getLogger("apps.fleet.driver_views").exception(
-                "Nie udało się wysłać powiadomienia SMS do klienta dla rezerwacji %s", booking.id
-            )
 
 
 class PositionUpdateSerializer(serializers.Serializer):

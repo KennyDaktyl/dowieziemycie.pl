@@ -204,6 +204,43 @@ class DurationAwareConflictTests(TestCase):
         # booking (3h from now) is due.
         self.assertTrue(has_conflicting_booking(anchor, site="dowieziemycie", duration_minutes=240))
 
+    def test_a_second_driver_absorbs_an_overlap_the_first_alone_could_not(self):
+        from .availability import has_conflicting_booking
+
+        Driver.objects.create(user=User.objects.create_user(username="fleetdrivera"), name="Driver A")
+        Driver.objects.create(user=User.objects.create_user(username="fleetdriverb"), name="Driver B")
+
+        anchor = timezone.now() + timedelta(hours=5)
+        self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=anchor, status=self.Booking.Status.POTWIERDZONA,
+        )
+        # One booking already overlaps this slot, but there are two drivers
+        # in the fleet — the second one can still take it.
+        self.assertFalse(has_conflicting_booking(anchor, site="dowieziemycie", duration_minutes=None))
+
+        # A second overlapping booking now exhausts both drivers' capacity.
+        self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=anchor, status=self.Booking.Status.OPLACONA,
+        )
+        self.assertTrue(has_conflicting_booking(anchor, site="dowieziemycie", duration_minutes=None))
+
+    def test_conflict_check_counts_committed_bookings_across_both_sites(self):
+        from .availability import has_conflicting_booking
+
+        Driver.objects.create(user=User.objects.create_user(username="fleetdriverc"), name="Driver C")
+
+        anchor = timezone.now() + timedelta(hours=5)
+        self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=anchor, status=self.Booking.Status.POTWIERDZONA, site="transfer247",
+        )
+        # Single shared driver pool (apps.fleet.Driver has no site of its
+        # own) — a commitment on transfer247.pl blocks the same slot on
+        # dowieziemycie.pl too, since it'd be the same one driver either way.
+        self.assertTrue(has_conflicting_booking(anchor, site="dowieziemycie", duration_minutes=None))
+
 
 class ConfirmAndPayWorkflowTests(TestCase):
     def setUp(self):

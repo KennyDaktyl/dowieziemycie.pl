@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
@@ -131,6 +133,15 @@ class DriverBookingWorkflowTests(TestCase):
         self.assertEqual(booking.status, Booking.Status.W_TRAKCIE)
         self.assertEqual(self.driver.status, Driver.Status.W_KURSIE)
 
+    def test_start_records_started_at(self):
+        booking = _make_booking(
+            self.customer, assigned_driver=self.driver, status=Booking.Status.KIEROWCA_W_DRODZE,
+        )
+        self.assertIsNone(booking.started_at)
+        self.client.post(f"/api/fleet/driver/bookings/{booking.id}/start/", **_driver_auth_header(self.driver))
+        booking.refresh_from_db()
+        self.assertIsNotNone(booking.started_at)
+
     def test_start_rejects_booking_assigned_to_another_driver(self):
         other = Driver.objects.create(user=User.objects.create_user(username="driverE"), name="Driver E")
         booking = _make_booking(self.customer, assigned_driver=other, status=Booking.Status.KIEROWCA_W_DRODZE)
@@ -147,6 +158,13 @@ class DriverBookingWorkflowTests(TestCase):
         self.driver.refresh_from_db()
         self.assertEqual(booking.status, Booking.Status.ZAKONCZONA)
         self.assertEqual(self.driver.status, Driver.Status.DOSTEPNY)
+
+    def test_finish_records_completed_at(self):
+        booking = _make_booking(self.customer, assigned_driver=self.driver, status=Booking.Status.W_TRAKCIE)
+        self.assertIsNone(booking.completed_at)
+        self.client.post(f"/api/fleet/driver/bookings/{booking.id}/finish/", **_driver_auth_header(self.driver))
+        booking.refresh_from_db()
+        self.assertIsNotNone(booking.completed_at)
 
     def test_finish_rejects_booking_not_yet_started(self):
         booking = _make_booking(
@@ -348,6 +366,92 @@ class DispatcherConfirmWorkflowTests(TestCase):
         res = self.client.patch(
             f"/api/fleet/driver/bookings/{booking.id}/update/", {"passenger_count": 2},
             format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 409)
+
+    def test_assigning_driver_to_paid_booking_advances_status_and_claims_it(self):
+        # This is the "Przypisz do mnie" bug from the Szef tab: hand-assigning
+        # a driver to an OPLACONA booking must behave like AcceptBookingView
+        # (advance status, mint a tracking code, flip the driver's own
+        # status) — otherwise the booking gets a driver but never leaves
+        # OPLACONA and neither Kursy nor Harmonogram ever show an action for it.
+        booking = _make_booking(self.customer, status=Booking.Status.OPLACONA)
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"assigned_driver_id": self.plain_driver.id},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.plain_driver.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.KIEROWCA_W_DRODZE)
+        self.assertTrue(booking.tracking_code)
+        self.assertEqual(self.plain_driver.status, Driver.Status.JADACY_PO_KLIENTA)
+
+    def test_reassigning_driver_on_in_progress_booking_does_not_reset_status(self):
+        other = Driver.objects.create(user=User.objects.create_user(username="driverG"), name="Driver G")
+        booking = _make_booking(
+            self.customer, assigned_driver=other, status=Booking.Status.KIEROWCA_W_DRODZE, tracking_code="1234",
+        )
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"assigned_driver_id": self.plain_driver.id},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.assigned_driver_id, self.plain_driver.id)
+        self.assertEqual(booking.status, Booking.Status.KIEROWCA_W_DRODZE)
+        self.assertEqual(booking.tracking_code, "1234")
+
+    def test_rescheduling_notifies_customer(self):
+        from django.core import mail
+
+        booking = _make_booking(self.customer, status=Booking.Status.POTWIERDZONA)
+        Customer.objects.filter(id=self.customer.id).update(email="klient@example.com")
+        self.customer.refresh_from_db()
+        new_time = timezone.now() + timedelta(hours=6)
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"scheduled_at": new_time.isoformat()},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(any("zmiana terminu" in m.subject.lower() for m in mail.outbox))
+
+
+class CancelBookingTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.customer = Customer.objects.create(phone="+48500111222", name="Klient Testowy")
+        dispatcher_user = User.objects.create_user(username="dispatcher2")
+        self.dispatcher = Driver.objects.create(user=dispatcher_user, name="Dyspozytor", is_dispatcher=True)
+        plain_user = User.objects.create_user(username="plaindriver2")
+        self.driver = Driver.objects.create(
+            user=plain_user, name="Zwykły kierowca", status=Driver.Status.JADACY_PO_KLIENTA,
+        )
+
+    def test_cancel_requires_dispatcher(self):
+        booking = _make_booking(self.customer, status=Booking.Status.OPLACONA)
+        res = self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/cancel/", **_driver_auth_header(self.driver)
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_dispatcher_can_cancel_and_frees_the_driver(self):
+        booking = _make_booking(
+            self.customer, assigned_driver=self.driver, status=Booking.Status.KIEROWCA_W_DRODZE,
+        )
+        res = self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/cancel/", **_driver_auth_header(self.dispatcher)
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.driver.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.ANULOWANA)
+        self.assertEqual(self.driver.status, Driver.Status.DOSTEPNY)
+
+    def test_cancel_rejects_already_finished_booking(self):
+        booking = _make_booking(self.customer, status=Booking.Status.ZAKONCZONA)
+        res = self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/cancel/", **_driver_auth_header(self.dispatcher)
         )
         self.assertEqual(res.status_code, 409)
 

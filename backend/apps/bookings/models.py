@@ -286,6 +286,13 @@ class Booking(models.Model):
     tracking_code_valid_from = models.DateTimeField(null=True, blank=True)
     tracking_code_expires_at = models.DateTimeField(null=True, blank=True)
 
+    # Actual pickup/drop-off timestamps (KIEROWCA_W_DRODZE->W_TRAKCIE and
+    # W_TRAKCIE->ZAKONCZONA respectively) — distinct from scheduled_at, which
+    # is only ever the planned time. Lets the driver app show real ride
+    # duration in Historia instead of just the plan.
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-scheduled_at"]
         verbose_name = "Rezerwacja"

@@ -40,22 +40,37 @@ def has_conflicting_booking(
     trip they haven't returned from yet. Falls back to buffer-only (duration
     treated as 0) when duration_minutes is unknown — the old behavior,
     unchanged, for bookings that don't carry a known duration (dowieziemycie.pl's
-    map-based flow doesn't compute one today)."""
+    map-based flow doesn't compute one today).
+
+    Blocks the slot once the number of overlapping committed bookings reaches
+    the size of the driver pool, not on the first overlap — a single driver
+    (today's real fleet) still blocks on the very first overlap, same as
+    before, but this scales correctly if a second driver/vehicle is ever
+    added. Counted across every site's bookings, not just this one's:
+    apps.fleet.Driver has no site of its own (see OpenBookingsListView /
+    AllBookingsListView) — the same driver pool serves both brands, so a
+    driver committed to a transfer247.pl ride at 14:00 is just as
+    unavailable for a dowieziemycie.pl ride at 14:30."""
+    from apps.fleet.models import Driver
+
     buffer_minutes = BookingSettings.for_site(site).driver_buffer_minutes
     buffer = timedelta(minutes=buffer_minutes)
     new_start = scheduled_at - buffer
     new_end = scheduled_at + timedelta(minutes=duration_minutes or 0) + buffer
 
-    qs = Booking.objects.filter(site=site, status__in=COMMITTED_STATUSES)
+    qs = Booking.objects.filter(status__in=COMMITTED_STATUSES)
     if exclude_booking_id is not None:
         qs = qs.exclude(id=exclude_booking_id)
 
+    overlapping = 0
     for existing in qs.only("scheduled_at", "duration_minutes"):
         existing_start = existing.scheduled_at - buffer
         existing_end = existing.scheduled_at + timedelta(minutes=existing.duration_minutes or 0) + buffer
         if new_start < existing_end and existing_start < new_end:
-            return True
-    return False
+            overlapping += 1
+
+    driver_count = max(Driver.objects.count(), 1)
+    return overlapping >= driver_count
 
 
 def assert_bookings_open(site: str) -> None:

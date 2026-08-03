@@ -85,7 +85,8 @@ class DriverBookingSerializer(serializers.ModelSerializer):
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "status", "distance_km", "duration_minutes", "price",
-            "deposit_amount", "confirmed_at", "payment_deadline", "paid_at", "created_at",
+            "deposit_amount", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at", "created_at",
+            "started_at", "completed_at",
             "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
             "assigned_driver_id", "assigned_driver_name", "fixed_route_name", "tour_name",
         ]
