@@ -11,7 +11,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ detail: "Zaloguj się, aby zapłacić." }, { status: 401 });
   }
 
-  const res = await fetch(`${apiBaseUrl()}/api/bookings/${id}/pay/`, {
+  const res = await fetch(`${apiBaseUrl()}/api/bookings/${id}/create-payment-intent/`, {
     method: "POST",
     headers: withSiteHeader({ Authorization: `Bearer ${accessToken}` }),
   });

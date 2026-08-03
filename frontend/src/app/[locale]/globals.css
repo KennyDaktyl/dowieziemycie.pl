@@ -22,3 +22,60 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
 }
+
+.prose-content {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+.prose-content > * + * {
+  margin-top: 1.1em;
+}
+
+.prose-content h2 {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 600;
+  margin-top: 1.8em;
+}
+
+.prose-content h3 {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 600;
+  margin-top: 1.5em;
+}
+
+.prose-content p {
+  color: var(--color-muted);
+}
+
+.prose-content strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.prose-content ul,
+.prose-content ol {
+  color: var(--color-muted);
+  padding-left: 1.25em;
+}
+
+.prose-content li + li {
+  margin-top: 0.4em;
+}
+
+.prose-content ul {
+  list-style: disc;
+}
+
+.prose-content ol {
+  list-style: decimal;
+}
+
+.prose-content a {
+  color: var(--color-amber);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

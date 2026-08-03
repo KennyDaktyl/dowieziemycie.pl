@@ -1,11 +1,12 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
-import { PayDepositButton } from "@/components/pay-deposit-button";
+import { DepositPaymentForm } from "@/components/deposit-payment-form";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Link, redirect } from "@/i18n/navigation";
 import { apiBaseUrl, withSiteHeader } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { netFromGross } from "@/lib/format";
 import type { Booking } from "@/lib/types";
 
 const TRACKABLE_STATUSES = ["KIEROWCA_W_DRODZE", "W_TRAKCIE"];
@@ -56,7 +57,10 @@ export default async function PanelPage({ params }: { params: Promise<{ locale: 
                     {t("date")}: {new Date(booking.scheduled_at).toLocaleString(locale)}
                   </span>
                   <span>
-                    {t("price")}: {booking.price ? `${Number(booking.price).toFixed(0)} zł` : "—"}
+                    {t("price")}:{" "}
+                    {booking.price
+                      ? `${Number(booking.price).toFixed(0)} zł (${t("vatIncluded", { net: netFromGross(booking.price).toFixed(2) })})`
+                      : "—"}
                   </span>
                   {TRACKABLE_STATUSES.includes(booking.status) && (
                     <Link href={`/panel/kurs/${booking.id}`} className="font-semibold text-amber underline">
@@ -71,7 +75,7 @@ export default async function PanelPage({ params }: { params: Promise<{ locale: 
 
                 {booking.status === "POTWIERDZONA" && booking.deposit_amount && (
                   <div className="mt-3 flex flex-col gap-2">
-                    <PayDepositButton bookingId={booking.id} depositAmount={booking.deposit_amount} />
+                    <DepositPaymentForm bookingId={booking.id} depositAmount={booking.deposit_amount} />
                     {booking.payment_deadline && (
                       <span className="text-[12px] text-muted">
                         {tPayment("payBy", { time: new Date(booking.payment_deadline).toLocaleString(locale) })}

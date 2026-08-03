@@ -27,10 +27,15 @@ export async function SiteFooter() {
               <br />
               kontakt@dowieziemycie.pl
             </p>
+            <Link href="/regulamin" className="mt-2.5 inline-block text-[13.5px] text-muted hover:text-text">
+              {t("terms")}
+            </Link>
           </div>
         </div>
         <div className="mt-[30px] flex flex-wrap justify-between gap-2.5 border-t border-line pt-5 text-[12.5px] text-muted">
-          <span>{t("rights", { year: new Date().getFullYear() })}</span>
+          <span>
+            Michał Pielak MIKTEL · NIP 6782805234 · ul. Wspólna 2, 32-061 Rybna · {t("rights", { year: new Date().getFullYear() })}
+          </span>
           <a href={`${apiBaseUrl()}/admin/`} className="opacity-60 transition-opacity hover:opacity-100">
             {t("adminPanel")}
           </a>
