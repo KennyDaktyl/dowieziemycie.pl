@@ -26,8 +26,17 @@ const NEXT_ACTION: Record<string, { endpoint: string; label: string } | undefine
   W_TRAKCIE: { endpoint: "finish", label: "Zakończ kurs" },
 };
 
+// The backend flips Driver.status as a side effect of these two endpoints
+// (start -> W_KURSIE, finish -> DOSTEPNY) — mirrored here so the Panel tab's
+// status picker doesn't keep showing stale state until something else
+// happens to refresh it.
+const RESULTING_DRIVER_STATUS: Record<string, "W_KURSIE" | "DOSTEPNY"> = {
+  start: "W_KURSIE",
+  finish: "DOSTEPNY",
+};
+
 export default function ScheduleScreen() {
-  const { accessToken } = useAuth();
+  const { accessToken, updateStatus } = useAuth();
   const [bookings, setBookings] = useState<DriverBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<number | null>(null);
@@ -61,6 +70,7 @@ export default function ScheduleScreen() {
       await apiFetch(`/api/fleet/driver/bookings/${booking.id}/${action.endpoint}/`, accessToken, {
         method: "POST",
       });
+      updateStatus(RESULTING_DRIVER_STATUS[action.endpoint]);
       setSelected(null);
       load();
     } catch (e) {

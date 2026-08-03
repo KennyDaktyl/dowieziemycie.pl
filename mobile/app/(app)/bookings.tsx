@@ -10,7 +10,7 @@ import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
 
 export default function BookingsScreen() {
-  const { accessToken } = useAuth();
+  const { accessToken, updateStatus } = useAuth();
   const [bookings, setBookings] = useState<DriverBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [acceptingId, setAcceptingId] = useState<number | null>(null);
@@ -39,6 +39,9 @@ export default function BookingsScreen() {
     setError(null);
     try {
       await apiFetch(`/api/fleet/driver/bookings/${booking.id}/accept/`, accessToken, { method: "POST" });
+      // Mirrors AcceptBookingView's side effect (driver.status -> JADACY_PO_KLIENTA)
+      // so the Panel tab doesn't keep showing "Aktywny (wolny)" after accepting.
+      updateStatus("JADACY_PO_KLIENTA");
       setBookings((prev) => prev.filter((b) => b.id !== booking.id));
       await load();
     } catch (e) {

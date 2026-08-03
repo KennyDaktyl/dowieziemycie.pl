@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { paymentStatusLabel } from "@/components/BookingDetailModal";
+import { paymentAmounts, paymentStatusLabel } from "@/components/BookingDetailModal";
 import { BookingMap } from "@/components/BookingMap";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -74,7 +74,7 @@ function parseDateEditFields(dateText: string, timeText: string): string | null 
 }
 
 export default function AllBookingsScreen() {
-  const { accessToken, driver } = useAuth();
+  const { accessToken, driver, updateStatus } = useAuth();
   const [bookings, setBookings] = useState<DriverBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -222,6 +222,13 @@ export default function AllBookingsScreen() {
         method: "PATCH",
         body: JSON.stringify({ assigned_driver_id: driverId }),
       });
+      // Mirrors UpdateBookingView's side effect: assigning yourself to a
+      // still-OPLACONA booking claims it exactly like AcceptBookingView does
+      // (status -> KIEROWCA_W_DRODZE, driver.status -> JADACY_PO_KLIENTA) —
+      // without this the Panel tab would keep showing stale status.
+      if (driverId != null && driverId === driver?.id && booking.status === "OPLACONA") {
+        updateStatus("JADACY_PO_KLIENTA");
+      }
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się zmienić przypisania kierowcy.");
@@ -235,6 +242,8 @@ export default function AllBookingsScreen() {
     setError(null);
     try {
       await apiFetch(`/api/fleet/driver/bookings/${booking.id}/${endpoint}/`, accessToken, { method: "POST" });
+      const resultingStatus = { accept: "JADACY_PO_KLIENTA", start: "W_KURSIE", finish: "DOSTEPNY" } as const;
+      if (endpoint in resultingStatus) updateStatus(resultingStatus[endpoint as keyof typeof resultingStatus]);
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się zaktualizować kursu.");
@@ -323,6 +332,24 @@ export default function AllBookingsScreen() {
                       <Text style={styles.detailLabel}>Płatność</Text>
                       <Text style={styles.detailValue}>{paymentStatusLabel(item)}</Text>
                     </View>
+                    {(() => {
+                      const amounts = paymentAmounts(item);
+                      if (!amounts) return null;
+                      return (
+                        <>
+                          <View style={styles.detailRow}>
+                            <Text style={styles.detailLabel}>Zapłacono</Text>
+                            <Text style={styles.detailValue}>{amounts.paid.toFixed(0)} zł</Text>
+                          </View>
+                          {amounts.remaining > 0 && (
+                            <View style={styles.detailRow}>
+                              <Text style={styles.detailLabel}>Pozostało do zapłaty</Text>
+                              <Text style={styles.detailValue}>{amounts.remaining.toFixed(0)} zł</Text>
+                            </View>
+                          )}
+                        </>
+                      );
+                    })()}
                     {item.duration_minutes ? (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Planowany czas zajętości</Text>

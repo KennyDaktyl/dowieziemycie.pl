@@ -27,6 +27,20 @@ export function paymentStatusLabel(booking: DriverBooking): string {
   return "Nieopłacony";
 }
 
+/** How much has actually landed vs. what's still owed — the driver needs
+ * real numbers here, not just a status label, since they're often the one
+ * collecting the remainder in person at the end of the ride. */
+export function paymentAmounts(booking: DriverBooking): { paid: number; remaining: number } | null {
+  if (booking.price == null) return null;
+  const price = Number(booking.price);
+  if (booking.remainder_paid_at) return { paid: price, remaining: 0 };
+  if (booking.paid_at && booking.deposit_amount != null) {
+    const deposit = Number(booking.deposit_amount);
+    return { paid: deposit, remaining: Math.max(price - deposit, 0) };
+  }
+  return { paid: 0, remaining: price };
+}
+
 interface Row {
   label: string;
   value: string;
@@ -59,6 +73,7 @@ export function BookingDetailModal({
       : null;
 
   const actualDuration = formatDuration(booking.started_at, booking.completed_at);
+  const amounts = paymentAmounts(booking);
 
   const rows: Row[] = [
     { label: "Klient", value: booking.customer_name || "—" },
@@ -68,6 +83,10 @@ export function BookingDetailModal({
     { label: "Cena", value: booking.price ? `${Number(booking.price).toFixed(0)} zł` : "Wycena indywidualna" },
     { label: "Płatność", value: paymentStatusLabel(booking) },
   ];
+  if (amounts) {
+    rows.push({ label: "Zapłacono", value: `${amounts.paid.toFixed(0)} zł` });
+    if (amounts.remaining > 0) rows.push({ label: "Pozostało do zapłaty", value: `${amounts.remaining.toFixed(0)} zł` });
+  }
   if (booking.distance_km) rows.push({ label: "Dystans", value: `${booking.distance_km} km` });
   if (booking.duration_minutes) rows.push({ label: "Planowany czas zajętości", value: `${booking.duration_minutes} min` });
   if (actualDuration) rows.push({ label: "Rzeczywisty czas kursu", value: actualDuration });
