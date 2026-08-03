@@ -31,17 +31,33 @@ class BookingAvailabilityGateTests(TestCase):
         body = {**VALID_BOOKING, "scheduled_at": (timezone.now() + timedelta(hours=3)).isoformat()}
         return self.client.post("/api/bookings/", body, format="json")
 
-    def test_rejects_booking_when_no_drivers_available(self):
-        res = self._post_booking()
-        self.assertEqual(res.status_code, 400)
+    def test_captures_customer_name_and_email(self):
+        body = {
+            **VALID_BOOKING,
+            "scheduled_at": (timezone.now() + timedelta(hours=3)).isoformat(),
+            "customer_name": "Anna Nowak",
+            "customer_email": "anna@example.com",
+        }
+        res = self.client.post("/api/bookings/", body, format="json")
+        self.assertEqual(res.status_code, 201)
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.name, "Anna Nowak")
+        self.assertEqual(self.customer.email, "anna@example.com")
 
-    def test_rejects_booking_when_all_drivers_offline(self):
+    def test_allows_booking_with_no_drivers_at_all(self):
+        # A booking can be made weeks before whichever driver ends up
+        # assigned is even on shift — driver status was never the right
+        # signal for whether new bookings should be accepted.
+        res = self._post_booking()
+        self.assertEqual(res.status_code, 201)
+
+    def test_allows_booking_when_all_drivers_offline(self):
         Driver.objects.create(
             user=User.objects.create_user(username="vacationdriver"),
             name="On vacation", status=Driver.Status.OFFLINE,
         )
         res = self._post_booking()
-        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.status_code, 201)
 
     def test_allows_booking_when_a_driver_is_on(self):
         Driver.objects.create(
@@ -50,6 +66,16 @@ class BookingAvailabilityGateTests(TestCase):
         )
         res = self._post_booking()
         self.assertEqual(res.status_code, 201)
+
+    def test_rejects_booking_when_bookings_paused_for_the_site(self):
+        from .models import BookingSettings
+
+        settings_row = BookingSettings.for_site("dowieziemycie")
+        settings_row.bookings_paused = True
+        settings_row.save(update_fields=["bookings_paused"])
+
+        res = self._post_booking()
+        self.assertEqual(res.status_code, 400)
 
     def test_booking_is_stamped_with_site_from_x_site_header(self):
         Driver.objects.create(
@@ -181,6 +207,7 @@ class ConfirmAndPayWorkflowTests(TestCase):
         booking.refresh_from_db()
         self.assertEqual(booking.status, self.Booking.Status.POTWIERDZONA)  # webhook flips this, not this call
 
+    @override_settings(STRIPE_SECRET_KEY="", STRIPE_PUBLISHABLE_KEY="")
     def test_create_payment_intent_returns_503_when_stripe_not_configured(self):
         from .services import confirm_booking
 
@@ -385,3 +412,86 @@ class ExpireUnpaidBookingsCommandTests(TestCase):
         not_yet_due.refresh_from_db()
         self.assertEqual(overdue.status, Booking.Status.ANULOWANA)
         self.assertEqual(not_yet_due.status, Booking.Status.POTWIERDZONA)
+
+
+class CatalogBookingCreateViewTests(TestCase):
+    def setUp(self):
+        from apps.content.models import FixedRoute, FixedRouteVehiclePrice, Tour, TourVehiclePrice
+        from apps.fleet.models import Vehicle
+
+        self.client = APIClient()
+        self.customer = Customer.objects.create(phone="+48500222333")
+        token = str(RefreshToken.for_user(self.customer).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        self.vehicle = Vehicle.objects.create(name="VW Caravelle", plate="KR12345")
+        self.other_vehicle = Vehicle.objects.create(name="Mercedes V", plate="KR67890")
+
+        self.route = FixedRoute.objects.create(
+            site="transfer247", slug="test-balice-krakow", name_pl="Balice → Kraków", name_en="Balice → Kraków",
+        )
+        FixedRouteVehiclePrice.objects.create(route=self.route, vehicle=self.vehicle, price="180.00")
+
+        self.tour = Tour.objects.create(
+            site="transfer247", slug="test-wieliczka", title_pl="Wieliczka", title_en="Wieliczka",
+        )
+        TourVehiclePrice.objects.create(tour=self.tour, vehicle=self.vehicle, price="350.00")
+
+    def _post(self, **overrides):
+        body = {
+            "vehicle_id": self.vehicle.id,
+            "scheduled_at": (timezone.now() + timedelta(days=3)).isoformat(),
+            "passenger_count": 2,
+            "pickup_details": "Hotel Wawel, ul. Poselska 22",
+            **overrides,
+        }
+        return self.client.post("/api/bookings/catalog/", body, format="json", HTTP_X_SITE="transfer247")
+
+    def test_books_a_fixed_route_with_price_from_the_catalog(self):
+        res = self._post(fixed_route_slug=self.route.slug)
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(str(res.data["price"]), "180.00")
+        self.assertEqual(res.data["dropoff_address"], "Balice → Kraków")
+
+        from .models import Booking
+
+        booking = Booking.objects.get(id=res.data["id"])
+        self.assertEqual(booking.fixed_route_id, self.route.id)
+        self.assertEqual(booking.vehicle_id, self.vehicle.id)
+        self.assertEqual(booking.pickup_address, "Hotel Wawel, ul. Poselska 22")
+
+    def test_books_a_tour_with_price_from_the_catalog(self):
+        res = self._post(tour_slug=self.tour.slug)
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(str(res.data["price"]), "350.00")
+
+    def test_rejects_when_neither_route_nor_tour_given(self):
+        res = self._post()
+        self.assertEqual(res.status_code, 400)
+
+    def test_rejects_when_both_route_and_tour_given(self):
+        res = self._post(fixed_route_slug=self.route.slug, tour_slug=self.tour.slug)
+        self.assertEqual(res.status_code, 400)
+
+    def test_rejects_vehicle_not_offered_for_that_route(self):
+        res = self._post(fixed_route_slug=self.route.slug, vehicle_id=self.other_vehicle.id)
+        self.assertEqual(res.status_code, 400)
+
+    def test_captures_customer_name_and_email(self):
+        res = self._post(
+            fixed_route_slug=self.route.slug, customer_name="Jan Kowalski", customer_email="jan@example.com",
+        )
+        self.assertEqual(res.status_code, 201)
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.name, "Jan Kowalski")
+        self.assertEqual(self.customer.email, "jan@example.com")
+
+    def test_rejects_when_bookings_paused(self):
+        from .models import BookingSettings
+
+        settings_row = BookingSettings.for_site("transfer247")
+        settings_row.bookings_paused = True
+        settings_row.save(update_fields=["bookings_paused"])
+
+        res = self._post(fixed_route_slug=self.route.slug)
+        self.assertEqual(res.status_code, 400)

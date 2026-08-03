@@ -11,6 +11,7 @@ import { reverseGeocode } from "@/lib/geocode";
 import type { DriverEta, RouteEstimate } from "@/lib/types";
 
 import { AddressSearchField } from "./address-search-field";
+import { PhoneVerifyStep } from "./phone-verify-step";
 import { PriceMeter } from "./price-meter";
 
 const BookingMap = dynamic(() => import("./booking-map").then((m) => m.BookingMap), {
@@ -60,6 +61,9 @@ export function BookingCard() {
   const [{ date, time }, setDateTime] = useState(defaultDateTime);
   const [passengers, setPassengers] = useState(1);
   const [couponCode, setCouponCode] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [phone, setPhone] = useState("+48");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error" | "unauthenticated">("idle");
   const [estimate, setEstimate] = useState<RouteEstimate | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -186,7 +190,7 @@ export function BookingCard() {
   }
 
   async function handleSubmit() {
-    if (!pickup || !dropoff || !date) return;
+    if (!pickup || !dropoff || !date || !customerName) return;
     setStatus("submitting");
     try {
       const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
@@ -203,6 +207,8 @@ export function BookingCard() {
           scheduled_at: scheduledAt,
           passenger_count: passengers,
           coupon_code: couponCode || undefined,
+          customer_name: customerName,
+          customer_email: customerEmail || undefined,
         }),
       });
       if (res.status === 401) {
@@ -370,6 +376,33 @@ export function BookingCard() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
+                {t("nameLabel")}
+              </label>
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder={t("namePlaceholder")}
+                className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
+                {t("emailLabel")}
+              </label>
+              <input
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder={t("emailPlaceholder")}
+                className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
+              />
+            </div>
+          </div>
+
           <div className="rounded-[10px] border border-line bg-panel-2 px-4 py-3.5">
             <div className="flex items-center justify-between">
               <div>
@@ -405,7 +438,7 @@ export function BookingCard() {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={status === "submitting" || !date || !pickup || !dropoff}
+            disabled={status === "submitting" || !date || !pickup || !dropoff || !customerName}
             className="w-full rounded-[9px] bg-amber py-[15px] text-[15.5px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:opacity-60"
           >
             {t("submit")}
@@ -423,10 +456,9 @@ export function BookingCard() {
             <div className="text-center text-xs font-semibold text-red">{t("error")}</div>
           )}
           {status === "unauthenticated" && (
-            <div className="text-center text-xs font-semibold text-amber">
-              <Link href="/logowanie" className="underline">
-                {t("submitLoginFirst")}
-              </Link>
+            <div className="flex flex-col gap-2">
+              <p className="text-center text-xs font-semibold text-amber">{t("submitVerifyPhone")}</p>
+              <PhoneVerifyStep phone={phone} onPhoneChange={setPhone} onVerified={handleSubmit} />
             </div>
           )}
 

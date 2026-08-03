@@ -14,6 +14,7 @@ from .routing import get_route_details
 from .serializers import (
     BookingCreateSerializer,
     BookingSerializer,
+    CatalogBookingCreateSerializer,
     PricingTierSerializer,
     RouteEstimateRequestSerializer,
 )
@@ -64,6 +65,14 @@ class RouteEstimateView(APIView):
 class BookingCreateView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = BookingCreateSerializer
+
+
+class CatalogBookingCreateView(generics.CreateAPIView):
+    """POST /api/bookings/catalog/ — booking a transfer247.pl fixed route or
+    tour (see CatalogBookingCreateSerializer)."""
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = CatalogBookingCreateSerializer
 
 
 class BookingMineListView(generics.ListAPIView):

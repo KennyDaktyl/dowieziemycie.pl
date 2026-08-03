@@ -64,7 +64,12 @@
     "success": "Request received — awaiting confirmation.",
     "successPanelLink": "Check status",
     "error": "Couldn't book the ride. Please try again.",
-    "vatNote": "Price includes VAT (23%)."
+    "vatNote": "Price includes VAT (23%).",
+    "nameLabel": "Name",
+    "namePlaceholder": "Jane Smith",
+    "emailLabel": "Email (optional)",
+    "emailPlaceholder": "jane@example.com",
+    "submitVerifyPhone": "Enter your phone number to finish the booking — you will get an SMS code."
   },
   "DriverEta": {
     "title": "Driver ETA",

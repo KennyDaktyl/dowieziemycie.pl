@@ -16,6 +16,7 @@ when the booking was created.
 from datetime import timedelta
 
 from django.utils import timezone
+from rest_framework import serializers
 
 from .models import Booking, BookingSettings
 
@@ -40,3 +41,16 @@ def has_conflicting_booking(scheduled_at, site: str, exclude_booking_id: int | N
     if exclude_booking_id is not None:
         qs = qs.exclude(id=exclude_booking_id)
     return qs.exists()
+
+
+def assert_bookings_open(site: str) -> None:
+    """Used by both booking-creation serializers — the only thing that
+    should ever block a new booking outright is the admin's explicit
+    BookingSettings.bookings_paused switch (see AvailabilityView for the
+    same rule on the read side). A driver's live status is not a valid
+    reason: a booking can be made weeks before whichever driver ends up
+    assigned is actually on shift."""
+    if BookingSettings.for_site(site).bookings_paused:
+        raise serializers.ValidationError(
+            "Obecnie nie przyjmujemy nowych rezerwacji — spróbuj ponownie później albo zadzwoń do nas."
+        )

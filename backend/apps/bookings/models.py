@@ -221,6 +221,19 @@ class Booking(models.Model):
         max_digits=7, decimal_places=2, null=True, blank=True,
         help_text="Cena z dopasowanej taryfy (po rabacie kuponu). Puste = wycena indywidualna.",
     )
+    # Set only for catalog-mode bookings (transfer247.pl's fixed-price routes
+    # and tours, created via CatalogBookingCreateView) — at most one of
+    # fixed_route/tour is ever set. dowieziemycie.pl's map-based bookings
+    # (BookingCreateView) leave all three null, unchanged.
+    fixed_route = models.ForeignKey(
+        "content.FixedRoute", on_delete=models.SET_NULL, null=True, blank=True,
+    )
+    tour = models.ForeignKey(
+        "content.Tour", on_delete=models.SET_NULL, null=True, blank=True,
+    )
+    vehicle = models.ForeignKey(
+        "fleet.Vehicle", on_delete=models.SET_NULL, null=True, blank=True,
+    )
     assigned_driver = models.ForeignKey(
         Driver, on_delete=models.SET_NULL, null=True, blank=True, related_name="bookings"
     )

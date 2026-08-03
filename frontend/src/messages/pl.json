@@ -64,7 +64,12 @@
     "success": "Zgłoszenie przyjęte — czeka na potwierdzenie.",
     "successPanelLink": "Sprawdź status",
     "error": "Nie udało się zarezerwować kursu. Spróbuj ponownie.",
-    "vatNote": "Cena zawiera VAT (23%)."
+    "vatNote": "Cena zawiera VAT (23%).",
+    "nameLabel": "Imię",
+    "namePlaceholder": "Jan Kowalski",
+    "emailLabel": "E-mail (opcjonalnie)",
+    "emailPlaceholder": "jan@przyklad.pl",
+    "submitVerifyPhone": "Podaj numer telefonu, żeby dokończyć rezerwację — dostaniesz kod SMS."
   },
   "DriverEta": {
     "title": "Czas dojazdu kierowcy",
