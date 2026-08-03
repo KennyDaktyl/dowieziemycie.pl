@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { BookingTracker } from "@/components/booking-tracker";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { redirect } from "@/i18n/navigation";
@@ -18,8 +19,9 @@ export default async function BookingTrackingPage({
   const { locale, id } = await params;
   setRequestLocale(locale);
 
-  const [t, { customer, accessToken }] = await Promise.all([
+  const [t, tCrumbs, { customer, accessToken }] = await Promise.all([
     getTranslations("Panel"),
+    getTranslations("Breadcrumbs"),
     getSession(),
   ]);
 
@@ -42,7 +44,14 @@ export default async function BookingTrackingPage({
     <>
       <SiteHeader />
       <main className="mx-auto max-w-[900px] px-6 py-16">
-        <h1 className="font-heading mb-2 text-2xl font-semibold">{t("trackingTitle")}</h1>
+        <Breadcrumbs
+          items={[
+            { label: tCrumbs("home"), href: "/" },
+            { label: tCrumbs("myTrips"), href: "/panel" },
+            { label: tCrumbs("tracking") },
+          ]}
+        />
+        <h1 className="font-heading mt-3 mb-2 text-2xl font-semibold">{t("trackingTitle")}</h1>
         <p className="mb-6 text-[14px] text-muted">
           {booking.pickup_address} → {booking.dropoff_address}
         </p>

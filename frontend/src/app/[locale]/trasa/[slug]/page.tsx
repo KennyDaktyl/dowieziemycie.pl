@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { Link } from "@/i18n/navigation";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { apiFetch } from "@/lib/api";
@@ -53,8 +54,9 @@ export default async function RoutePage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const [t, allRoutes, route] = await Promise.all([
+  const [t, tCrumbs, allRoutes, route] = await Promise.all([
     getTranslations("RoutePage"),
+    getTranslations("Breadcrumbs"),
     apiFetch<LocalRoute[]>("/api/routes/", { next: { revalidate: 60 } }),
     getRoute(slug),
   ]);
@@ -70,7 +72,15 @@ export default async function RoutePage({
     <>
       <SiteHeader />
       <main className="mx-auto max-w-[1360px] px-6 py-16">
-        <Link href="/#routes" className="mb-6 inline-block text-[13px] font-semibold text-amber">
+        <Breadcrumbs
+          items={[
+            { label: tCrumbs("home"), href: "/" },
+            { label: tCrumbs("routes"), href: "/#routes" },
+            { label: title },
+          ]}
+        />
+
+        <Link href="/#routes" className="mt-3 mb-6 inline-block text-[13px] font-semibold text-amber">
           {t("backToHome")}
         </Link>
 

@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { BookingsList } from "@/components/bookings-list";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { redirect } from "@/i18n/navigation";
@@ -12,7 +13,11 @@ export default async function PanelPage({ params }: { params: Promise<{ locale: 
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, { customer, accessToken }] = await Promise.all([getTranslations("Panel"), getSession()]);
+  const [t, tCrumbs, { customer, accessToken }] = await Promise.all([
+    getTranslations("Panel"),
+    getTranslations("Breadcrumbs"),
+    getSession(),
+  ]);
 
   if (!customer || !accessToken) {
     redirect({ href: "/logowanie", locale });
@@ -28,7 +33,8 @@ export default async function PanelPage({ params }: { params: Promise<{ locale: 
     <>
       <SiteHeader />
       <main className="mx-auto max-w-[900px] px-6 py-16">
-        <h1 className="font-heading mb-8 text-2xl font-semibold">{t("title")}</h1>
+        <Breadcrumbs items={[{ label: tCrumbs("home"), href: "/" }, { label: t("title") }]} />
+        <h1 className="font-heading mt-3 mb-8 text-2xl font-semibold">{t("title")}</h1>
         <BookingsList bookings={bookings} locale={locale} />
       </main>
       <SiteFooter />

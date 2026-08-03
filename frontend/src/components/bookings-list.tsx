@@ -1,12 +1,18 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
 import { useState } from "react";
 
 import { DepositPaymentForm } from "@/components/deposit-payment-form";
 import { Link } from "@/i18n/navigation";
 import { netFromGross } from "@/lib/format";
 import type { Booking } from "@/lib/types";
+
+const BookingRoutePreview = dynamic(
+  () => import("./booking-route-preview").then((m) => m.BookingRoutePreview),
+  { ssr: false, loading: () => <div className="h-[140px] w-full animate-pulse rounded-lg bg-panel-2" /> },
+);
 
 const TRACKABLE_STATUSES = ["KIEROWCA_W_DRODZE", "W_TRAKCIE"];
 const ARCHIVE_STATUSES = ["ZAKONCZONA", "ANULOWANA"];
@@ -66,6 +72,22 @@ export function BookingsList({ bookings, locale }: { bookings: Booking[]; locale
                 </Link>
               )}
             </div>
+
+            {booking.pickup_lat && booking.pickup_lng && booking.dropoff_lat && booking.dropoff_lng && (
+              <div className="mt-3 flex flex-col gap-1.5">
+                <BookingRoutePreview
+                  pickup={{ lat: Number(booking.pickup_lat), lng: Number(booking.pickup_lng) }}
+                  dropoff={{ lat: Number(booking.dropoff_lat), lng: Number(booking.dropoff_lng) }}
+                />
+                {(booking.distance_km || booking.duration_minutes) && (
+                  <span className="font-label text-xs tracking-[0.05em] text-muted">
+                    {booking.distance_km && `${booking.distance_km} ${t("km")}`}
+                    {booking.distance_km && booking.duration_minutes && " · "}
+                    {booking.duration_minutes && `~${booking.duration_minutes} ${t("min")}`}
+                  </span>
+                )}
+              </div>
+            )}
 
             {booking.status === "NOWA" && (
               <p className="mt-3 text-[13px] text-muted">{tPayment("waitingForConfirmation")}</p>

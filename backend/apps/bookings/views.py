@@ -86,7 +86,10 @@ class BookingMineListView(generics.ListAPIView):
     serializer_class = BookingSerializer
 
     def get_queryset(self):
-        return Booking.objects.filter(customer=self.request.user)
+        # Most-recently-made booking first — the model's own default
+        # ordering is by scheduled_at, which buries a brand new booking
+        # under an older one whose ride happens to be scheduled further out.
+        return Booking.objects.filter(customer=self.request.user).order_by("-created_at")
 
 
 class CreatePaymentIntentRequestSerializer(serializers.Serializer):

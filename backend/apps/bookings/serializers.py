@@ -3,6 +3,7 @@ from rest_framework import serializers
 from .availability import assert_bookings_open, has_conflicting_booking
 from .models import Booking, Coupon, PricingTier
 from .pricing import estimate_price
+from .routing import get_route_distance_km
 
 
 def _update_customer_details(customer, name: str, email: str) -> None:
@@ -52,7 +53,7 @@ class BookingSerializer(serializers.ModelSerializer):
         fields = [
             "id", "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
-            "scheduled_at", "passenger_count", "status", "distance_km", "is_reserved",
+            "scheduled_at", "passenger_count", "status", "distance_km", "duration_minutes", "is_reserved",
             "price", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle", "created_at",
             "confirmed_at", "payment_deadline", "deposit_amount", "paid_at", "remainder_paid_at",
             "remaining_amount", "booked_vehicle_id", "booked_vehicle_name",
@@ -266,18 +267,30 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError({"vehicle_id": "Ten pojazd nie jest dostępny dla tej wycieczki."})
             duration_minutes = tour_obj.duration_minutes
 
+        pickup_lat = validated_data.get("pickup_lat")
+        pickup_lng = validated_data.get("pickup_lng")
+        dropoff_lat = validated_data.get("dropoff_lat")
+        dropoff_lng = validated_data.get("dropoff_lng")
+        distance_km = None
+        if pickup_lat is not None and pickup_lng is not None and dropoff_lat is not None and dropoff_lng is not None:
+            # Cosmetic only (the price already comes from price_row above) —
+            # lets the customer panel show "X km" for a catalog booking the
+            # same way it already does for the geo-priced booking flow.
+            distance_km = get_route_distance_km(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng)
+
         booking = Booking.objects.create(
             customer=self.context["request"].user,
             site=site_code,
             pickup_address=validated_data["pickup_details"],
-            pickup_lat=validated_data.get("pickup_lat"),
-            pickup_lng=validated_data.get("pickup_lng"),
+            pickup_lat=pickup_lat,
+            pickup_lng=pickup_lng,
             dropoff_address=validated_data["dropoff_details"],
-            dropoff_lat=validated_data.get("dropoff_lat"),
-            dropoff_lng=validated_data.get("dropoff_lng"),
+            dropoff_lat=dropoff_lat,
+            dropoff_lng=dropoff_lng,
             scheduled_at=validated_data["scheduled_at"],
             passenger_count=validated_data["passenger_count"],
             price=price_row.price,
+            distance_km=distance_km,
             duration_minutes=duration_minutes,
             fixed_route=fixed_route_obj,
             tour=tour_obj,

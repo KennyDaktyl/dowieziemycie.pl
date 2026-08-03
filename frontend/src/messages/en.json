@@ -35,6 +35,12 @@
     "blog": "Blog",
     "pricing": "Pricing"
   },
+  "Breadcrumbs": {
+    "home": "Home",
+    "routes": "Routes",
+    "myTrips": "My trips",
+    "tracking": "Ride tracking"
+  },
   "BookingForm": {
     "from": "From",
     "to": "To",
@@ -201,7 +207,9 @@
     "vatIncluded": "incl. 23% VAT, net: {net} zł",
     "showArchive": "Show archived rides ({count})",
     "hideArchive": "Show current rides only",
-    "emptyCurrent": "No current rides."
+    "emptyCurrent": "No current rides.",
+    "km": "km",
+    "min": "min"
   },
   "BookingStatus": {
     "NOWA": "New (awaiting confirmation)",
