@@ -42,6 +42,8 @@ class DriverBookingSerializer(serializers.ModelSerializer):
 
     customer_phone = serializers.CharField(source="customer.phone", read_only=True)
     customer_name = serializers.CharField(source="customer.name", read_only=True)
+    assigned_driver_id = serializers.IntegerField(read_only=True)
+    assigned_driver_name = serializers.CharField(source="assigned_driver.name", read_only=True, default=None)
 
     class Meta:
         model = Booking
@@ -52,6 +54,7 @@ class DriverBookingSerializer(serializers.ModelSerializer):
             "scheduled_at", "passenger_count", "status", "distance_km", "price",
             "deposit_amount", "confirmed_at", "payment_deadline", "paid_at", "created_at",
             "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
+            "assigned_driver_id", "assigned_driver_name",
         ]
         read_only_fields = fields
 

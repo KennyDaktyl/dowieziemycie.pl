@@ -120,6 +120,74 @@ class AllBookingsListView(generics.ListAPIView):
         return Booking.objects.select_related("customer").order_by("-scheduled_at")[:200]
 
 
+class BookingUpdateSerializer(serializers.Serializer):
+    pickup_address = serializers.CharField(max_length=200, required=False)
+    dropoff_address = serializers.CharField(max_length=200, required=False)
+    scheduled_at = serializers.DateTimeField(required=False)
+    passenger_count = serializers.IntegerField(min_value=1, max_value=7, required=False)
+    assigned_driver_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+class UpdateBookingView(APIView):
+    """PATCH /api/fleet/driver/bookings/<id>/update/ — dispatcher-only. Lets
+    the dispatcher adjust ride details and hand-assign or unassign a driver
+    directly from the app, instead of needing a Django Admin round trip.
+    Not available once a booking is ZAKONCZONA/ANULOWANA — nothing left to
+    coordinate on a booking that's already over."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, booking_id):
+        if not request.user.is_dispatcher:
+            return Response(
+                {"detail": "Tylko dyspozytor może edytować rezerwacje."}, status=status.HTTP_403_FORBIDDEN,
+            )
+
+        booking = Booking.objects.filter(id=booking_id).first()
+        if not booking:
+            return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
+        if booking.status in (Booking.Status.ZAKONCZONA, Booking.Status.ANULOWANA):
+            return Response(
+                {"detail": "Nie można edytować zakończonej lub anulowanej rezerwacji."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        serializer = BookingUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        update_fields = []
+        for field in ("pickup_address", "dropoff_address", "scheduled_at", "passenger_count"):
+            if field in data:
+                setattr(booking, field, data[field])
+                update_fields.append(field)
+
+        # Editing scheduled_at after a driver already accepted (tracking_code
+        # set) would otherwise leave the tracking window anchored to the old
+        # time — recompute it the same way AcceptBookingView does.
+        if "scheduled_at" in data and booking.tracking_code:
+            booking.tracking_code_valid_from = booking.scheduled_at - timedelta(hours=1)
+            booking.tracking_code_expires_at = booking.scheduled_at + timedelta(hours=4)
+            update_fields += ["tracking_code_valid_from", "tracking_code_expires_at"]
+
+        if "assigned_driver_id" in data:
+            driver_id = data["assigned_driver_id"]
+            if driver_id is None:
+                booking.assigned_driver = None
+            else:
+                driver = Driver.objects.filter(id=driver_id).first()
+                if not driver:
+                    return Response({"detail": "Nie znaleziono kierowcy."}, status=status.HTTP_404_NOT_FOUND)
+                booking.assigned_driver = driver
+            update_fields.append("assigned_driver")
+
+        if update_fields:
+            booking.save(update_fields=update_fields)
+
+        return Response(DriverBookingSerializer(booking).data)
+
+
 class MyScheduleView(generics.ListAPIView):
     """GET /api/fleet/driver/schedule/ — this driver's own upcoming/active bookings."""
 

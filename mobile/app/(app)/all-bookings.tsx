@@ -28,12 +28,21 @@ const STATUS_LABELS: Record<string, string> = {
   ANULOWANA: "Anulowana",
 };
 
+const TERMINAL_STATUSES = ["ZAKONCZONA", "ANULOWANA"];
 const DEFAULT_DEPOSIT_RATIO = 0.3;
 
-interface EditState {
+interface PriceEditState {
   price: string;
   deposit: string;
   depositManual: boolean;
+}
+
+interface DetailEditState {
+  pickupAddress: string;
+  dropoffAddress: string;
+  passengerCount: string;
+  dateText: string;
+  timeText: string;
 }
 
 function formatDateTime(value: string | null) {
@@ -41,12 +50,34 @@ function formatDateTime(value: string | null) {
   return new Date(value).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+function toDateEditFields(iso: string): { dateText: string; timeText: string } {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    dateText: `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`,
+    timeText: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
+}
+
+function parseDateEditFields(dateText: string, timeText: string): string | null {
+  const dateMatch = dateText.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  const timeMatch = timeText.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!dateMatch || !timeMatch) return null;
+  const [, day, month, year] = dateMatch;
+  const [, hour, minute] = timeMatch;
+  const d = new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 export default function AllBookingsScreen() {
-  const { accessToken } = useAuth();
+  const { accessToken, driver } = useAuth();
   const [bookings, setBookings] = useState<DriverBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [edits, setEdits] = useState<Record<number, EditState>>({});
+  const [priceEdits, setPriceEdits] = useState<Record<number, PriceEditState>>({});
+  const [editingDetailsId, setEditingDetailsId] = useState<number | null>(null);
+  const [detailEdits, setDetailEdits] = useState<Record<number, DetailEditState>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,23 +102,38 @@ export default function AllBookingsScreen() {
   function toggleExpand(booking: DriverBooking) {
     if (expandedId === booking.id) {
       setExpandedId(null);
+      setEditingDetailsId(null);
       return;
     }
     setExpandedId(booking.id);
-    if (!edits[booking.id]) {
+    setEditingDetailsId(null);
+    if (!priceEdits[booking.id]) {
       const suggestedPrice = booking.price ?? "";
       const suggestedDeposit =
         booking.deposit_amount ??
         (booking.price ? String(Math.round(Number(booking.price) * DEFAULT_DEPOSIT_RATIO)) : "");
-      setEdits((prev) => ({
+      setPriceEdits((prev) => ({
         ...prev,
         [booking.id]: { price: suggestedPrice, deposit: suggestedDeposit, depositManual: false },
       }));
     }
   }
 
+  function startEditingDetails(booking: DriverBooking) {
+    setEditingDetailsId(booking.id);
+    setDetailEdits((prev) => ({
+      ...prev,
+      [booking.id]: {
+        pickupAddress: booking.pickup_address,
+        dropoffAddress: booking.dropoff_address,
+        passengerCount: String(booking.passenger_count),
+        ...toDateEditFields(booking.scheduled_at),
+      },
+    }));
+  }
+
   function onChangePrice(bookingId: number, text: string) {
-    setEdits((prev) => {
+    setPriceEdits((prev) => {
       const current = prev[bookingId] ?? { price: "", deposit: "", depositManual: false };
       const price = parseFloat(text.replace(",", "."));
       const deposit = current.depositManual
@@ -100,14 +146,14 @@ export default function AllBookingsScreen() {
   }
 
   function onChangeDeposit(bookingId: number, text: string) {
-    setEdits((prev) => {
+    setPriceEdits((prev) => {
       const current = prev[bookingId] ?? { price: "", deposit: "", depositManual: false };
       return { ...prev, [bookingId]: { ...current, deposit: text, depositManual: true } };
     });
   }
 
   async function handleConfirm(booking: DriverBooking) {
-    const edit = edits[booking.id];
+    const edit = priceEdits[booking.id];
     if (!edit) return;
     const price = parseFloat(edit.price.replace(",", "."));
     const deposit = parseFloat(edit.deposit.replace(",", "."));
@@ -126,6 +172,69 @@ export default function AllBookingsScreen() {
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się potwierdzić kursu.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function handleSaveDetails(booking: DriverBooking) {
+    const edit = detailEdits[booking.id];
+    if (!edit) return;
+    const passengerCount = parseInt(edit.passengerCount, 10);
+    const scheduledAt = parseDateEditFields(edit.dateText, edit.timeText);
+    if (!scheduledAt) {
+      setError("Podaj poprawną datę (DD.MM.RRRR) i godzinę (GG:MM).");
+      return;
+    }
+    if (!Number.isFinite(passengerCount) || passengerCount < 1) {
+      setError("Podaj poprawną liczbę pasażerów.");
+      return;
+    }
+    setSavingId(booking.id);
+    setError(null);
+    try {
+      await apiFetch(`/api/fleet/driver/bookings/${booking.id}/update/`, accessToken, {
+        method: "PATCH",
+        body: JSON.stringify({
+          pickup_address: edit.pickupAddress,
+          dropoff_address: edit.dropoffAddress,
+          passenger_count: passengerCount,
+          scheduled_at: scheduledAt,
+        }),
+      });
+      setEditingDetailsId(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Nie udało się zapisać zmian.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function handleAssign(booking: DriverBooking, driverId: number | null) {
+    setSavingId(booking.id);
+    setError(null);
+    try {
+      await apiFetch(`/api/fleet/driver/bookings/${booking.id}/update/`, accessToken, {
+        method: "PATCH",
+        body: JSON.stringify({ assigned_driver_id: driverId }),
+      });
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Nie udało się zmienić przypisania kierowcy.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function handleLifecycleAction(booking: DriverBooking, endpoint: string) {
+    setSavingId(booking.id);
+    setError(null);
+    try {
+      await apiFetch(`/api/fleet/driver/bookings/${booking.id}/${endpoint}/`, accessToken, { method: "POST" });
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Nie udało się zaktualizować kursu.");
     } finally {
       setSavingId(null);
     }
@@ -150,11 +259,18 @@ export default function AllBookingsScreen() {
           }
           renderItem={({ item }) => {
             const expanded = expandedId === item.id;
-            const edit = edits[item.id];
+            const editingDetails = editingDetailsId === item.id;
+            const priceEdit = priceEdits[item.id];
+            const detailEdit = detailEdits[item.id];
+            const canEdit = !TERMINAL_STATUSES.includes(item.status);
+            const isMine = driver != null && item.assigned_driver_id === driver.id;
             const remainder =
-              edit && Number.isFinite(parseFloat(edit.price)) && Number.isFinite(parseFloat(edit.deposit))
-                ? (parseFloat(edit.price.replace(",", ".")) - parseFloat(edit.deposit.replace(",", "."))).toFixed(0)
+              priceEdit && Number.isFinite(parseFloat(priceEdit.price)) && Number.isFinite(parseFloat(priceEdit.deposit))
+                ? (
+                    parseFloat(priceEdit.price.replace(",", ".")) - parseFloat(priceEdit.deposit.replace(",", "."))
+                  ).toFixed(0)
                 : null;
+
             return (
               <Pressable onPress={() => toggleExpand(item)} style={styles.card}>
                 <View style={styles.cardHeader}>
@@ -188,12 +304,123 @@ export default function AllBookingsScreen() {
                         </Text>
                       </View>
                     ) : null}
+                    <View style={styles.detailRow}>
+                      <Text style={styles.detailLabel}>Kierowca</Text>
+                      <Text style={styles.detailValue}>{item.assigned_driver_name || "Nieprzypisany"}</Text>
+                    </View>
 
-                    {item.status === "NOWA" && edit ? (
+                    {canEdit && (
+                      <View style={styles.assignRow}>
+                        {!isMine && (
+                          <Pressable
+                            onPress={() => handleAssign(item, driver?.id ?? null)}
+                            disabled={savingId === item.id}
+                            style={styles.smallButton}
+                          >
+                            <Text style={styles.smallButtonText}>Przypisz do mnie</Text>
+                          </Pressable>
+                        )}
+                        {item.assigned_driver_id != null && (
+                          <Pressable
+                            onPress={() => handleAssign(item, null)}
+                            disabled={savingId === item.id}
+                            style={styles.smallButtonOutline}
+                          >
+                            <Text style={styles.smallButtonOutlineText}>Odepnij kierowcę</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    )}
+
+                    {canEdit && !editingDetails && (
+                      <Pressable onPress={() => startEditingDetails(item)} style={styles.smallButtonOutline}>
+                        <Text style={styles.smallButtonOutlineText}>Edytuj szczegóły kursu</Text>
+                      </Pressable>
+                    )}
+
+                    {editingDetails && detailEdit && (
+                      <View style={styles.editForm}>
+                        <Text style={styles.editLabel}>Skąd</Text>
+                        <TextInput
+                          value={detailEdit.pickupAddress}
+                          onChangeText={(text) =>
+                            setDetailEdits((prev) => ({ ...prev, [item.id]: { ...prev[item.id], pickupAddress: text } }))
+                          }
+                          style={styles.input}
+                          placeholderTextColor={colors.muted}
+                        />
+                        <Text style={styles.editLabel}>Dokąd</Text>
+                        <TextInput
+                          value={detailEdit.dropoffAddress}
+                          onChangeText={(text) =>
+                            setDetailEdits((prev) => ({ ...prev, [item.id]: { ...prev[item.id], dropoffAddress: text } }))
+                          }
+                          style={styles.input}
+                          placeholderTextColor={colors.muted}
+                        />
+                        <View style={styles.row}>
+                          <View style={styles.flex1}>
+                            <Text style={styles.editLabel}>Data (DD.MM.RRRR)</Text>
+                            <TextInput
+                              value={detailEdit.dateText}
+                              onChangeText={(text) =>
+                                setDetailEdits((prev) => ({ ...prev, [item.id]: { ...prev[item.id], dateText: text } }))
+                              }
+                              placeholder="15.08.2026"
+                              style={styles.input}
+                              placeholderTextColor={colors.muted}
+                            />
+                          </View>
+                          <View style={styles.flex1}>
+                            <Text style={styles.editLabel}>Godzina (GG:MM)</Text>
+                            <TextInput
+                              value={detailEdit.timeText}
+                              onChangeText={(text) =>
+                                setDetailEdits((prev) => ({ ...prev, [item.id]: { ...prev[item.id], timeText: text } }))
+                              }
+                              placeholder="20:00"
+                              style={styles.input}
+                              placeholderTextColor={colors.muted}
+                            />
+                          </View>
+                        </View>
+                        <Text style={styles.editLabel}>Liczba pasażerów</Text>
+                        <TextInput
+                          value={detailEdit.passengerCount}
+                          onChangeText={(text) =>
+                            setDetailEdits((prev) => ({ ...prev, [item.id]: { ...prev[item.id], passengerCount: text } }))
+                          }
+                          keyboardType="numeric"
+                          style={styles.input}
+                          placeholderTextColor={colors.muted}
+                        />
+                        <View style={styles.row}>
+                          <Pressable
+                            onPress={() => setEditingDetailsId(null)}
+                            style={[styles.smallButtonOutline, styles.flex1]}
+                          >
+                            <Text style={styles.smallButtonOutlineText}>Anuluj</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleSaveDetails(item)}
+                            disabled={savingId === item.id}
+                            style={[styles.smallButton, styles.flex1]}
+                          >
+                            {savingId === item.id ? (
+                              <ActivityIndicator size="small" color="#1A1305" />
+                            ) : (
+                              <Text style={styles.smallButtonText}>Zapisz zmiany</Text>
+                            )}
+                          </Pressable>
+                        </View>
+                      </View>
+                    )}
+
+                    {item.status === "NOWA" && priceEdit ? (
                       <View style={styles.editForm}>
                         <Text style={styles.editLabel}>Cena kursu (zł)</Text>
                         <TextInput
-                          value={edit.price}
+                          value={priceEdit.price}
                           onChangeText={(text) => onChangePrice(item.id, text)}
                           keyboardType="numeric"
                           placeholder="np. 150"
@@ -202,7 +429,7 @@ export default function AllBookingsScreen() {
                         />
                         <Text style={styles.editLabel}>Zaliczka (zł)</Text>
                         <TextInput
-                          value={edit.deposit}
+                          value={priceEdit.deposit}
                           onChangeText={(text) => onChangeDeposit(item.id, text)}
                           keyboardType="numeric"
                           placeholder="np. 45"
@@ -229,14 +456,52 @@ export default function AllBookingsScreen() {
                         </Pressable>
                       </View>
                     ) : (
-                      <View style={styles.editForm}>
-                        <View style={styles.detailRow}>
-                          <Text style={styles.detailLabel}>Zaliczka</Text>
-                          <Text style={styles.detailValue}>
-                            {item.deposit_amount ? `${Number(item.deposit_amount).toFixed(0)} zł` : "—"}
-                          </Text>
-                        </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Zaliczka</Text>
+                        <Text style={styles.detailValue}>
+                          {item.deposit_amount ? `${Number(item.deposit_amount).toFixed(0)} zł` : "—"}
+                        </Text>
                       </View>
+                    )}
+
+                    {item.status === "OPLACONA" && item.assigned_driver_id == null && (
+                      <Pressable
+                        onPress={() => handleLifecycleAction(item, "accept")}
+                        disabled={savingId === item.id}
+                        style={styles.confirmButton}
+                      >
+                        {savingId === item.id ? (
+                          <ActivityIndicator size="small" color="#1A1305" />
+                        ) : (
+                          <Text style={styles.confirmButtonText}>Przyjmij kurs (ja)</Text>
+                        )}
+                      </Pressable>
+                    )}
+                    {item.status === "KIEROWCA_W_DRODZE" && isMine && (
+                      <Pressable
+                        onPress={() => handleLifecycleAction(item, "start")}
+                        disabled={savingId === item.id}
+                        style={styles.confirmButton}
+                      >
+                        {savingId === item.id ? (
+                          <ActivityIndicator size="small" color="#1A1305" />
+                        ) : (
+                          <Text style={styles.confirmButtonText}>Rozpocznij kurs</Text>
+                        )}
+                      </Pressable>
+                    )}
+                    {item.status === "W_TRAKCIE" && isMine && (
+                      <Pressable
+                        onPress={() => handleLifecycleAction(item, "finish")}
+                        disabled={savingId === item.id}
+                        style={styles.confirmButton}
+                      >
+                        {savingId === item.id ? (
+                          <ActivityIndicator size="small" color="#1A1305" />
+                        ) : (
+                          <Text style={styles.confirmButtonText}>Zakończ kurs</Text>
+                        )}
+                      </Pressable>
                     )}
                   </View>
                 )}
@@ -286,6 +551,9 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
   detailLabel: { color: colors.muted, fontSize: 13 },
   detailValue: { color: colors.text, fontSize: 13, fontWeight: "600", flexShrink: 1, textAlign: "right" },
+  assignRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  row: { flexDirection: "row", gap: 8 },
+  flex1: { flex: 1 },
   editForm: { marginTop: 6, gap: 8 },
   editLabel: { color: colors.muted, fontSize: 12, fontWeight: "600", marginTop: 4 },
   input: {
@@ -302,6 +570,23 @@ const styles = StyleSheet.create({
   confirmButton: { backgroundColor: colors.amber, borderRadius: 9, paddingVertical: 12, alignItems: "center", marginTop: 8 },
   confirmButtonDisabled: { opacity: 0.6 },
   confirmButtonText: { color: "#1A1305", fontWeight: "700", fontSize: 14 },
+  smallButton: {
+    backgroundColor: colors.amber,
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  smallButtonText: { color: "#1A1305", fontWeight: "700", fontSize: 12.5 },
+  smallButtonOutline: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  smallButtonOutlineText: { color: colors.text, fontWeight: "600", fontSize: 12.5 },
   errorBar: { padding: 12, backgroundColor: colors.panel2 },
   errorText: { color: colors.red, fontSize: 13, textAlign: "center" },
 });

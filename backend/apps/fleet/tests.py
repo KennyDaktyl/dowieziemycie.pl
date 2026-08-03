@@ -289,6 +289,52 @@ class DispatcherConfirmWorkflowTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual([b["id"] for b in res.data], [paid.id])
 
+    def test_update_requires_dispatcher(self):
+        booking = _make_booking(self.customer, status=Booking.Status.NOWA)
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"passenger_count": 3},
+            format="json", **_driver_auth_header(self.plain_driver),
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_dispatcher_can_edit_ride_details(self):
+        booking = _make_booking(self.customer, status=Booking.Status.NOWA, passenger_count=1)
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/",
+            {"pickup_address": "Liszki", "passenger_count": 4},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.pickup_address, "Liszki")
+        self.assertEqual(booking.passenger_count, 4)
+
+    def test_dispatcher_can_assign_and_unassign_a_driver(self):
+        booking = _make_booking(self.customer, status=Booking.Status.NOWA)
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"assigned_driver_id": self.plain_driver.id},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.assigned_driver_id, self.plain_driver.id)
+
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"assigned_driver_id": None},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.assertIsNone(booking.assigned_driver_id)
+
+    def test_update_rejects_finished_booking(self):
+        booking = _make_booking(self.customer, status=Booking.Status.ZAKONCZONA)
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"passenger_count": 2},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 409)
+
 
 class VehicleListViewTests(TestCase):
     """The single real fleet (apps.fleet.Vehicle) is the source of truth for

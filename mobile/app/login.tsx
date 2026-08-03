@@ -21,6 +21,7 @@ export default function LoginScreen() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +33,7 @@ export default function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      await login(username.trim(), password);
+      await login(username.trim(), password, rememberMe);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się połączyć z serwerem.");
     } finally {
@@ -81,6 +82,17 @@ export default function LoginScreen() {
               </Pressable>
             </View>
 
+            <Pressable
+              onPress={() => setRememberMe((v) => !v)}
+              style={styles.rememberRow}
+              hitSlop={8}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                {rememberMe && <Text style={styles.checkboxMark}>✓</Text>}
+              </View>
+              <Text style={styles.rememberText}>Zapamiętaj mnie</Text>
+            </Pressable>
+
             {error && <Text style={styles.error}>{error}</Text>}
 
             <Pressable
@@ -125,6 +137,19 @@ const styles = StyleSheet.create({
   passwordInput: { paddingRight: 64 },
   showPasswordButton: { position: "absolute", right: 12 },
   showPasswordText: { color: colors.amber, fontSize: 12, fontWeight: "600" },
+  rememberRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 18 },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxChecked: { backgroundColor: colors.amber, borderColor: colors.amber },
+  checkboxMark: { color: "#1A1305", fontSize: 13, fontWeight: "700" },
+  rememberText: { color: colors.text, fontSize: 14 },
   error: { color: colors.red, fontSize: 13, marginTop: 14, textAlign: "center" },
   button: {
     backgroundColor: colors.amber,

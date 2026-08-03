@@ -22,4 +22,6 @@ export interface DriverBooking {
   tracking_code: string;
   tracking_code_valid_from: string | null;
   tracking_code_expires_at: string | null;
+  assigned_driver_id: number | null;
+  assigned_driver_name: string | null;
 }

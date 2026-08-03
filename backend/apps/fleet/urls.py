@@ -12,6 +12,7 @@ from .driver_views import (
     PendingConfirmationListView,
     RegisterPushTokenView,
     StartBookingView,
+    UpdateBookingView,
     UpdatePositionView,
 )
 from .views import AvailabilityView, DriverEtaView, DriverLiveStatusListView, DriverLoginView, VehicleListView
@@ -38,6 +39,9 @@ urlpatterns = [
     path("driver/schedule/", MyScheduleView.as_view(), name="driver-schedule"),
     path("driver/bookings/history/", DriverBookingHistoryView.as_view(), name="driver-bookings-history"),
     path("driver/bookings/all/", AllBookingsListView.as_view(), name="driver-bookings-all"),
+    path(
+        "driver/bookings/<int:booking_id>/update/", UpdateBookingView.as_view(), name="driver-booking-update",
+    ),
     path("driver/bookings/<int:booking_id>/start/", StartBookingView.as_view(), name="driver-booking-start"),
     path("driver/bookings/<int:booking_id>/finish/", FinishBookingView.as_view(), name="driver-booking-finish"),
     path("driver/push-token/", RegisterPushTokenView.as_view(), name="driver-push-token"),
