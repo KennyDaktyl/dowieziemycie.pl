@@ -424,7 +424,7 @@ class CatalogBookingCreateViewTests(TestCase):
         token = str(RefreshToken.for_user(self.customer).access_token)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
 
-        self.vehicle = Vehicle.objects.create(name="VW Caravelle", plate="KR12345")
+        self.vehicle = Vehicle.objects.create(name="Toyota Auris Hybrid", plate="KR12345", seats=4)
         self.other_vehicle = Vehicle.objects.create(name="Mercedes V", plate="KR67890")
 
         self.route = FixedRoute.objects.create(
@@ -443,6 +443,7 @@ class CatalogBookingCreateViewTests(TestCase):
             "scheduled_at": (timezone.now() + timedelta(days=3)).isoformat(),
             "passenger_count": 2,
             "pickup_details": "Hotel Wawel, ul. Poselska 22",
+            "dropoff_details": "Lotnisko Balice, Terminal 1",
             **overrides,
         }
         return self.client.post("/api/bookings/catalog/", body, format="json", HTTP_X_SITE="transfer247")
@@ -451,7 +452,7 @@ class CatalogBookingCreateViewTests(TestCase):
         res = self._post(fixed_route_slug=self.route.slug)
         self.assertEqual(res.status_code, 201)
         self.assertEqual(str(res.data["price"]), "180.00")
-        self.assertEqual(res.data["dropoff_address"], "Balice → Kraków")
+        self.assertEqual(res.data["dropoff_address"], "Lotnisko Balice, Terminal 1")
 
         from .models import Booking
 
@@ -459,6 +460,10 @@ class CatalogBookingCreateViewTests(TestCase):
         self.assertEqual(booking.fixed_route_id, self.route.id)
         self.assertEqual(booking.vehicle_id, self.vehicle.id)
         self.assertEqual(booking.pickup_address, "Hotel Wawel, ul. Poselska 22")
+
+    def test_rejects_more_passengers_than_the_vehicle_seats(self):
+        res = self._post(fixed_route_slug=self.route.slug, passenger_count=5)  # self.vehicle only has 4 seats
+        self.assertEqual(res.status_code, 400)
 
     def test_books_a_tour_with_price_from_the_catalog(self):
         res = self._post(tour_slug=self.tour.slug)

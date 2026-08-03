@@ -42,10 +42,11 @@ class TourVehiclePriceSerializer(serializers.ModelSerializer):
     vehicle_id = serializers.IntegerField(source="vehicle.id", read_only=True)
     vehicle_name = serializers.CharField(source="vehicle.name", read_only=True)
     vehicle_seats = serializers.IntegerField(source="vehicle.seats", read_only=True)
+    vehicle_cover_image = serializers.ImageField(source="vehicle.cover_photo", read_only=True, default=None)
 
     class Meta:
         model = TourVehiclePrice
-        fields = ["vehicle_id", "vehicle_name", "vehicle_seats", "price", "price_eur"]
+        fields = ["vehicle_id", "vehicle_name", "vehicle_seats", "vehicle_cover_image", "price", "price_eur"]
 
 
 class TourSerializer(serializers.ModelSerializer):
@@ -124,10 +125,11 @@ class FixedRouteVehiclePriceSerializer(serializers.ModelSerializer):
     vehicle_id = serializers.IntegerField(source="vehicle.id", read_only=True)
     vehicle_name = serializers.CharField(source="vehicle.name", read_only=True)
     vehicle_seats = serializers.IntegerField(source="vehicle.seats", read_only=True)
+    vehicle_cover_image = serializers.ImageField(source="vehicle.cover_photo", read_only=True, default=None)
 
     class Meta:
         model = FixedRouteVehiclePrice
-        fields = ["vehicle_id", "vehicle_name", "vehicle_seats", "price", "price_eur"]
+        fields = ["vehicle_id", "vehicle_name", "vehicle_seats", "vehicle_cover_image", "price", "price_eur"]
 
 
 class FixedRouteSerializer(serializers.ModelSerializer):

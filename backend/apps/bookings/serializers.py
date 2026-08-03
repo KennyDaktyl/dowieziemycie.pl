@@ -39,6 +39,12 @@ class BookingSerializer(serializers.ModelSerializer):
     coupon_code = serializers.CharField(source="coupon.code", read_only=True, default=None)
     driver_name = serializers.CharField(source="assigned_driver.name", read_only=True, default=None)
     driver_vehicle = serializers.CharField(source="assigned_driver.vehicle.name", read_only=True, default=None)
+    # The vehicle class the customer picked at booking time (transfer247.pl's
+    # catalog flow) — distinct from driver_vehicle above, which is whatever
+    # vehicle the driver who actually gets assigned drives. Lets the panel
+    # link to /flota#vehicle-<id> so the customer can see what they picked.
+    booked_vehicle_id = serializers.IntegerField(source="vehicle.id", read_only=True, default=None)
+    booked_vehicle_name = serializers.CharField(source="vehicle.name", read_only=True, default=None)
 
     class Meta:
         model = Booking
@@ -48,6 +54,7 @@ class BookingSerializer(serializers.ModelSerializer):
             "scheduled_at", "passenger_count", "status", "distance_km", "is_reserved",
             "price", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle", "created_at",
             "confirmed_at", "payment_deadline", "deposit_amount", "paid_at",
+            "booked_vehicle_id", "booked_vehicle_name",
         ]
         read_only_fields = fields
 
@@ -160,10 +167,12 @@ class BookingCreateSerializer(serializers.ModelSerializer):
 
 class CatalogBookingCreateSerializer(serializers.Serializer):
     """POST /api/bookings/catalog/ — transfer247.pl's fixed-price routes and
-    tours have no coordinates and aren't priced by distance (see
-    BookingCreateSerializer above for that flow) — this looks the price up
-    server-side from FixedRouteVehiclePrice/TourVehiclePrice instead of
-    trusting anything the client sends. Identified by slug, not id — the
+    tours aren't priced by distance (see BookingCreateSerializer above for
+    that flow) — this looks the price up server-side from
+    FixedRouteVehiclePrice/TourVehiclePrice instead of trusting anything the
+    client sends. pickup/dropoff lat/lng are optional here (picked on a map
+    client-side, same UX as the geo-priced flow) — purely for the driver's
+    navigation, never used for pricing. Identified by slug, not id — the
     public FixedRoute/Tour API never exposes a numeric id, only slug (see
     apps.content.serializers), and the frontend already has the slug on
     hand from the page route params. Exactly one of
@@ -175,6 +184,11 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
     scheduled_at = serializers.DateTimeField()
     passenger_count = serializers.IntegerField(min_value=1, max_value=7)
     pickup_details = serializers.CharField(max_length=200)
+    pickup_lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    pickup_lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    dropoff_details = serializers.CharField(max_length=200)
+    dropoff_lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    dropoff_lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     customer_name = serializers.CharField(required=False, allow_blank=True)
     customer_email = serializers.EmailField(required=False, allow_blank=True)
 
@@ -203,6 +217,10 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
         vehicle = Vehicle.objects.filter(id=validated_data["vehicle_id"], is_active=True).first()
         if not vehicle:
             raise serializers.ValidationError({"vehicle_id": "Nie znaleziono pojazdu."})
+        if validated_data["passenger_count"] > vehicle.seats:
+            raise serializers.ValidationError(
+                {"passenger_count": f"Wybrany pojazd ma tylko {vehicle.seats} miejsc."}
+            )
 
         fixed_route_slug = validated_data.get("fixed_route_slug")
         fixed_route_obj = tour_obj = None
@@ -216,7 +234,6 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             price_row = FixedRouteVehiclePrice.objects.filter(route=fixed_route_obj, vehicle=vehicle).first()
             if not price_row:
                 raise serializers.ValidationError({"vehicle_id": "Ten pojazd nie jest dostępny dla tej trasy."})
-            dropoff_label = fixed_route_obj.name_pl
         else:
             tour_obj = Tour.objects.filter(
                 slug=validated_data["tour_slug"], site=site_code, is_published=True,
@@ -226,13 +243,16 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             price_row = TourVehiclePrice.objects.filter(tour=tour_obj, vehicle=vehicle).first()
             if not price_row:
                 raise serializers.ValidationError({"vehicle_id": "Ten pojazd nie jest dostępny dla tej wycieczki."})
-            dropoff_label = tour_obj.title_pl
 
         booking = Booking.objects.create(
             customer=self.context["request"].user,
             site=site_code,
             pickup_address=validated_data["pickup_details"],
-            dropoff_address=dropoff_label,
+            pickup_lat=validated_data.get("pickup_lat"),
+            pickup_lng=validated_data.get("pickup_lng"),
+            dropoff_address=validated_data["dropoff_details"],
+            dropoff_lat=validated_data.get("dropoff_lat"),
+            dropoff_lng=validated_data.get("dropoff_lng"),
             scheduled_at=validated_data["scheduled_at"],
             passenger_count=validated_data["passenger_count"],
             price=price_row.price,
