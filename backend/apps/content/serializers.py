@@ -2,6 +2,8 @@ from rest_framework import serializers
 
 from .models import (
     BlogPost,
+    BlogPostLink,
+    BlogPostPhoto,
     ContentPage,
     FixedRoute,
     FixedRoutePhoto,
@@ -159,17 +161,32 @@ class FixedRouteSerializer(serializers.ModelSerializer):
         return min(prices) if prices else None
 
 
+class BlogPostPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPostPhoto
+        fields = ["image", "thumbnail", "caption", "order"]
+
+
+class BlogPostLinkSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPostLink
+        fields = ["label_pl", "label_en", "label_de", "url", "order"]
+
+
 class BlogPostSerializer(serializers.ModelSerializer):
+    photos = BlogPostPhotoSerializer(many=True, read_only=True)
+    links = BlogPostLinkSerializer(many=True, read_only=True)
+
     class Meta:
         model = BlogPost
         fields = [
             "slug", "tag_pl", "tag_en", "tag_de",
             "title_pl", "title_en", "title_de",
             "excerpt_pl", "excerpt_en", "excerpt_de",
-            "body_pl", "body_en", "body_de", "cover_image",
+            "body_pl", "body_en", "body_de", "cover_image", "youtube_url",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
-            "published_at",
+            "published_at", "photos", "links",
         ]
 
 

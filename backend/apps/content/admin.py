@@ -2,6 +2,8 @@ from django.contrib import admin
 
 from .models import (
     BlogPost,
+    BlogPostLink,
+    BlogPostPhoto,
     ContentPage,
     FixedRoute,
     FixedRoutePhoto,
@@ -146,6 +148,27 @@ class FixedRouteAdmin(admin.ModelAdmin):
     )
 
 
+class BlogPostPhotoInline(admin.TabularInline):
+    model = BlogPostPhoto
+    extra = 1
+    fields = ("image", "thumbnail_preview", "caption", "order")
+    readonly_fields = ("thumbnail_preview",)
+
+    @admin.display(description="Podgląd")
+    def thumbnail_preview(self, obj):
+        if not obj.thumbnail:
+            return "—"
+        from django.utils.html import format_html
+
+        return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.thumbnail.url)
+
+
+class BlogPostLinkInline(admin.TabularInline):
+    model = BlogPostLink
+    extra = 1
+    fields = ("label_pl", "label_en", "label_de", "url", "order")
+
+
 @admin.register(BlogPost)
 class BlogPostAdmin(admin.ModelAdmin):
     list_display = ("title_pl", "site", "tag_pl", "published_at", "is_published")
@@ -153,8 +176,9 @@ class BlogPostAdmin(admin.ModelAdmin):
     list_filter = ("site", "is_published")
     prepopulated_fields = {"slug": ("title_pl",)}
     search_fields = ("title_pl", "title_en", "excerpt_pl", "excerpt_en", "slug")
+    inlines = [BlogPostPhotoInline, BlogPostLinkInline]
     fieldsets = (
-        (None, {"fields": ("site", "slug", "cover_image", "published_at", "is_published")}),
+        (None, {"fields": ("site", "slug", "cover_image", "youtube_url", "published_at", "is_published")}),
         (
             "Polski",
             {"fields": ("tag_pl", "title_pl", "excerpt_pl", "body_pl", "seo_title_pl", "seo_description_pl")},

@@ -298,6 +298,10 @@ class BlogPost(models.Model):
     body_en = models.TextField(blank=True)
     body_de = models.TextField(blank=True)
     cover_image = models.ImageField(upload_to="blog/covers/", blank=True, null=True)
+    youtube_url = models.URLField(
+        blank=True, help_text="Pełny link do filmu YouTube (np. https://www.youtube.com/watch?v=...) — "
+        "osadzany pod treścią artykułu. Puste = brak filmu.",
+    )
     seo_title_pl = models.CharField(max_length=160, blank=True)
     seo_title_en = models.CharField(max_length=160, blank=True)
     seo_title_de = models.CharField(max_length=160, blank=True)
@@ -318,6 +322,49 @@ class BlogPost(models.Model):
 
     def __str__(self):
         return self.title_pl
+
+
+class BlogPostPhoto(models.Model):
+    post = models.ForeignKey(BlogPost, related_name="photos", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="blog/gallery/")
+    thumbnail = models.ImageField(upload_to="blog/gallery/thumbs/", blank=True, editable=False)
+    caption = models.CharField(max_length=160, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Zdjęcie artykułu"
+        verbose_name_plural = "Galeria artykułu"
+
+    def save(self, *args, **kwargs):
+        process_gallery_photo(self, "image", "thumbnail")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.caption or f"Zdjęcie #{self.pk}"
+
+
+class BlogPostLink(models.Model):
+    """An external link worth surfacing next to the article itself — museum
+    homepage, official ticket sales page, a related attraction's site. Kept
+    as its own small model (not just Markdown links in the body) so the
+    frontend can render them as a distinct, scannable "przydatne linki"
+    block rather than something buried mid-paragraph."""
+
+    post = models.ForeignKey(BlogPost, related_name="links", on_delete=models.CASCADE)
+    label_pl = models.CharField(max_length=120, help_text="Np. „Kup bilety online”, „Strona muzeum”.")
+    label_en = models.CharField(max_length=120, blank=True)
+    label_de = models.CharField(max_length=120, blank=True)
+    url = models.URLField()
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Link powiązany"
+        verbose_name_plural = "Linki powiązane"
+
+    def __str__(self):
+        return self.label_pl
 
 
 class ContentPage(models.Model):
