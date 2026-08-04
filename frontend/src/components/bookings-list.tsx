@@ -9,6 +9,7 @@ import { DepositPaymentForm } from "@/components/deposit-payment-form";
 import { Link } from "@/i18n/navigation";
 import { netFromGross } from "@/lib/format";
 import type { Booking, BookingStatus } from "@/lib/types";
+import { useDriverEta } from "@/lib/use-driver-eta";
 
 const BookingRoutePreview = dynamic(
   () => import("./booking-route-preview").then((m) => m.BookingRoutePreview),
@@ -206,6 +207,8 @@ function BookingCard({
   const countdown = useCountdown(showUrgency ? booking.payment_deadline : null);
   const showPaymentButtons = booking.status === "POTWIERDZONA" && booking.deposit_amount;
   const showSecureNote = Boolean(showPaymentButtons || (PAID_GATE_STATUSES.includes(booking.status) && booking.remaining_amount));
+  const isTrackable = TRACKABLE_STATUSES.includes(booking.status);
+  const eta = useDriverEta(booking.id, isTrackable);
 
   return (
     <div
@@ -317,13 +320,23 @@ function BookingCard({
         </div>
       )}
 
+      {isTrackable && (
+        <Link
+          href={`/panel/kurs/${booking.id}`}
+          className="mb-3 flex items-center gap-2 rounded-[10px] bg-amber/10 px-3.5 py-2.5 text-[13px] font-semibold text-amber transition-colors hover:bg-amber/15"
+        >
+          <span aria-hidden className="text-[15px]">📍</span>
+          <span className="flex-1">{t("trackDriver")}</span>
+          {eta && (
+            <span className="text-[12px] font-semibold whitespace-nowrap text-amber/80">
+              ~{Math.round(eta.duration_min)} {t("min")} · {eta.distance_km} {t("km")}
+            </span>
+          )}
+        </Link>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
         <div className="flex flex-wrap items-center gap-4">
-          {TRACKABLE_STATUSES.includes(booking.status) && (
-            <Link href={`/panel/kurs/${booking.id}`} className="text-[12.5px] font-semibold text-amber underline">
-              {t("trackDriver")}
-            </Link>
-          )}
           {booking.status === "ZAKONCZONA" && (
             <Link href="/#routes" className="text-[12.5px] font-semibold text-amber underline">
               {t("bookSimilar")}

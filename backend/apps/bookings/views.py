@@ -93,6 +93,29 @@ class BookingMineListView(generics.ListAPIView):
         return Booking.objects.filter(customer=self.request.user).order_by("-created_at")
 
 
+class BookingDriverPositionView(APIView):
+    """GET /api/bookings/<id>/driver-position/ — the customer's own booking
+    list card wants a live distance/ETA to the driver without opening the
+    full tracker page's WebSocket for every card. Cheap REST poll instead;
+    the tracker page itself still uses the WebSocket for the real-time map."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, booking_id):
+        booking = (
+            Booking.objects.select_related("assigned_driver")
+            .filter(id=booking_id, customer=request.user)
+            .first()
+        )
+        if not booking:
+            return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
+
+        driver = booking.assigned_driver
+        if not driver or driver.current_lat is None or driver.current_lng is None:
+            return Response({"lat": None, "lng": None})
+        return Response({"lat": driver.current_lat, "lng": driver.current_lng})
+
+
 class CancelMyBookingView(APIView):
     """POST /api/bookings/<id>/cancel/ — the customer cancels their own
     booking. Always free, no cutoff — any non-terminal status can be

@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     BookingCreateView,
+    BookingDriverPositionView,
     BookingMineListView,
     CancelMyBookingView,
     CatalogBookingCreateView,
@@ -18,6 +19,11 @@ urlpatterns = [
     path("bookings/catalog/", CatalogBookingCreateView.as_view(), name="booking-create-catalog"),
     path("bookings/mine/", BookingMineListView.as_view(), name="booking-mine"),
     path("bookings/<int:booking_id>/cancel/", CancelMyBookingView.as_view(), name="booking-cancel"),
+    path(
+        "bookings/<int:booking_id>/driver-position/",
+        BookingDriverPositionView.as_view(),
+        name="booking-driver-position",
+    ),
     path(
         "bookings/<int:booking_id>/create-payment-intent/",
         CreatePaymentIntentView.as_view(),

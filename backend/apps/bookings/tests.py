@@ -489,6 +489,50 @@ class CancelMyBookingTests(TestCase):
         self.assertEqual(res.status_code, 409)
 
 
+class BookingDriverPositionTests(TestCase):
+    def setUp(self):
+        from .models import Booking
+
+        self.client = APIClient()
+        self.customer = Customer.objects.create(phone="+48500222333")
+        token = str(RefreshToken.for_user(self.customer).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.Booking = Booking
+
+    def test_returns_driver_position_when_available(self):
+        driver = Driver.objects.create(
+            user=User.objects.create_user(username="pos-driver"), name="D",
+            current_lat="50.061400", current_lng="19.936600",
+        )
+        booking = self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=timezone.now() + timedelta(hours=5), status=self.Booking.Status.KIEROWCA_W_DRODZE,
+            assigned_driver=driver,
+        )
+        res = self.client.get(f"/api/bookings/{booking.id}/driver-position/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(str(res.data["lat"]), "50.061400")
+        self.assertEqual(str(res.data["lng"]), "19.936600")
+
+    def test_returns_nulls_when_no_driver_assigned(self):
+        booking = self.Booking.objects.create(
+            customer=self.customer, pickup_address="X", dropoff_address="Y",
+            scheduled_at=timezone.now() + timedelta(hours=5), status=self.Booking.Status.OPLACONA,
+        )
+        res = self.client.get(f"/api/bookings/{booking.id}/driver-position/")
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNone(res.data["lat"])
+
+    def test_cannot_see_someone_elses_booking_driver_position(self):
+        other = Customer.objects.create(phone="+48500333444")
+        booking = self.Booking.objects.create(
+            customer=other, pickup_address="X", dropoff_address="Y",
+            scheduled_at=timezone.now() + timedelta(hours=5), status=self.Booking.Status.KIEROWCA_W_DRODZE,
+        )
+        res = self.client.get(f"/api/bookings/{booking.id}/driver-position/")
+        self.assertEqual(res.status_code, 404)
+
+
 class StripeWebhookTests(TestCase):
     def setUp(self):
         from .models import Booking, Payment
