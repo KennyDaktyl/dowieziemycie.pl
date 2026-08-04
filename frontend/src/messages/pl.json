@@ -153,6 +153,7 @@
     "driversOnline": "Aktywni kierowcy: {count}",
     "you": "Ty",
     "etaLabel": "~{minutes} min · {distance}",
+    "etaCalculating": "Obliczam odległość…",
     "geoDenied": "Włącz lokalizację w przeglądarce, aby zobaczyć swoją pozycję i dokładny czas dojazdu.",
     "geoUnsupported": "Ta przeglądarka nie obsługuje lokalizacji.",
     "geoRetry": "Spróbuj ponownie"

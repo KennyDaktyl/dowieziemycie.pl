@@ -153,6 +153,7 @@
     "driversOnline": "Active drivers: {count}",
     "you": "You",
     "etaLabel": "~{minutes} min · {distance}",
+    "etaCalculating": "Calculating distance…",
     "geoDenied": "Enable location in your browser to see your position and an accurate ETA.",
     "geoUnsupported": "This browser doesn't support location.",
     "geoRetry": "Try again"
