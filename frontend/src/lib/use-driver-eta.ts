@@ -7,6 +7,13 @@ import type { RouteEstimate } from "./types";
 
 const POLL_INTERVAL_MS = 20000;
 
+// Raw browser geolocation floats carry far more precision than the
+// backend's DecimalField(max_digits=9, decimal_places=6) accepts — sending
+// them as-is gets the whole request rejected with a 400.
+function round6(value: number): number {
+  return Math.round(value * 1e6) / 1e6;
+}
+
 /** Live distance/ETA between the driver and the customer, shown right on
  * the booking card — a lightweight REST poll (driver position + the
  * customer's own geolocation, fed into the same public route-estimate
@@ -46,8 +53,8 @@ export function useDriverEta(bookingId: number, enabled: boolean): RouteEstimate
         const params = new URLSearchParams({
           pickup_lat: pos.lat,
           pickup_lng: pos.lng,
-          dropoff_lat: String(myPos.coords.latitude),
-          dropoff_lng: String(myPos.coords.longitude),
+          dropoff_lat: String(round6(myPos.coords.latitude)),
+          dropoff_lng: String(round6(myPos.coords.longitude)),
           scheduled_at: new Date().toISOString(),
         });
         const res = await fetch(`${publicApiBaseUrl()}/api/route-estimate/?${params}`, {

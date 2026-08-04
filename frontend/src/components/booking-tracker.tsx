@@ -30,6 +30,13 @@ const ETA_REFRESH_MIN_MS = 20000;
 type LatLng = { lat: number; lng: number };
 type GeoStatus = "requesting" | "granted" | "denied" | "unsupported";
 
+// Raw browser geolocation floats carry far more precision than the
+// backend's DecimalField(max_digits=9, decimal_places=6) accepts — sending
+// them as-is gets the whole request rejected with a 400.
+function round6(value: number): number {
+  return Math.round(value * 1e6) / 1e6;
+}
+
 /** The customer's own live position, watched continuously (not just once)
  * so the "you are here" marker and ETA stay accurate if they're walking to
  * a different meeting spot while waiting. Exposes the permission state too
@@ -78,10 +85,10 @@ function useLiveEta(driverPos: LatLng | null, myPos: LatLng | null): RouteEstima
     (async () => {
       try {
         const params = new URLSearchParams({
-          pickup_lat: String(driverPos.lat),
-          pickup_lng: String(driverPos.lng),
-          dropoff_lat: String(myPos.lat),
-          dropoff_lng: String(myPos.lng),
+          pickup_lat: String(round6(driverPos.lat)),
+          pickup_lng: String(round6(driverPos.lng)),
+          dropoff_lat: String(round6(myPos.lat)),
+          dropoff_lng: String(round6(myPos.lng)),
           scheduled_at: new Date().toISOString(),
         });
         const res = await fetch(`${publicApiBaseUrl()}/api/route-estimate/?${params}`, {
