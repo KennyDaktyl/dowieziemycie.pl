@@ -150,7 +150,9 @@
     "pageDescription": "Zanim zamówisz kurs, zobacz gdzie aktualnie jest nasze auto.",
     "noActiveDriver": "Aktualnie żaden kierowca nie jest aktywny",
     "vehicleUnknown": "Bus",
-    "driversOnline": "Aktywni kierowcy: {count}"
+    "driversOnline": "Aktywni kierowcy: {count}",
+    "you": "Ty",
+    "etaLabel": "~{minutes} min · {km} km"
   },
   "DriverPanel": {
     "greeting": "Cześć, {name}",

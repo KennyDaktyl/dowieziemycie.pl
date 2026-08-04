@@ -17,10 +17,13 @@ import { formatDuration, paymentAmounts, paymentStatusLabel } from "@/components
 import { BookingMap } from "@/components/BookingMap";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { bookingRef } from "@/lib/booking-ref";
 import { openNavigation } from "@/lib/navigation";
 import { siteLabel } from "@/lib/site";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
+
+type SortMode = "newest" | "upcoming";
 
 const STATUS_LABELS: Record<string, string> = {
   NOWA: "Nowa",
@@ -85,6 +88,9 @@ export default function AllBookingsScreen() {
   const [detailEdits, setDetailEdits] = useState<Record<number, DetailEditState>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortMode, setSortMode] = useState<SortMode>("newest");
+  const [showArchived, setShowArchived] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -290,15 +296,59 @@ export default function AllBookingsScreen() {
     );
   }
 
+  // Archived (finished/cancelled) kursy stay out of the default view — this
+  // list otherwise mixes everything, unlike Kursy/Harmonogram which are
+  // already scoped to open/active bookings. Search matches the short
+  // reference code (see lib/booking-ref) or the raw numeric id, since
+  // that's what a dispatcher would actually have written down or been told
+  // over the phone.
+  const query = searchQuery.trim().toLowerCase();
+  const visibleBookings = bookings
+    .filter((b) => showArchived || !TERMINAL_STATUSES.includes(b.status))
+    .filter((b) => !query || bookingRef(b).toLowerCase().includes(query) || String(b.id).includes(query))
+    .sort((a, b) =>
+      sortMode === "newest"
+        ? b.id - a.id
+        : new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime(),
+    );
+
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
+      <View style={styles.toolbar}>
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="Szukaj po ID (np. Ry6Sk)"
+          placeholderTextColor={colors.muted}
+          style={styles.searchInput}
+          autoCapitalize="none"
+        />
+        <View style={styles.toolbarRow}>
+          <Pressable
+            onPress={() => setSortMode((m) => (m === "newest" ? "upcoming" : "newest"))}
+            style={styles.toolbarButton}
+          >
+            <Text style={styles.toolbarButtonText}>
+              {sortMode === "newest" ? "Sortuj: najnowsze" : "Sortuj: nadchodzące"}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setShowArchived((v) => !v)}
+            style={[styles.toolbarButton, showArchived && styles.toolbarButtonActive]}
+          >
+            <Text style={[styles.toolbarButtonText, showArchived && styles.toolbarButtonTextActive]}>
+              {showArchived ? "Ukryj archiwalne" : "Pokaż archiwalne"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.amber} />
         </View>
       ) : (
         <FlatList
-          data={bookings}
+          data={visibleBookings}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={colors.amber} />}
@@ -324,7 +374,9 @@ export default function AllBookingsScreen() {
             return (
               <Pressable onPress={() => toggleExpand(item)} style={styles.card}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.site}>{siteLabel(item.site)}</Text>
+                  <Text style={styles.site}>
+                    {siteLabel(item.site)} · {bookingRef(item)}
+                  </Text>
                   <Text style={styles.badge}>{STATUS_LABELS[item.status] ?? item.status}</Text>
                 </View>
                 <Text style={styles.route}>
@@ -738,6 +790,36 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60 },
   emptyText: { color: colors.muted, fontSize: 14 },
   list: { padding: 16, gap: 12 },
+  toolbar: {
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  searchInput: {
+    backgroundColor: colors.panel2,
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: colors.line,
+    color: colors.text,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13.5,
+  },
+  toolbarRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  toolbarButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  toolbarButtonActive: { borderColor: colors.amber, backgroundColor: colors.panel2 },
+  toolbarButtonText: { color: colors.muted, fontSize: 12, fontWeight: "600" },
+  toolbarButtonTextActive: { color: colors.amber },
   card: {
     backgroundColor: colors.panel,
     borderRadius: 12,

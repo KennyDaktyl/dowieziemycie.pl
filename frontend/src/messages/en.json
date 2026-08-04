@@ -150,7 +150,9 @@
     "pageDescription": "Before you book, see where our car is right now.",
     "noActiveDriver": "No driver is currently active",
     "vehicleUnknown": "Van",
-    "driversOnline": "Active drivers: {count}"
+    "driversOnline": "Active drivers: {count}",
+    "you": "You",
+    "etaLabel": "~{minutes} min · {km} km"
   },
   "DriverPanel": {
     "greeting": "Hi, {name}",

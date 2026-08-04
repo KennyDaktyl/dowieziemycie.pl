@@ -5,6 +5,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { bookingRef } from "@/lib/booking-ref";
 import { siteLabel } from "@/lib/site";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
@@ -75,7 +76,9 @@ export default function BookingsScreen() {
           }
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <Text style={styles.site}>{siteLabel(item.site)}</Text>
+              <Text style={styles.site}>
+                {siteLabel(item.site)} · {bookingRef(item)}
+              </Text>
               <Text style={styles.route}>
                 {item.pickup_address} → {item.dropoff_address}
               </Text>

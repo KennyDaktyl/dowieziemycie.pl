@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { bookingRef } from "@/lib/booking-ref";
 import { openNavigation } from "@/lib/navigation";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
@@ -101,9 +102,12 @@ export function BookingDetailModal({
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
           <View style={styles.header}>
-            <Text style={styles.title}>
-              {booking.pickup_address} → {booking.dropoff_address}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ref}>{bookingRef(booking)}</Text>
+              <Text style={styles.title}>
+                {booking.pickup_address} → {booking.dropoff_address}
+              </Text>
+            </View>
             <Pressable onPress={onClose} hitSlop={12}>
               <Text style={styles.close}>Zamknij</Text>
             </Pressable>
@@ -159,7 +163,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  title: { color: colors.text, fontSize: 16, fontWeight: "700", flex: 1 },
+  ref: { color: colors.amber, fontSize: 11.5, fontWeight: "700", letterSpacing: 0.3, marginBottom: 2 },
+  title: { color: colors.text, fontSize: 16, fontWeight: "700" },
   close: { color: colors.amber, fontSize: 14, fontWeight: "700" },
   content: { padding: 18, gap: 14 },
   navRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
