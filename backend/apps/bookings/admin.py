@@ -54,25 +54,18 @@ class BookingAdmin(admin.ModelAdmin):
         "status", "distance_km", "pricing_mode", "is_reserved", "price", "coupon", "assigned_driver",
     )
     list_filter = ("status", "pricing_mode", "is_reserved", "assigned_driver")
-    # `status` is deliberately NOT list_editable — editing it directly here
-    # would skip confirm_booking()'s side effects (payment deadline, deposit
-    # snapshot, customer notification). Adjust the price inline, then use
-    # the "Potwierdź" action below to move NOWA -> POTWIERDZONA properly.
     list_editable = ("price", "assigned_driver")
     search_fields = ("customer__phone", "customer__name", "pickup_address", "dropoff_address", "flight_number")
     date_hierarchy = "scheduled_at"
     autocomplete_fields = ("customer", "coupon")
     actions = ["confirm_selected"]
-    # These are only ever meant to be set by the service functions in
-    # .services (confirm_booking, mark_deposit_paid, mark_full_payment,
-    # mark_remainder_paid) or the driver-app endpoints in apps.fleet — each
-    # of those has side effects (payment_deadline snapshot, tracking-code
-    # generation, customer/dispatcher notifications) that a direct edit here
-    # would silently skip, producing states nothing else in the codebase can
-    # actually produce (e.g. paid_at set with zero real Stripe Payment
-    # records, or a stale tracking_code that was never regenerated).
+    # `status` is editable directly for full manual override (e.g. phone
+    # bookings, fixing a stuck ride). Prefer the "Potwierdź" action for
+    # NOWA -> POTWIERDZONA when possible — it also snapshots the payment
+    # deadline/deposit and sends the customer SMS/e-mail, none of which a
+    # plain status edit here triggers.
     readonly_fields = (
-        "status", "created_at", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at",
+        "created_at", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at",
         "started_at", "completed_at", "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
     )
 
