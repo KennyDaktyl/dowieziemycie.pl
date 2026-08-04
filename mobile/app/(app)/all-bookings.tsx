@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -18,6 +17,7 @@ import { formatDuration, paymentAmounts, paymentStatusLabel } from "@/components
 import { BookingMap } from "@/components/BookingMap";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { openNavigation } from "@/lib/navigation";
 import { siteLabel } from "@/lib/site";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
@@ -61,19 +61,6 @@ function toDateEditFields(iso: string): { dateText: string; timeText: string } {
     dateText: `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`,
     timeText: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
   };
-}
-
-/** Opens the phone's default navigation app in turn-by-turn mode. Google
- * Maps' Android intent scheme first — that's what's actually installed on
- * the driver's phone — falling back to a plain web maps URL (works
- * everywhere, including iOS) if that app isn't available. */
-function openNavigation(lat: number, lng: number) {
-  const fallback = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  Linking.openURL(`google.navigation:q=${lat},${lng}`).catch(() => {
-    Linking.openURL(fallback).catch(() => {
-      Alert.alert("Nie udało się otworzyć nawigacji.");
-    });
-  });
 }
 
 function parseDateEditFields(dateText: string, timeText: string): string | null {
@@ -366,16 +353,18 @@ export default function AllBookingsScreen() {
                       {item.pickup_lat && item.pickup_lng && (
                         <Pressable
                           onPress={() => openNavigation(Number(item.pickup_lat), Number(item.pickup_lng))}
-                          style={styles.smallButtonOutline}
+                          style={styles.navButton}
                         >
+                          <Text style={styles.navButtonIcon}>📍</Text>
                           <Text style={styles.smallButtonOutlineText}>Nawiguj do odbioru</Text>
                         </Pressable>
                       )}
                       {item.dropoff_lat && item.dropoff_lng && (
                         <Pressable
                           onPress={() => openNavigation(Number(item.dropoff_lat), Number(item.dropoff_lng))}
-                          style={styles.smallButtonOutline}
+                          style={styles.navButton}
                         >
+                          <Text style={styles.navButtonIcon}>🏁</Text>
                           <Text style={styles.smallButtonOutlineText}>Nawiguj do celu</Text>
                         </Pressable>
                       )}
@@ -418,8 +407,14 @@ export default function AllBookingsScreen() {
                     })()}
                     {item.distance_km ? (
                       <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Dystans</Text>
+                        <Text style={styles.detailLabel}>Dystans (planowany)</Text>
                         <Text style={styles.detailValue}>{item.distance_km} km</Text>
+                      </View>
+                    ) : null}
+                    {item.actual_distance_km ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Dystans (przejechany)</Text>
+                        <Text style={styles.detailValue}>{item.actual_distance_km} km</Text>
                       </View>
                     ) : null}
                     {item.duration_minutes ? (
@@ -804,6 +799,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   smallButtonOutlineText: { color: colors.text, fontWeight: "600", fontSize: 12.5 },
+  navButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+  },
+  navButtonIcon: { fontSize: 14 },
   errorBar: { padding: 12, backgroundColor: colors.panel2 },
   errorText: { color: colors.red, fontSize: 13, textAlign: "center" },
 });

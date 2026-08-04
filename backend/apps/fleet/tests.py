@@ -270,6 +270,25 @@ class UpdatePositionViewTests(TestCase):
         res = self.client.post("/api/fleet/driver/position/", {"lat": "50.05", "lng": "19.9"})
         self.assertEqual(res.status_code, 401)
 
+    def test_position_pings_accumulate_into_actual_distance(self):
+        customer = Customer.objects.create(phone="+48500111222", name="Klient Testowy")
+        booking = _make_booking(
+            customer, assigned_driver=self.driver, status=Booking.Status.W_TRAKCIE,
+        )
+        # Kraków Rynek -> Wieliczka roughly, a few km apart — two fixes is
+        # enough to prove the straight-line sum comes out non-trivial.
+        self.client.post(
+            "/api/fleet/driver/position/", {"lat": "50.0614", "lng": "19.9366"}, **_driver_auth_header(self.driver)
+        )
+        self.client.post(
+            "/api/fleet/driver/position/", {"lat": "49.9873", "lng": "20.0655"}, **_driver_auth_header(self.driver)
+        )
+        res = self.client.get("/api/fleet/driver/schedule/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.status_code, 200)
+        body = next(b for b in res.data if b["id"] == booking.id)
+        self.assertIsNotNone(body["actual_distance_km"])
+        self.assertGreater(body["actual_distance_km"], 5)
+
 
 class DispatcherConfirmWorkflowTests(TestCase):
     def setUp(self):

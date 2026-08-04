@@ -44,8 +44,35 @@ def update_driver_position(driver, lat, lng, status_value=None):
         .order_by("-created_at")
         .first()
     )
+
+    if active_booking is not None:
+        from .models import PositionPing
+
+        PositionPing.objects.create(driver=driver, booking=active_booking, lat=lat, lng=lng)
+
     payload = DriverLiveStatusSerializer(driver).data
     return payload, (active_booking.id if active_booking else None)
+
+
+def booking_actual_distance_km(booking) -> float | None:
+    """Sums the straight-line (Haversine) distance between consecutive GPS
+    fixes recorded while this booking was active — the actual route driven,
+    as opposed to Booking.distance_km (the OSRM road-route estimate taken
+    at booking time). None if fewer than two fixes were ever recorded."""
+    from apps.bookings.geo import haversine_km
+
+    from .models import PositionPing
+
+    points = list(
+        PositionPing.objects.filter(booking=booking).order_by("recorded_at").values_list("lat", "lng")
+    )
+    if len(points) < 2:
+        return None
+
+    total_km = 0.0
+    for (lat1, lng1), (lat2, lng2) in zip(points, points[1:]):
+        total_km += haversine_km(float(lat1), float(lng1), float(lat2), float(lng2))
+    return round(total_km, 1)
 
 
 def broadcast_driver_update(payload, active_booking_id=None):

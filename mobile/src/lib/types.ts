@@ -14,6 +14,7 @@ export interface DriverBooking {
   passenger_count: number;
   status: string;
   distance_km: string | null;
+  actual_distance_km: number | null;
   duration_minutes: number | null;
   price: string | null;
   deposit_amount: string | null;

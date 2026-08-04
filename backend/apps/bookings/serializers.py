@@ -83,6 +83,7 @@ class DriverBookingSerializer(serializers.ModelSerializer):
     assigned_driver_name = serializers.CharField(source="assigned_driver.name", read_only=True, default=None)
     fixed_route_name = serializers.CharField(source="fixed_route.name_pl", read_only=True, default=None)
     tour_name = serializers.CharField(source="tour.title_pl", read_only=True, default=None)
+    actual_distance_km = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -90,13 +91,19 @@ class DriverBookingSerializer(serializers.ModelSerializer):
             "id", "site", "customer_phone", "customer_name",
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng", "flight_number",
-            "scheduled_at", "passenger_count", "status", "distance_km", "duration_minutes", "price",
+            "scheduled_at", "passenger_count", "status", "distance_km", "actual_distance_km",
+            "duration_minutes", "price",
             "deposit_amount", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at", "created_at",
             "started_at", "completed_at",
             "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
             "assigned_driver_id", "assigned_driver_name", "fixed_route_name", "tour_name",
         ]
         read_only_fields = fields
+
+    def get_actual_distance_km(self, obj):
+        from apps.tracking.services import booking_actual_distance_km
+
+        return booking_actual_distance_km(obj)
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):

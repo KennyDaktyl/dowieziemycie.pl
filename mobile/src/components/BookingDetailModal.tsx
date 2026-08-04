@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { openNavigation } from "@/lib/navigation";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
 
@@ -88,7 +89,8 @@ export function BookingDetailModal({
     rows.push({ label: "Zapłacono", value: `${amounts.paid.toFixed(0)} zł` });
     if (amounts.remaining > 0) rows.push({ label: "Pozostało do zapłaty", value: `${amounts.remaining.toFixed(0)} zł` });
   }
-  if (booking.distance_km) rows.push({ label: "Dystans", value: `${booking.distance_km} km` });
+  if (booking.distance_km) rows.push({ label: "Dystans (planowany)", value: `${booking.distance_km} km` });
+  if (booking.actual_distance_km) rows.push({ label: "Dystans (przejechany)", value: `${booking.actual_distance_km} km` });
   if (booking.duration_minutes) rows.push({ label: "Planowany czas zajętości", value: `${booking.duration_minutes} min` });
   if (actualDuration) rows.push({ label: "Rzeczywisty czas kursu", value: actualDuration });
   if (booking.started_at) rows.push({ label: "Rozpoczęcie", value: formatDateTime(booking.started_at) });
@@ -108,6 +110,20 @@ export function BookingDetailModal({
           </View>
           <ScrollView contentContainerStyle={styles.content}>
             {pickup && <BookingMap pickup={pickup} dropoff={dropoff} height={200} />}
+            <View style={styles.navRow}>
+              {pickup && (
+                <Pressable onPress={() => openNavigation(pickup.lat, pickup.lng)} style={styles.navButton}>
+                  <Text style={styles.navButtonIcon}>📍</Text>
+                  <Text style={styles.navButtonText}>Nawiguj do odbioru</Text>
+                </Pressable>
+              )}
+              {dropoff && (
+                <Pressable onPress={() => openNavigation(dropoff.lat, dropoff.lng)} style={styles.navButton}>
+                  <Text style={styles.navButtonIcon}>🏁</Text>
+                  <Text style={styles.navButtonText}>Nawiguj do celu</Text>
+                </Pressable>
+              )}
+            </View>
             <View style={styles.rows}>
               {rows.map((row) => (
                 <View key={row.label} style={styles.row}>
@@ -146,6 +162,19 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 16, fontWeight: "700", flex: 1 },
   close: { color: colors.amber, fontSize: 14, fontWeight: "700" },
   content: { padding: 18, gap: 14 },
+  navRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  navButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+  },
+  navButtonIcon: { fontSize: 14 },
+  navButtonText: { color: colors.text, fontWeight: "600", fontSize: 12.5 },
   rows: { gap: 10 },
   row: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
   label: { color: colors.muted, fontSize: 13 },
