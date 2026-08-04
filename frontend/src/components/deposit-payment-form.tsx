@@ -193,7 +193,11 @@ function PaymentElementForm({
           // popup itself. Apple Pay still only ever appears in Safari on
           // Apple hardware — that's an OS-level restriction, not something
           // any of these options can change.
-          paymentMethods: { applePay: "always", googlePay: "always" },
+          // Link (Stripe's own one-click checkout) is unfamiliar to most
+          // customers here and was showing up as an express button
+          // alongside the wallets — explicitly excluded regardless of the
+          // account-level default.
+          paymentMethods: { applePay: "always", googlePay: "always", link: "never" },
         }}
       />
       <PaymentElement />
