@@ -27,7 +27,13 @@ def create_payment_intent(booking: Booking, kind: str, amount: Decimal) -> dict:
     intent = stripe.PaymentIntent.create(
         amount=int(amount * 100),
         currency="pln",
-        automatic_payment_methods={"enabled": True},
+        # Explicit list rather than automatic_payment_methods so Klarna
+        # (enabled account-wide, but not something this business wants)
+        # never shows up here. Apple Pay/Google Pay aren't separate
+        # payment_method_types — they ride on "card" and appear
+        # automatically in the Payment Element on domains registered via
+        # the Payment Method Domains API (all four brand domains are).
+        payment_method_types=["card", "blik"],
         metadata={"booking_id": booking.id, "kind": kind, "site": booking.site},
     )
     Payment.objects.create(
