@@ -77,7 +77,7 @@ export function DepositPaymentForm({
 
   if (phase === "processing") {
     return (
-      <div className="flex items-center gap-2.5 rounded-[9px] bg-panel-2 px-5 py-2.5 text-[13px] font-semibold text-muted">
+      <div className="flex w-full items-center gap-2.5 rounded-[9px] bg-panel-2 px-5 py-2.5 text-[13px] font-semibold text-muted">
         <Spinner />
         {t("processing")}
       </div>
@@ -86,7 +86,7 @@ export function DepositPaymentForm({
 
   if (phase === "form" && clientSecret && stripePromiseRef.current) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="w-full min-w-0">
         <Elements stripe={stripePromiseRef.current} options={{ clientSecret }}>
           <PaymentElementForm
             bookingId={bookingId}
@@ -96,7 +96,7 @@ export function DepositPaymentForm({
             onError={(msg) => setError(msg)}
           />
         </Elements>
-        {error && <span className="text-[12px] text-red">{error}</span>}
+        {error && <span className="mt-3 block text-[12px] text-red">{error}</span>}
       </div>
     );
   }
@@ -104,13 +104,13 @@ export function DepositPaymentForm({
   const net = netFromGross(amount);
 
   return (
-    <div className="flex flex-col items-start gap-2">
+    <div className="flex w-full min-w-[220px] flex-col items-start gap-2 sm:w-auto">
       <PaymentBadge label={t("securePayments")} sublabel={t("paymentMethods")} />
       <button
         type="button"
         onClick={startPayment}
         disabled={phase === "loading"}
-        className="flex cursor-pointer items-center gap-2 rounded-[9px] bg-amber px-5 py-2.5 text-[14px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[9px] bg-amber px-5 py-2.5 text-[14px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none sm:w-auto"
       >
         {phase === "loading" && <Spinner className="text-[#1a1305]" />}
         {phase === "loading" ? t("paying") : t(LABEL_KEYS[kind], { amount: Number(amount).toFixed(0) })}
@@ -180,31 +180,33 @@ function PaymentElementForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <ExpressCheckoutElement
-        onConfirm={handleExpressConfirm}
-        options={{
-          // By default Stripe only shows a wallet button if it detects a
-          // saved card for it already — on a browser/OS with no card saved
-          // to Google Pay, the button just silently doesn't render at all,
-          // which reads as "Apple Pay/Google Pay isn't working" when it's
-          // actually working as designed. "always" shows the button
-          // regardless and lets the customer add a card inside the wallet
-          // popup itself. Apple Pay still only ever appears in Safari on
-          // Apple hardware — that's an OS-level restriction, not something
-          // any of these options can change.
-          // Link (Stripe's own one-click checkout) is unfamiliar to most
-          // customers here and was showing up as an express button
-          // alongside the wallets — explicitly excluded regardless of the
-          // account-level default.
-          paymentMethods: { applePay: "always", googlePay: "always", link: "never" },
-        }}
-      />
+    <form onSubmit={handleSubmit} className="flex w-full min-w-0 flex-col gap-3">
+      <div className="w-full [&_.StripeElement]:w-full">
+        <ExpressCheckoutElement
+          onConfirm={handleExpressConfirm}
+          options={{
+            // By default Stripe only shows a wallet button if it detects a
+            // saved card for it already — on a browser/OS with no card saved
+            // to Google Pay, the button just silently doesn't render at all,
+            // which reads as "Apple Pay/Google Pay isn't working" when it's
+            // actually working as designed. "always" shows the button
+            // regardless and lets the customer add a card inside the wallet
+            // popup itself. Apple Pay still only ever appears in Safari on
+            // Apple hardware — that's an OS-level restriction, not something
+            // any of these options can change.
+            // Link (Stripe's own one-click checkout) is unfamiliar to most
+            // customers here and was showing up as an express button
+            // alongside the wallets — explicitly excluded regardless of the
+            // account-level default.
+            paymentMethods: { applePay: "always", googlePay: "always", link: "never" },
+          }}
+        />
+      </div>
       <PaymentElement />
       <button
         type="submit"
         disabled={!stripe || submitting}
-        className="flex cursor-pointer items-center gap-2 rounded-[9px] bg-amber px-5 py-2.5 text-[14px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-[9px] bg-amber px-5 py-2.5 text-[14px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
       >
         {submitting && <Spinner className="text-[#1a1305]" />}
         {submitting ? t("paying") : t(LABEL_KEYS[kind], { amount: Number(amount).toFixed(0) })}
