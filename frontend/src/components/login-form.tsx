@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
 import { isCompletePhoneNumber } from "@/lib/countries";
-import { saveDriverSession } from "@/lib/driver-auth";
+import { clearDriverSession } from "@/lib/driver-auth";
 
 import { PhoneInput } from "./phone-input";
 
@@ -46,18 +46,14 @@ export function LoginForm() {
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code, auth_mode: mode }),
+        body: JSON.stringify({ phone, code, auth_mode: mode, intent: "customer" }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error();
 
-      if (data.role === "driver") {
-        saveDriverSession(data.access, data.refresh, data.driver);
-        router.push("/kierowca/panel");
-      } else {
-        router.push("/moje-kursy");
-        router.refresh();
-      }
+      clearDriverSession();
+      router.push("/moje-kursy");
+      router.refresh();
     } catch {
       setError(t("errorVerify"));
     } finally {

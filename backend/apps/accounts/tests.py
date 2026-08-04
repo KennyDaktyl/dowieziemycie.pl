@@ -54,15 +54,28 @@ class VerifyOtpRoleDetectionTests(TestCase):
         customer.refresh_from_db()
         self.assertEqual(customer.login_code, otp.code)
 
-    def test_driver_phone_gets_a_driver_token_not_a_customer_row(self):
+    def test_driver_phone_defaults_to_customer_token(self):
         user = User.objects.create_user(username="driverphone")
-        driver = Driver.objects.create(user=user, name="Ewa Kierowca", phone="+48500999888")
+        Driver.objects.create(user=user, name="Ewa Kierowca", phone="+48500999888")
 
         res = self._verify("+48500999888")
         self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["role"], "customer")
+        self.assertTrue(Customer.objects.filter(phone="+48500999888").exists())
+
+    def test_driver_phone_with_driver_intent_gets_a_driver_token_not_a_customer_row(self):
+        user = User.objects.create_user(username="driverphone3")
+        driver = Driver.objects.create(user=user, name="Ewa Kierowca", phone="+48500999889")
+
+        otp = PhoneOTP.generate("+48500999889")
+        res = self.client.post(
+            "/api/auth/verify-otp/",
+            {"phone": "+48500999889", "code": otp.code, "intent": "driver"},
+        )
+        self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["role"], "driver")
         self.assertEqual(res.data["driver"]["id"], driver.id)
-        self.assertFalse(Customer.objects.filter(phone="+48500999888").exists())
+        self.assertFalse(Customer.objects.filter(phone="+48500999889").exists())
 
         access = AccessToken(res.data["access"])
         self.assertEqual(access["user_id"], str(driver.id))
