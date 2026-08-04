@@ -181,7 +181,21 @@ function PaymentElementForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <ExpressCheckoutElement onConfirm={handleExpressConfirm} />
+      <ExpressCheckoutElement
+        onConfirm={handleExpressConfirm}
+        options={{
+          // By default Stripe only shows a wallet button if it detects a
+          // saved card for it already — on a browser/OS with no card saved
+          // to Google Pay, the button just silently doesn't render at all,
+          // which reads as "Apple Pay/Google Pay isn't working" when it's
+          // actually working as designed. "always" shows the button
+          // regardless and lets the customer add a card inside the wallet
+          // popup itself. Apple Pay still only ever appears in Safari on
+          // Apple hardware — that's an OS-level restriction, not something
+          // any of these options can change.
+          paymentMethods: { applePay: "always", googlePay: "always" },
+        }}
+      />
       <PaymentElement />
       <button
         type="submit"
