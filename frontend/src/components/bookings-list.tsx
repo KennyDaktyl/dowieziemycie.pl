@@ -138,13 +138,13 @@ export function BookingsList({ bookings: initialBookings, locale }: { bookings: 
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-1 border-b border-line">
+      <div className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-line">
         {(["upcoming", "history", "cancelled"] as Tab[]).map((key) => (
           <button
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`flex items-center gap-1.5 border-b-2 px-1 py-2.5 mr-5 text-[14px] font-semibold transition-colors ${
+            className={`flex shrink-0 items-center gap-1.5 border-b-2 px-1 py-2.5 mr-5 text-[14px] font-semibold whitespace-nowrap transition-colors ${
               tab === key ? "border-amber text-text" : "border-transparent text-muted hover:text-text"
             }`}
           >
