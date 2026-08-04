@@ -62,7 +62,7 @@ export function CustomerMenu({ myTripsLabel, logoutLabel }: { myTripsLabel: stri
       {open && (
         <div className="absolute top-full right-0 z-50 mt-2 w-52 rounded-[12px] border border-line bg-panel p-2 shadow-lg">
           <Link
-            href="/panel"
+            href="/moje-kursy"
             onClick={() => setOpen(false)}
             className="block rounded-[8px] px-3 py-2 text-[14px] text-text transition-colors hover:bg-panel-2"
           >

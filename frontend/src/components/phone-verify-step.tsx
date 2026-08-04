@@ -116,6 +116,7 @@ export function PhoneVerifyStep({
       )}
 
       {error && <div className="text-center text-xs font-semibold text-red">{error}</div>}
+      <p className="text-center text-[11.5px] leading-relaxed text-muted">{t("sessionNote")}</p>
     </div>
   );
 }

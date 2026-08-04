@@ -53,7 +53,7 @@ export function LoginForm() {
         saveDriverSession(data.access, data.refresh, data.driver);
         router.push("/kierowca/panel");
       } else {
-        router.push("/panel");
+        router.push("/moje-kursy");
         router.refresh();
       }
     } catch {
@@ -120,6 +120,7 @@ export function LoginForm() {
       )}
 
       {error && <div className="mt-3 text-center text-xs font-semibold text-red">{error}</div>}
+      <p className="mt-4 text-center text-[11.5px] leading-relaxed text-muted">{t("sessionNote")}</p>
     </div>
   );
 }

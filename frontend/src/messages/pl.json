@@ -14,7 +14,7 @@
   },
   "TrackByCode": {
     "title": "Śledź pozycję kierowcy",
-    "lead": "Wpisz 4-cyfrowy kod, który dostałeś SMS-em od kierowcy — kod jest ważny przez godzinę od przyjęcia kursu.",
+    "lead": "Wpisz 4-cyfrowy kod, który dostałeś SMS-em od kierowcy — kod działa od godziny przed kursem do 4 godzin po planowanym starcie.",
     "codeLabel": "Kod kursu (4 cyfry)",
     "submit": "Śledź kierowcę",
     "submitting": "Sprawdzam…",
@@ -75,7 +75,8 @@
     "namePlaceholder": "Jan Kowalski",
     "emailLabel": "E-mail (opcjonalnie)",
     "emailPlaceholder": "jan@przyklad.pl",
-    "submitVerifyPhone": "Podaj numer telefonu, żeby dokończyć rezerwację — dostaniesz kod SMS."
+    "verifyStepTitle": "Krok 2: potwierdź telefon",
+    "submitVerifyPhone": "Podaj numer telefonu, żeby przypisać rezerwację do konta Moje kursy. Po wpisaniu kodu SMS kurs zostanie zapisany i zobaczysz go w panelu."
   },
   "DriverEta": {
     "title": "Czas dojazdu kierowcy",
@@ -198,7 +199,8 @@
     "changePhone": "Zmień numer",
     "codeSentTo": "Kod wysłany na {phone}",
     "errorRequest": "Nie udało się wysłać kodu. Sprawdź numer i spróbuj ponownie.",
-    "errorVerify": "Nieprawidłowy lub wygasły kod."
+    "errorVerify": "Nieprawidłowy lub wygasły kod.",
+    "sessionNote": "Kod SMS jest jednorazowy i ważny 10 minut. Po zalogowaniu konto zostaje zapamiętane na tym urządzeniu."
   },
   "Panel": {
     "title": "Moje kursy",

@@ -249,7 +249,7 @@ export function BookingCard() {
   async function handleVerifiedSubmit() {
     const ok = await handleSubmit();
     if (ok) {
-      router.push("/panel");
+      router.push("/moje-kursy");
       router.refresh();
     }
   }
@@ -476,19 +476,21 @@ export function BookingCard() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={status === "submitting" || !date || !pickup || !dropoff || !customerName}
-            className="w-full rounded-[9px] bg-amber py-[15px] text-[15.5px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:opacity-60"
-          >
-            {t("submit")}
-          </button>
+          {status !== "unauthenticated" && (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={status === "submitting" || !date || !pickup || !dropoff || !customerName}
+              className="w-full rounded-[9px] bg-amber py-[15px] text-[15.5px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:opacity-60"
+            >
+              {t("submit")}
+            </button>
+          )}
 
           {status === "success" && (
             <div className="text-center text-xs font-semibold text-green">
               {t("success")}{" "}
-              <Link href="/panel" className="underline">
+              <Link href="/moje-kursy" className="underline">
                 {t("successPanelLink")}
               </Link>
             </div>
@@ -497,8 +499,11 @@ export function BookingCard() {
             <div className="text-center text-xs font-semibold text-red">{t("error")}</div>
           )}
           {status === "unauthenticated" && (
-            <div className="flex flex-col gap-2">
-              <p className="text-center text-xs font-semibold text-amber">{t("submitVerifyPhone")}</p>
+            <div className="flex flex-col gap-3 rounded-[12px] border border-amber/35 bg-amber/10 p-4">
+              <div>
+                <div className="font-heading text-[17px] font-semibold">{t("verifyStepTitle")}</div>
+                <p className="mt-1 text-[13px] leading-relaxed text-muted">{t("submitVerifyPhone")}</p>
+              </div>
               <PhoneVerifyStep phone={phone} onPhoneChange={setPhone} onVerified={handleVerifiedSubmit} />
             </div>
           )}

@@ -14,7 +14,7 @@
   },
   "TrackByCode": {
     "title": "Track your driver",
-    "lead": "Enter the 4-digit code you got by SMS from your driver — the code is valid for one hour after the ride is accepted.",
+    "lead": "Enter the 4-digit code you got by SMS from your driver — it works from one hour before the ride until 4 hours after the scheduled start.",
     "codeLabel": "Ride code (4 digits)",
     "submit": "Track driver",
     "submitting": "Checking…",
@@ -75,7 +75,8 @@
     "namePlaceholder": "Jane Smith",
     "emailLabel": "Email (optional)",
     "emailPlaceholder": "jane@example.com",
-    "submitVerifyPhone": "Enter your phone number to finish the booking — you will get an SMS code."
+    "verifyStepTitle": "Step 2: confirm your phone",
+    "submitVerifyPhone": "Enter your phone number to attach this booking to My trips. After you enter the SMS code, the ride will be saved and shown in your panel."
   },
   "DriverEta": {
     "title": "Driver ETA",
@@ -198,7 +199,8 @@
     "changePhone": "Change number",
     "codeSentTo": "Code sent to {phone}",
     "errorRequest": "Couldn't send the code. Check the number and try again.",
-    "errorVerify": "Invalid or expired code."
+    "errorVerify": "Invalid or expired code.",
+    "sessionNote": "The SMS code is one-time and valid for 10 minutes. After logging in, this device stays signed in."
   },
   "Panel": {
     "title": "My trips",
