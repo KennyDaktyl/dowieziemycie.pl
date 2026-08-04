@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 
 import stripe
 from django.conf import settings
@@ -149,17 +150,32 @@ class CancelMyBookingView(APIView):
 
 class CreatePaymentIntentRequestSerializer(serializers.Serializer):
     kind = serializers.ChoiceField(choices=["deposit", "full", "remainder"], default="deposit")
+    # "eur" only ever comes from transfer247.pl's catalog bookings, where
+    # the vehicle price row has a real price_eur set — dowieziemycie.pl's
+    # map-priced bookings never show a EUR price to begin with, so the
+    # frontend there never sends this.
+    currency = serializers.ChoiceField(choices=["pln", "eur"], default="pln")
 
 
 class CreatePaymentIntentView(APIView):
-    """POST /api/bookings/<id>/create-payment-intent/ {kind?} — starts a
-    Stripe PaymentIntent for this booking. `kind` picks what's being paid:
-    "deposit" (default) or "full" — both only while still POTWIERDZONA — or
-    "remainder", payable any time after the deposit has landed. See
-    apps.bookings.services.resolve_payable_amount for exactly what's
-    allowed when, and validate_payable for the re-checked payment-window/
-    conflict rules — we never charge a card for a booking that's already
-    expired or lost its slot."""
+    """POST /api/bookings/<id>/create-payment-intent/ {kind?, currency?} —
+    starts a Stripe PaymentIntent for this booking. `kind` picks what's
+    being paid: "deposit" (default) or "full" — both only while still
+    POTWIERDZONA — or "remainder", payable any time after the deposit has
+    landed. See apps.bookings.services.resolve_payable_amount for exactly
+    what's allowed when, and validate_payable for the re-checked payment-
+    window/conflict rules — we never charge a card for a booking that's
+    already expired or lost its slot.
+
+    `currency` lets a customer viewing EUR prices (transfer247.pl, en/de
+    locale) actually pay in EUR instead of a PLN amount silently pulled
+    from a page that showed them euros — resolve_payable_amount always
+    returns the PLN figure (booking.price/deposit_amount stay the single
+    PLN source of truth used everywhere else: admin, driver app, SMS), so
+    the EUR amount is derived here by scaling it with the booking's own
+    price/price_eur ratio, captured at booking time from the catalog price
+    row. Rejected outright if the booking has no price_eur snapshot (any
+    dowieziemycie.pl booking, or a transfer247.pl custom quote)."""
 
     permission_classes = [IsAuthenticated]
 
@@ -170,14 +186,26 @@ class CreatePaymentIntentView(APIView):
 
         request_serializer = CreatePaymentIntentRequestSerializer(data=request.data)
         request_serializer.is_valid(raise_exception=True)
+        validated = request_serializer.validated_data
 
         try:
-            amount, payment_kind = resolve_payable_amount(booking, request_serializer.validated_data["kind"])
+            amount, payment_kind = resolve_payable_amount(booking, validated["kind"])
         except BookingPaymentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
 
+        currency = "pln"
+        if validated["currency"] == "eur":
+            if not booking.price or not booking.price_eur:
+                return Response(
+                    {"detail": "Płatność w EUR jest niedostępna dla tej rezerwacji."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            ratio = booking.price_eur / booking.price
+            amount = (amount * ratio).quantize(Decimal("0.01"))
+            currency = "eur"
+
         try:
-            result = create_payment_intent(booking, payment_kind, amount)
+            result = create_payment_intent(booking, payment_kind, amount, currency=currency)
         except PaymentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 

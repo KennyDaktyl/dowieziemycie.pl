@@ -233,6 +233,14 @@ class Booking(models.Model):
         max_digits=7, decimal_places=2, null=True, blank=True,
         help_text="Cena z dopasowanej taryfy (po rabacie kuponu). Puste = wycena indywidualna.",
     )
+    price_eur = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text=(
+            "Migawka FixedRouteVehiclePrice/TourVehiclePrice.price_eur w momencie rezerwacji — tylko dla "
+            "rezerwacji z katalogu transfer247.pl. Puste = płatność w EUR niedostępna dla tego kursu "
+            "(price zostaje jedynym źródłem prawdy o cenie; price_eur tylko odblokowuje płatność w EUR)."
+        ),
+    )
     # Set only for catalog-mode bookings (transfer247.pl's fixed-price routes
     # and tours, created via CatalogBookingCreateView) — at most one of
     # fixed_route/tour is ever set. dowieziemycie.pl's map-based bookings
@@ -323,9 +331,14 @@ class Payment(models.Model):
         SUCCEEDED = "SUCCEEDED", "Opłacone"
         FAILED = "FAILED", "Nieudane"
 
+    class Currency(models.TextChoices):
+        PLN = "pln", "PLN"
+        EUR = "eur", "EUR"
+
     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name="payments")
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.DEPOSIT)
     amount = models.DecimalField(max_digits=7, decimal_places=2)
+    currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.PLN)
     stripe_payment_intent_id = models.CharField(max_length=64, unique=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -337,4 +350,5 @@ class Payment(models.Model):
         verbose_name_plural = "Płatności"
 
     def __str__(self):
-        return f"{self.booking} · {self.get_kind_display()} · {self.amount} zł ({self.get_status_display()})"
+        symbol = "zł" if self.currency == self.Currency.PLN else "€"
+        return f"{self.booking} · {self.get_kind_display()} · {self.amount} {symbol} ({self.get_status_display()})"

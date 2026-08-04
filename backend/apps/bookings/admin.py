@@ -98,8 +98,8 @@ class BookingAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("booking", "kind", "amount", "status", "created_at")
-    list_filter = ("kind", "status")
+    list_display = ("booking", "kind", "amount", "currency", "status", "created_at")
+    list_filter = ("kind", "status", "currency")
     search_fields = ("stripe_payment_intent_id", "booking__customer__phone")
 
     def has_add_permission(self, request):

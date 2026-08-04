@@ -353,6 +353,45 @@ class ConfirmAndPayWorkflowTests(TestCase):
         res = self.client.post(f"/api/bookings/{booking.id}/create-payment-intent/")
         self.assertEqual(res.status_code, 503)
 
+    @override_settings(STRIPE_SECRET_KEY="sk_test_fake", STRIPE_PUBLISHABLE_KEY="pk_test_fake")
+    def test_create_payment_intent_in_eur_scales_by_the_bookings_price_ratio(self):
+        from types import SimpleNamespace
+
+        from .models import Payment
+        from .services import confirm_booking
+
+        booking = self._create_booking()
+        booking.price_eur = 20  # matches the real balice-krakow ratio (89 PLN / 20 EUR)
+        booking.save(update_fields=["price_eur"])
+        confirm_booking(booking, price=89, deposit_amount=50)
+
+        fake_intent = SimpleNamespace(id="pi_eur123", client_secret="pi_eur123_secret")
+        with patch("apps.bookings.payments.stripe.PaymentIntent.create", return_value=fake_intent) as mock_create:
+            res = self.client.post(
+                f"/api/bookings/{booking.id}/create-payment-intent/", {"kind": "deposit", "currency": "eur"},
+            )
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(mock_create.call_args.kwargs["currency"], "eur")
+        # 50 PLN deposit * (20/89 EUR-per-PLN ratio) = 11.24 EUR
+        self.assertEqual(mock_create.call_args.kwargs["amount"], 1124)
+        self.assertNotIn("blik", mock_create.call_args.kwargs["payment_method_types"])
+        payment = Payment.objects.get(booking=booking)
+        self.assertEqual(payment.currency, Payment.Currency.EUR)
+        self.assertEqual(str(payment.amount), "11.24")
+
+    @override_settings(STRIPE_SECRET_KEY="sk_test_fake", STRIPE_PUBLISHABLE_KEY="pk_test_fake")
+    def test_create_payment_intent_in_eur_rejected_without_a_price_eur_snapshot(self):
+        from .services import confirm_booking
+
+        booking = self._create_booking()  # map-priced booking — price_eur is never set
+        confirm_booking(booking, price=89, deposit_amount=50)
+
+        res = self.client.post(
+            f"/api/bookings/{booking.id}/create-payment-intent/", {"kind": "deposit", "currency": "eur"},
+        )
+        self.assertEqual(res.status_code, 400)
+
     def test_create_payment_intent_rejects_after_deadline_without_canceling(self):
         """validate_payable() only rejects — it no longer auto-cancels on an
         expired deadline. That's expire_unpaid_bookings's job (a periodic
@@ -711,7 +750,9 @@ class CatalogBookingCreateViewTests(TestCase):
             site="transfer247", slug="test-balice-krakow", name_pl="Balice → Kraków", name_en="Balice → Kraków",
             duration_minutes=45,
         )
-        FixedRouteVehiclePrice.objects.create(route=self.route, vehicle=self.vehicle, price="180.00")
+        FixedRouteVehiclePrice.objects.create(
+            route=self.route, vehicle=self.vehicle, price="180.00", price_eur="40.00",
+        )
 
         self.tour = Tour.objects.create(
             site="transfer247", slug="test-wieliczka", title_pl="Wieliczka", title_en="Wieliczka",
@@ -742,6 +783,7 @@ class CatalogBookingCreateViewTests(TestCase):
         self.assertEqual(booking.vehicle_id, self.vehicle.id)
         self.assertEqual(booking.pickup_address, "Hotel Wawel, ul. Poselska 22")
         self.assertEqual(booking.duration_minutes, 45)  # snapshotted from self.route
+        self.assertEqual(str(booking.price_eur), "40.00")  # snapshotted from FixedRouteVehiclePrice
 
     def test_rejects_more_passengers_than_the_vehicle_seats(self):
         res = self._post(fixed_route_slug=self.route.slug, passenger_count=5)  # self.vehicle only has 4 seats
