@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { BookingCancelButton } from "@/components/booking-cancel-button";
 import { DepositPaymentForm } from "@/components/deposit-payment-form";
 import { Link } from "@/i18n/navigation";
-import { netFromGross } from "@/lib/format";
+import { formatDistance, netFromGross } from "@/lib/format";
 import type { Booking, BookingStatus } from "@/lib/types";
 import { useDriverEta } from "@/lib/use-driver-eta";
 
@@ -329,7 +329,7 @@ function BookingCard({
           <span className="flex-1">{t("trackDriver")}</span>
           {eta && (
             <span className="text-[12px] font-semibold whitespace-nowrap text-amber/80">
-              ~{Math.round(eta.duration_min)} {t("min")} · {eta.distance_km} {t("km")}
+              ~{Math.round(eta.duration_min)} {t("min")} · {formatDistance(eta.distance_km)}
             </span>
           )}
         </Link>

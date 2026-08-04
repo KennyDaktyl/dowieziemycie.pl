@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 
 import { publicApiBaseUrl, withSiteHeader, wsBaseUrl } from "@/lib/api";
+import { formatDistance } from "@/lib/format";
 import type { DriverLiveStatus, RouteEstimate } from "@/lib/types";
 
 const LiveMapInner = dynamic(() => import("./live-map-inner").then((m) => m.LiveMapInner), {
@@ -27,28 +28,36 @@ const RECONNECT_MAX_MS = 15000;
 const ETA_REFRESH_MIN_MS = 20000;
 
 type LatLng = { lat: number; lng: number };
+type GeoStatus = "requesting" | "granted" | "denied" | "unsupported";
 
 /** The customer's own live position, watched continuously (not just once)
  * so the "you are here" marker and ETA stay accurate if they're walking to
- * a different meeting spot while waiting. Silently does nothing if the
- * browser denies permission — this is a nice-to-have, not required to see
- * the driver's own dot. */
-function useMyPosition(): LatLng | null {
+ * a different meeting spot while waiting. Exposes the permission state too
+ * — silently doing nothing on denial left customers with no idea why their
+ * position/ETA never showed up. */
+function useMyPosition(): { position: LatLng | null; status: GeoStatus; retry: () => void } {
   const [position, setPosition] = useState<LatLng | null>(null);
+  const [status, setStatus] = useState<GeoStatus>("requesting");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!("geolocation" in navigator)) return;
+    if (!("geolocation" in navigator)) {
+      setStatus("unsupported");
+      return;
+    }
+    setStatus("requesting");
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {
-        // Denied or unavailable — the tracker still works without it.
+      (pos) => {
+        setStatus("granted");
+        setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
+      () => setStatus("denied"),
       { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [attempt]);
 
-  return position;
+  return { position, status, retry: () => setAttempt((a) => a + 1) };
 }
 
 /** Live distance/ETA from the driver's current position to wherever the
@@ -108,7 +117,7 @@ export function BookingTracker({
   const tMap = useTranslations("LiveMap");
   const [driver, setDriver] = useState<DriverLiveStatus | null>(null);
   const [connectionState, setConnectionState] = useState<"connecting" | "open" | "closed">("connecting");
-  const myPos = useMyPosition();
+  const { position: myPos, status: geoStatus, retry: retryGeo } = useMyPosition();
 
   useEffect(() => {
     let cancelled = false;
@@ -163,27 +172,46 @@ export function BookingTracker({
   ];
 
   return (
-    <div className="isolate relative overflow-hidden rounded-[14px] border border-line bg-panel">
-      <div className="absolute top-3.5 left-3.5 z-[400] flex items-center gap-1.5 rounded-full border border-line bg-[#121a24]/90 px-3 py-1.5 text-[12.5px] font-semibold backdrop-blur-sm">
-        <span
-          className={`h-2 w-2 rounded-full ${connectionState === "open" ? "bg-green" : "bg-muted"}`}
-        />
-        {driver ? tStatus(STATUS_KEY[driver.status] as never) : tMap("noActiveDriver")}
+    <div className="isolate overflow-hidden rounded-[14px] border border-line bg-panel">
+      <div className="relative">
+        <div className="absolute top-3.5 left-3.5 z-[400] flex items-center gap-1.5 rounded-full border border-line bg-[#121a24]/90 px-3 py-1.5 text-[12.5px] font-semibold backdrop-blur-sm">
+          <span
+            className={`h-2 w-2 rounded-full ${connectionState === "open" ? "bg-green" : "bg-muted"}`}
+          />
+          {driver ? tStatus(STATUS_KEY[driver.status] as never) : tMap("noActiveDriver")}
+        </div>
+        {eta && (
+          <div className="absolute top-3.5 right-3.5 z-[400] rounded-full border border-line bg-[#121a24]/90 px-3 py-1.5 text-[12.5px] font-semibold backdrop-blur-sm">
+            {tMap("etaLabel", { minutes: Math.round(eta.duration_min), distance: formatDistance(eta.distance_km) })}
+          </div>
+        )}
+
+        <LiveMapInner drivers={mapDrivers} />
+
+        <div className="absolute right-3.5 bottom-3.5 left-3.5 z-[400] rounded-xl border border-line bg-[#121a24]/92 px-3.5 py-3 backdrop-blur-md">
+          <div className="text-[13.5px] font-semibold">
+            {driverName ?? tMap("vehicleUnknown")}
+            {driverVehicle ? ` · ${driverVehicle}` : ""}
+          </div>
+        </div>
       </div>
-      {eta && (
-        <div className="absolute top-3.5 right-3.5 z-[400] rounded-full border border-line bg-[#121a24]/90 px-3 py-1.5 text-[12.5px] font-semibold backdrop-blur-sm">
-          {tMap("etaLabel", { minutes: Math.round(eta.duration_min), km: eta.distance_km })}
+
+      {(geoStatus === "denied" || geoStatus === "unsupported") && (
+        <div className="flex items-center justify-between gap-3 border-t border-line bg-panel-2 px-4 py-3">
+          <p className="text-[12.5px] text-muted">
+            {geoStatus === "denied" ? tMap("geoDenied") : tMap("geoUnsupported")}
+          </p>
+          {geoStatus === "denied" && (
+            <button
+              type="button"
+              onClick={retryGeo}
+              className="shrink-0 text-[12.5px] font-semibold text-amber underline"
+            >
+              {tMap("geoRetry")}
+            </button>
+          )}
         </div>
       )}
-
-      <LiveMapInner drivers={mapDrivers} />
-
-      <div className="absolute right-3.5 bottom-3.5 left-3.5 z-[400] rounded-xl border border-line bg-[#121a24]/92 px-3.5 py-3 backdrop-blur-md">
-        <div className="text-[13.5px] font-semibold">
-          {driverName ?? tMap("vehicleUnknown")}
-          {driverVehicle ? ` · ${driverVehicle}` : ""}
-        </div>
-      </div>
     </div>
   );
 }

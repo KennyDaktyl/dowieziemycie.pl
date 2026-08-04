@@ -152,7 +152,10 @@
     "vehicleUnknown": "Bus",
     "driversOnline": "Aktywni kierowcy: {count}",
     "you": "Ty",
-    "etaLabel": "~{minutes} min · {km} km"
+    "etaLabel": "~{minutes} min · {distance}",
+    "geoDenied": "Włącz lokalizację w przeglądarce, aby zobaczyć swoją pozycję i dokładny czas dojazdu.",
+    "geoUnsupported": "Ta przeglądarka nie obsługuje lokalizacji.",
+    "geoRetry": "Spróbuj ponownie"
   },
   "DriverPanel": {
     "greeting": "Cześć, {name}",

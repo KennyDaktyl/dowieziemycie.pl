@@ -152,7 +152,10 @@
     "vehicleUnknown": "Van",
     "driversOnline": "Active drivers: {count}",
     "you": "You",
-    "etaLabel": "~{minutes} min · {km} km"
+    "etaLabel": "~{minutes} min · {distance}",
+    "geoDenied": "Enable location in your browser to see your position and an accurate ETA.",
+    "geoUnsupported": "This browser doesn't support location.",
+    "geoRetry": "Try again"
   },
   "DriverPanel": {
     "greeting": "Hi, {name}",
