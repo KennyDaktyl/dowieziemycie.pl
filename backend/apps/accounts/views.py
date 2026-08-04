@@ -34,7 +34,7 @@ class RequestOtpView(APIView):
         site_name = SITE_DISPLAY_NAMES[request.site_code]
         message = f"{site_name} - Twoj kod: {otp.code}. Wazny {PhoneOTP.CODE_TTL_MINUTES} min."
         try:
-            get_sms_backend().send_message(phone, message)
+            get_sms_backend().send_message(phone, message, request.site_code)
         except Exception:
             logger.exception("Nie udało się wysłać kodu OTP do %s", phone)
             return Response(

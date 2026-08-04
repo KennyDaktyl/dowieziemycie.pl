@@ -28,14 +28,14 @@ def strip_polish_diacritics(text: str) -> str:
 
 
 class SmsBackend:
-    def send_message(self, phone: str, message: str) -> None:
+    def send_message(self, phone: str, message: str, site: str | None = None) -> None:
         raise NotImplementedError
 
 
 class ConsoleSmsBackend(SmsBackend):
     """Dev backend — logs the message instead of sending a real SMS."""
 
-    def send_message(self, phone: str, message: str) -> None:
+    def send_message(self, phone: str, message: str, site: str | None = None) -> None:
         message = strip_polish_diacritics(message)
         logger.info("[SMS] %s -> %s (SMS_BACKEND=console, nic nie wysłano)", phone, message)
 
@@ -45,15 +45,20 @@ class SmsApiBackend(SmsBackend):
 
     ENDPOINT = "https://api.smsapi.pl/sms.do"
 
-    def send_message(self, phone: str, message: str) -> None:
+    def send_message(self, phone: str, message: str, site: str | None = None) -> None:
         token = settings.SMSAPI_TOKEN
         if not token:
             raise RuntimeError("SMSAPI_TOKEN nie jest ustawiony w .env")
 
         message = strip_polish_diacritics(message)
         payload = {"to": phone, "message": message, "format": "json"}
-        if settings.SMSAPI_SENDER_NAME:
-            payload["from"] = settings.SMSAPI_SENDER_NAME
+        # Each brand needs its own verified sender ID — falls back to the
+        # shared SMSAPI_SENDER_NAME if this site doesn't have its own (or
+        # it's not verified by SMSAPI yet), rather than silently sending
+        # unbranded or under a sibling brand's name.
+        sender_name = settings.SMSAPI_SENDER_NAMES.get(site or "", "") or settings.SMSAPI_SENDER_NAME
+        if sender_name:
+            payload["from"] = sender_name
 
         response = requests.post(
             self.ENDPOINT,

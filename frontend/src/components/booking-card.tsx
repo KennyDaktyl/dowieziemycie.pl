@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Link } from "@/i18n/navigation";
@@ -20,6 +21,14 @@ const BookingMap = dynamic(() => import("./booking-map").then((m) => m.BookingMa
 });
 
 const MAX_PASSENGERS = 7;
+
+// "How soon can a driver reach you" only means anything for a ride
+// happening soon — it's computed from whichever driver happens to be
+// active *right now*, which has no bearing on who ends up assigned to a
+// ride booked weeks or months out. Showing it regardless of the picked
+// date was confusing a "driver busy" state that's true this instant into
+// looking like a reason a September booking couldn't be made.
+const DRIVER_ETA_MAX_HOURS_AHEAD = 6;
 
 const LEG_LABEL_KEYS = {
   direct_to_pickup: "legDirectToPickup",
@@ -51,6 +60,7 @@ export function BookingCard() {
   const t = useTranslations("BookingForm");
   const tTiers = useTranslations("PricingTiers");
   const tEta = useTranslations("DriverEta");
+  const router = useRouter();
 
   const [pickup, setPickup] = useState<LatLng | null>(null);
   const [pickupText, setPickupText] = useState("");
@@ -94,8 +104,14 @@ export function BookingCard() {
     };
   }, []);
 
+  const scheduledSoon =
+    !date || new Date(`${date}T${time || "00:00"}:00`).getTime() - Date.now() <= DRIVER_ETA_MAX_HOURS_AHEAD * 3600_000;
+
   useEffect(() => {
-    if (!pickup) return;
+    if (!pickup || !scheduledSoon) {
+      setDriverEta(null);
+      return;
+    }
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       setEtaLoading(true);
@@ -119,7 +135,7 @@ export function BookingCard() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [pickup]);
+  }, [pickup, scheduledSoon]);
 
   useEffect(() => {
     if (!pickup || !dropoff || !date) return;
@@ -190,10 +206,10 @@ export function BookingCard() {
     }
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(): Promise<boolean> {
     if (!pickup || !dropoff || !date || !customerName) {
       setAttemptedSubmit(true);
-      return;
+      return false;
     }
     setStatus("submitting");
     try {
@@ -217,11 +233,24 @@ export function BookingCard() {
       });
       if (res.status === 401) {
         setStatus("unauthenticated");
-        return;
+        return false;
       }
       setStatus(res.ok ? "success" : "error");
+      return res.ok;
     } catch {
       setStatus("error");
+      return false;
+    }
+  }
+
+  // The customer just proved who they are — land them in the panel where
+  // the booking they just made is now visible, instead of leaving them on
+  // the same form looking at a small inline success message.
+  async function handleVerifiedSubmit() {
+    const ok = await handleSubmit();
+    if (ok) {
+      router.push("/panel");
+      router.refresh();
     }
   }
 
@@ -470,7 +499,7 @@ export function BookingCard() {
           {status === "unauthenticated" && (
             <div className="flex flex-col gap-2">
               <p className="text-center text-xs font-semibold text-amber">{t("submitVerifyPhone")}</p>
-              <PhoneVerifyStep phone={phone} onPhoneChange={setPhone} onVerified={handleSubmit} />
+              <PhoneVerifyStep phone={phone} onPhoneChange={setPhone} onVerified={handleVerifiedSubmit} />
             </div>
           )}
 

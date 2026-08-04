@@ -61,13 +61,13 @@ def _send_email(to_email: str, subject: str, body: str) -> None:
         logger.exception("Nie udało się wysłać e-maila do %s", to_email)
 
 
-def _send_sms(phone: str, message: str) -> None:
+def _send_sms(phone: str, message: str, site: str) -> None:
     if not phone:
         return
     from apps.accounts.sms import get_sms_backend
 
     try:
-        get_sms_backend().send_message(phone, message)
+        get_sms_backend().send_message(phone, message, site)
     except Exception:
         logger.exception("Nie udało się wysłać SMS-a do %s", phone)
 
@@ -87,8 +87,7 @@ def notify_dispatcher_of_new_booking(booking) -> None:
     )
     if booking.flight_number:
         sms_text += f" Lot: {booking.flight_number}."
-    _send_sms(booking_settings.dispatcher_phone, sms_text)
-
+    _send_sms(booking_settings.dispatcher_phone, sms_text, booking.site)
     flight_line = f"\nNumer lotu: {booking.flight_number}." if booking.flight_number else ""
     email_body = (
         f"{text}{flight_line}\n\nCena wyliczona automatycznie: {booking.price} zł.\n"
@@ -124,7 +123,7 @@ def notify_customer_of_confirmation(booking) -> None:
         f"Cena: {booking.price} zł, zaliczka: {booking.deposit_amount} zł. Zapłać w ciągu "
         f"{BookingSettings.for_site(booking.site).payment_window_minutes} min, aby zachować termin."
     )
-    _send_sms(booking.customer.phone, text)
+    _send_sms(booking.customer.phone, text, booking.site)
     _send_email(
         booking.customer.email,
         f"{site_name}: rezerwacja potwierdzona — zapłać zaliczkę",
@@ -143,7 +142,7 @@ def notify_customer_of_price_change(booking) -> None:
         remaining = booking.price - booking.deposit_amount
         if remaining > 0:
             text += f" Do dopłaty: {remaining} zł."
-    _send_sms(booking.customer.phone, text)
+    _send_sms(booking.customer.phone, text, booking.site)
 
 
 def notify_customer_driver_en_route(booking, driver) -> None:
@@ -157,20 +156,21 @@ def notify_customer_driver_en_route(booking, driver) -> None:
         booking.customer.phone,
         f"{site_name}: Kierowca {driver.name} jedzie do Ciebie! Kurs: {short_address(booking.pickup_address)}. "
         f"Kod do sledzenia: {booking.tracking_code}, aktywny od {active_from}.",
+        booking.site,
     )
 
 
 def notify_customer_ride_started(booking) -> None:
     """Driver just picked the customer up — KIEROWCA_W_DRODZE -> W_TRAKCIE."""
     site_name = SITE_DISPLAY_NAMES[booking.site]
-    _send_sms(booking.customer.phone, f"{site_name}: Kurs się rozpoczął. Miłej podróży!")
+    _send_sms(booking.customer.phone, f"{site_name}: Kurs się rozpoczął. Miłej podróży!", booking.site)
 
 
 def notify_customer_ride_finished(booking) -> None:
     """Driver just dropped the customer off — W_TRAKCIE -> ZAKONCZONA."""
     site_name = SITE_DISPLAY_NAMES[booking.site]
     text = f"{site_name}: Kurs zakończony. Dziękujemy za skorzystanie z naszych usług!"
-    _send_sms(booking.customer.phone, text)
+    _send_sms(booking.customer.phone, text, booking.site)
     _send_email(booking.customer.email, f"{site_name}: kurs zakończony — dziękujemy", text)
 
 
@@ -186,7 +186,7 @@ def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
         f"{short_address(booking.dropoff_address)}) zostal zmieniony z {old_scheduled_at:%d.%m %H:%M} "
         f"na {booking.scheduled_at:%d.%m %H:%M}."
     )
-    _send_sms(booking.customer.phone, sms_text)
+    _send_sms(booking.customer.phone, sms_text, booking.site)
     _send_email(booking.customer.email, f"{site_name}: zmiana terminu kursu", text)
 
 
@@ -203,7 +203,7 @@ def notify_dispatcher_of_customer_cancellation(booking) -> None:
         f"{site_name}: klient anulowal rezerwacje na {booking.scheduled_at:%d.%m %H:%M} "
         f"({short_address(booking.pickup_address)} -> {short_address(booking.dropoff_address)})."
     )
-    _send_sms(booking_settings.dispatcher_phone, sms_text)
+    _send_sms(booking_settings.dispatcher_phone, sms_text, booking.site)
     _send_email(booking_settings.dispatcher_email, f"{site_name}: rezerwacja #{booking.id} anulowana przez klienta", text)
 
     if booking.assigned_driver and booking.assigned_driver.expo_push_token:
@@ -229,5 +229,5 @@ def notify_customer_of_cancellation(booking) -> None:
         f"({short_address(booking.pickup_address)} -> {short_address(booking.dropoff_address)}) "
         f"zostal anulowany. Przepraszamy za utrudnienia."
     )
-    _send_sms(booking.customer.phone, sms_text)
+    _send_sms(booking.customer.phone, sms_text, booking.site)
     _send_email(booking.customer.email, f"{site_name}: kurs anulowany", text)

@@ -214,7 +214,16 @@ OSRM_BASE_URL = os.environ.get("OSRM_BASE_URL", "https://router.project-osrm.org
 # "smsapi" sends through the user's SMSAPI.pl account.
 SMS_BACKEND = os.environ.get("SMS_BACKEND", "console")
 SMSAPI_TOKEN = os.environ.get("SMSAPI_TOKEN", "")
+# Each brand needs its own registered/verified alphanumeric sender ID with
+# SMSAPI.pl — a customer texted about a dowieziemycie.pl booking should see
+# "dowieziemycie" as the sender, not "transfer247". SMSAPI_SENDER_NAME is
+# the fallback used when a site-specific one isn't configured (or hasn't
+# been verified by SMSAPI yet).
 SMSAPI_SENDER_NAME = os.environ.get("SMSAPI_SENDER_NAME", "")
+SMSAPI_SENDER_NAMES = {
+    "dowieziemycie": os.environ.get("SMSAPI_SENDER_NAME_DOWIEZIEMYCIE", "") or SMSAPI_SENDER_NAME,
+    "transfer247": os.environ.get("SMSAPI_SENDER_NAME_TRANSFER247", "") or SMSAPI_SENDER_NAME,
+}
 
 # A booking scheduled at least this many hours out gets the advance/"reserved"
 # tier price; anything sooner (or a booking for right now) gets the pricier
