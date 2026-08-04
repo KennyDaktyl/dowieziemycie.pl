@@ -65,11 +65,12 @@ class VerifyOtpView(APIView):
         serializer = VerifyOtpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         phone = serializer.validated_data["phone"]
-        otp = serializer.validated_data["otp"]
+        otp = serializer.validated_data.get("otp")
         intent = serializer.validated_data.get("intent")
 
-        otp.verified = True
-        otp.save(update_fields=["verified"])
+        if otp:
+            otp.verified = True
+            otp.save(update_fields=["verified"])
 
         from apps.fleet.models import Driver
         from apps.fleet.serializers import DriverLiveStatusSerializer
@@ -84,7 +85,16 @@ class VerifyOtpView(APIView):
                 "driver": DriverLiveStatusSerializer(driver).data,
             })
 
-        customer, _ = Customer.objects.get_or_create(phone=phone)
+        customer = serializer.validated_data.get("customer")
+        if customer is None:
+            customer, _ = Customer.objects.get_or_create(phone=phone)
+        if otp and customer.login_code != otp.code:
+            customer.login_code = otp.code
+            customer.save(update_fields=["login_code"])
+        elif serializer.validated_data.get("promote_legacy_code") and customer.login_code != serializer.validated_data["code"]:
+            customer.login_code = serializer.validated_data["code"]
+            customer.save(update_fields=["login_code"])
+
         refresh = RefreshToken.for_user(customer)
         return Response({
             "role": "customer",

@@ -12,9 +12,14 @@ phone_validator = RegexValidator(
 
 
 class Customer(models.Model):
-    """A client identified purely by phone number — no password, OTP-verified."""
+    """A client identified by phone number and the first SMS-confirmed code."""
 
     phone = models.CharField(max_length=16, unique=True, validators=[phone_validator])
+    login_code = models.CharField(
+        max_length=6,
+        blank=True,
+        help_text="Stały kod klienta ustawiany po potwierdzeniu SMS-em. Służy do kolejnych logowań.",
+    )
     name = models.CharField(max_length=120, blank=True)
     email = models.EmailField(blank=True, help_text="Opcjonalny — jeśli podany, dostaje też powiadomienia e-mail.")
     created_at = models.DateTimeField(auto_now_add=True)

@@ -17,10 +17,42 @@ class VerifyOtpRoleDetectionTests(TestCase):
         return self.client.post("/api/auth/verify-otp/", {"phone": phone, "code": otp.code})
 
     def test_unknown_phone_becomes_a_customer(self):
-        res = self._verify("+48500100200")
+        phone = "+48500100200"
+        otp = PhoneOTP.generate(phone)
+        res = self.client.post("/api/auth/verify-otp/", {"phone": phone, "code": otp.code})
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["role"], "customer")
-        self.assertTrue(Customer.objects.filter(phone="+48500100200").exists())
+        customer = Customer.objects.get(phone=phone)
+        self.assertEqual(customer.login_code, otp.code)
+
+    def test_customer_can_log_in_again_with_saved_code_without_new_sms(self):
+        phone = "+48500100201"
+        otp = PhoneOTP.generate(phone)
+        first = self.client.post("/api/auth/verify-otp/", {"phone": phone, "code": otp.code})
+        self.assertEqual(first.status_code, 200)
+
+        second = self.client.post(
+            "/api/auth/verify-otp/",
+            {"phone": phone, "code": otp.code, "auth_mode": "login"},
+        )
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.data["role"], "customer")
+        self.assertFalse(PhoneOTP.objects.filter(phone=phone, code=otp.code, verified=False).exists())
+
+    def test_legacy_verified_sms_code_becomes_saved_login_code(self):
+        phone = "+48500100202"
+        customer = Customer.objects.create(phone=phone)
+        otp = PhoneOTP.generate(phone)
+        otp.verified = True
+        otp.save(update_fields=["verified"])
+
+        res = self.client.post(
+            "/api/auth/verify-otp/",
+            {"phone": phone, "code": otp.code, "auth_mode": "login"},
+        )
+        self.assertEqual(res.status_code, 200)
+        customer.refresh_from_db()
+        self.assertEqual(customer.login_code, otp.code)
 
     def test_driver_phone_gets_a_driver_token_not_a_customer_row(self):
         user = User.objects.create_user(username="driverphone")

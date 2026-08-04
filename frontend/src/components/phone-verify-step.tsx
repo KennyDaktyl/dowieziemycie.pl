@@ -54,7 +54,7 @@ export function PhoneVerifyStep({
       const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, code, intent: "customer" }),
+        body: JSON.stringify({ phone, code, intent: "customer", auth_mode: "register" }),
       });
       if (!res.ok) throw new Error();
       onVerified();

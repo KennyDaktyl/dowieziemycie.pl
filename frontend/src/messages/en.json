@@ -189,18 +189,25 @@
     "terms": "Terms of Service"
   },
   "Auth": {
-    "title": "Log in with your phone number",
+    "title": "Log in or register",
+    "modeLogin": "Log in",
+    "modeRegister": "Register",
+    "loginLead": "Already have an account? Enter your phone number and the permanent code from your first SMS.",
+    "registerLead": "No account yet, or want to set a new code? Enter your phone number and we will send an SMS code.",
     "phoneLabel": "Phone number",
     "phonePlaceholder": "500 000 000",
     "requestCode": "Send SMS code",
     "codeLabel": "SMS code",
+    "savedCodeLabel": "Your code",
     "codePlaceholder": "123456",
     "verifyCode": "Log in",
+    "registerVerifyCode": "Register and log in",
     "changePhone": "Change number",
     "codeSentTo": "Code sent to {phone}",
+    "registerCodeSentTo": "Code sent to {phone}. After confirmation it will become your code for future logins.",
     "errorRequest": "Couldn't send the code. Check the number and try again.",
     "errorVerify": "Invalid or expired code.",
-    "sessionNote": "The SMS code is one-time and valid for 10 minutes. After logging in, this device stays signed in."
+    "sessionNote": "During registration, the SMS code is valid for 10 minutes. After confirmation it becomes your permanent login code."
   },
   "Panel": {
     "title": "My trips",

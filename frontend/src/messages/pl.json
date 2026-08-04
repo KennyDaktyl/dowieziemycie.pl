@@ -189,18 +189,25 @@
     "terms": "Regulamin"
   },
   "Auth": {
-    "title": "Zaloguj się numerem telefonu",
+    "title": "Zaloguj się albo zarejestruj",
+    "modeLogin": "Zaloguj się",
+    "modeRegister": "Zarejestruj się",
+    "loginLead": "Masz już konto? Wpisz numer telefonu i swój stały kod z pierwszego SMS-a.",
+    "registerLead": "Nie masz konta albo chcesz ustawić nowy kod? Wpisz numer telefonu, a wyślemy kod SMS.",
     "phoneLabel": "Numer telefonu",
     "phonePlaceholder": "500 000 000",
     "requestCode": "Wyślij kod SMS",
     "codeLabel": "Kod z SMS-a",
+    "savedCodeLabel": "Twój kod",
     "codePlaceholder": "123456",
     "verifyCode": "Zaloguj się",
+    "registerVerifyCode": "Zarejestruj i zaloguj",
     "changePhone": "Zmień numer",
     "codeSentTo": "Kod wysłany na {phone}",
+    "registerCodeSentTo": "Kod wysłany na {phone}. Po potwierdzeniu będzie Twoim kodem do kolejnych logowań.",
     "errorRequest": "Nie udało się wysłać kodu. Sprawdź numer i spróbuj ponownie.",
     "errorVerify": "Nieprawidłowy lub wygasły kod.",
-    "sessionNote": "Kod SMS jest jednorazowy i ważny 10 minut. Po zalogowaniu konto zostaje zapamiętane na tym urządzeniu."
+    "sessionNote": "Przy rejestracji kod SMS jest ważny 10 minut. Po potwierdzeniu zostaje Twoim stałym kodem logowania."
   },
   "Panel": {
     "title": "Moje kursy",
