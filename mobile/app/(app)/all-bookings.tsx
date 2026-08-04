@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -13,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { paymentAmounts, paymentStatusLabel } from "@/components/BookingDetailModal";
+import { formatDuration, paymentAmounts, paymentStatusLabel } from "@/components/BookingDetailModal";
 import { BookingMap } from "@/components/BookingMap";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -62,6 +63,19 @@ function toDateEditFields(iso: string): { dateText: string; timeText: string } {
   };
 }
 
+/** Opens the phone's default navigation app in turn-by-turn mode. Google
+ * Maps' Android intent scheme first — that's what's actually installed on
+ * the driver's phone — falling back to a plain web maps URL (works
+ * everywhere, including iOS) if that app isn't available. */
+function openNavigation(lat: number, lng: number) {
+  const fallback = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  Linking.openURL(`google.navigation:q=${lat},${lng}`).catch(() => {
+    Linking.openURL(fallback).catch(() => {
+      Alert.alert("Nie udało się otworzyć nawigacji.");
+    });
+  });
+}
+
 function parseDateEditFields(dateText: string, timeText: string): string | null {
   const dateMatch = dateText.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
   const timeMatch = timeText.trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -80,6 +94,7 @@ export default function AllBookingsScreen() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [priceEdits, setPriceEdits] = useState<Record<number, PriceEditState>>({});
   const [editingDetailsId, setEditingDetailsId] = useState<number | null>(null);
+  const [editingPriceId, setEditingPriceId] = useState<number | null>(null);
   const [detailEdits, setDetailEdits] = useState<Record<number, DetailEditState>>({});
   const [savingId, setSavingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,10 +121,12 @@ export default function AllBookingsScreen() {
     if (expandedId === booking.id) {
       setExpandedId(null);
       setEditingDetailsId(null);
+      setEditingPriceId(null);
       return;
     }
     setExpandedId(booking.id);
     setEditingDetailsId(null);
+    setEditingPriceId(null);
     if (!priceEdits[booking.id]) {
       const suggestedPrice = booking.price ?? "";
       const suggestedDeposit =
@@ -175,6 +192,31 @@ export default function AllBookingsScreen() {
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się potwierdzić kursu.");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function handleUpdatePrice(booking: DriverBooking) {
+    const edit = priceEdits[booking.id];
+    if (!edit) return;
+    const price = parseFloat(edit.price.replace(",", "."));
+    const deposit = parseFloat(edit.deposit.replace(",", "."));
+    if (!Number.isFinite(price) || !Number.isFinite(deposit)) {
+      setError("Podaj poprawną cenę i zaliczkę.");
+      return;
+    }
+    setSavingId(booking.id);
+    setError(null);
+    try {
+      await apiFetch(`/api/fleet/driver/bookings/${booking.id}/update/`, accessToken, {
+        method: "PATCH",
+        body: JSON.stringify({ price, deposit_amount: deposit }),
+      });
+      setEditingPriceId(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Nie udało się zapisać ceny.");
     } finally {
       setSavingId(null);
     }
@@ -320,6 +362,24 @@ export default function AllBookingsScreen() {
                         }
                       />
                     ) : null}
+                    <View style={styles.assignRow}>
+                      {item.pickup_lat && item.pickup_lng && (
+                        <Pressable
+                          onPress={() => openNavigation(Number(item.pickup_lat), Number(item.pickup_lng))}
+                          style={styles.smallButtonOutline}
+                        >
+                          <Text style={styles.smallButtonOutlineText}>Nawiguj do odbioru</Text>
+                        </Pressable>
+                      )}
+                      {item.dropoff_lat && item.dropoff_lng && (
+                        <Pressable
+                          onPress={() => openNavigation(Number(item.dropoff_lat), Number(item.dropoff_lng))}
+                          style={styles.smallButtonOutline}
+                        >
+                          <Text style={styles.smallButtonOutlineText}>Nawiguj do celu</Text>
+                        </Pressable>
+                      )}
+                    </View>
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Klient</Text>
                       <Text style={styles.detailValue}>{item.customer_name || "—"}</Text>
@@ -328,6 +388,12 @@ export default function AllBookingsScreen() {
                       <Text style={styles.detailLabel}>Telefon</Text>
                       <Text style={styles.detailValue}>{item.customer_phone}</Text>
                     </View>
+                    {item.flight_number ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Numer lotu</Text>
+                        <Text style={styles.detailValue}>{item.flight_number}</Text>
+                      </View>
+                    ) : null}
                     <View style={styles.detailRow}>
                       <Text style={styles.detailLabel}>Płatność</Text>
                       <Text style={styles.detailValue}>{paymentStatusLabel(item)}</Text>
@@ -350,10 +416,34 @@ export default function AllBookingsScreen() {
                         </>
                       );
                     })()}
+                    {item.distance_km ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Dystans</Text>
+                        <Text style={styles.detailValue}>{item.distance_km} km</Text>
+                      </View>
+                    ) : null}
                     {item.duration_minutes ? (
                       <View style={styles.detailRow}>
                         <Text style={styles.detailLabel}>Planowany czas zajętości</Text>
                         <Text style={styles.detailValue}>{item.duration_minutes} min</Text>
+                      </View>
+                    ) : null}
+                    {item.started_at ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Start kursu</Text>
+                        <Text style={styles.detailValue}>{formatDateTime(item.started_at)}</Text>
+                      </View>
+                    ) : null}
+                    {item.completed_at ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Koniec kursu</Text>
+                        <Text style={styles.detailValue}>{formatDateTime(item.completed_at)}</Text>
+                      </View>
+                    ) : null}
+                    {formatDuration(item.started_at, item.completed_at) ? (
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Rzeczywisty czas kursu</Text>
+                        <Text style={styles.detailValue}>{formatDuration(item.started_at, item.completed_at)}</Text>
                       </View>
                     ) : null}
                     {item.tracking_code ? (
@@ -516,13 +606,60 @@ export default function AllBookingsScreen() {
                           )}
                         </Pressable>
                       </View>
-                    ) : (
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Zaliczka</Text>
-                        <Text style={styles.detailValue}>
-                          {item.deposit_amount ? `${Number(item.deposit_amount).toFixed(0)} zł` : "—"}
-                        </Text>
+                    ) : editingPriceId === item.id && priceEdit ? (
+                      <View style={styles.editForm}>
+                        <Text style={styles.editLabel}>Cena kursu (zł)</Text>
+                        <TextInput
+                          value={priceEdit.price}
+                          onChangeText={(text) => onChangePrice(item.id, text)}
+                          keyboardType="numeric"
+                          placeholder="np. 150"
+                          placeholderTextColor={colors.muted}
+                          style={styles.input}
+                        />
+                        <Text style={styles.editLabel}>Zaliczka (zł)</Text>
+                        <TextInput
+                          value={priceEdit.deposit}
+                          onChangeText={(text) => onChangeDeposit(item.id, text)}
+                          keyboardType="numeric"
+                          placeholder="np. 45"
+                          placeholderTextColor={colors.muted}
+                          style={styles.input}
+                        />
+                        <View style={styles.row}>
+                          <Pressable
+                            onPress={() => setEditingPriceId(null)}
+                            style={[styles.smallButtonOutline, styles.flex1]}
+                          >
+                            <Text style={styles.smallButtonOutlineText}>Anuluj</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() => handleUpdatePrice(item)}
+                            disabled={savingId === item.id}
+                            style={[styles.smallButton, styles.flex1]}
+                          >
+                            {savingId === item.id ? (
+                              <ActivityIndicator size="small" color="#1A1305" />
+                            ) : (
+                              <Text style={styles.smallButtonText}>Zapisz cenę</Text>
+                            )}
+                          </Pressable>
+                        </View>
                       </View>
+                    ) : (
+                      <>
+                        <View style={styles.detailRow}>
+                          <Text style={styles.detailLabel}>Zaliczka</Text>
+                          <Text style={styles.detailValue}>
+                            {item.deposit_amount ? `${Number(item.deposit_amount).toFixed(0)} zł` : "—"}
+                          </Text>
+                        </View>
+                        {canEdit && (
+                          <Pressable onPress={() => setEditingPriceId(item.id)} style={styles.smallButtonOutline}>
+                            <Text style={styles.smallButtonOutlineText}>Edytuj cenę i zaliczkę</Text>
+                          </Pressable>
+                        )}
+                      </>
                     )}
 
                     {item.status === "OPLACONA" && item.assigned_driver_id == null && (

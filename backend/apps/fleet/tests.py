@@ -416,6 +416,46 @@ class DispatcherConfirmWorkflowTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTrue(any("zmiana terminu" in m.subject.lower() for m in mail.outbox))
 
+    def test_dispatcher_can_edit_price_and_deposit_mid_trip(self):
+        # Customer wants to go further mid-ride and agrees to a higher price
+        # — this must work at any stage, not just at the initial NOWA ->
+        # POTWIERDZONA confirm (see ConfirmBookingView).
+        booking = _make_booking(
+            self.customer, status=Booking.Status.W_TRAKCIE, price=100, deposit_amount=30,
+        )
+        booking.paid_at = timezone.now()
+        booking.save(update_fields=["paid_at"])
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/",
+            {"price": "150.00", "deposit_amount": "30.00"},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(str(booking.price), "150.00")
+
+    def test_editing_price_after_payment_notifies_customer(self):
+        booking = _make_booking(
+            self.customer, status=Booking.Status.W_TRAKCIE, price=100, deposit_amount=30,
+        )
+        booking.paid_at = timezone.now()
+        booking.save(update_fields=["paid_at"])
+        with self.assertLogs("apps.accounts.sms", level="INFO") as logs:
+            res = self.client.patch(
+                f"/api/fleet/driver/bookings/{booking.id}/update/", {"price": "150.00"},
+                format="json", **_driver_auth_header(self.dispatcher),
+            )
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(any("zaktualizowana" in line for line in logs.output))
+
+    def test_editing_price_before_any_payment_does_not_notify(self):
+        booking = _make_booking(self.customer, status=Booking.Status.NOWA, price=100)
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"price": "150.00"},
+            format="json", **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200)
+
 
 class CancelBookingTests(TestCase):
     def setUp(self):

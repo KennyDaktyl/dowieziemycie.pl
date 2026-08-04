@@ -13,7 +13,7 @@ function formatDateTime(value: string | null) {
   });
 }
 
-function formatDuration(startedAt: string | null, completedAt: string | null): string | null {
+export function formatDuration(startedAt: string | null, completedAt: string | null): string | null {
   if (!startedAt || !completedAt) return null;
   const minutes = Math.round((new Date(completedAt).getTime() - new Date(startedAt).getTime()) / 60000);
   const h = Math.floor(minutes / 60);
@@ -80,6 +80,7 @@ export function BookingDetailModal({
     { label: "Telefon", value: booking.customer_phone },
     { label: "Termin", value: formatDateTime(booking.scheduled_at) },
     { label: "Pasażerowie", value: String(booking.passenger_count) },
+    ...(booking.flight_number ? [{ label: "Numer lotu", value: booking.flight_number }] : []),
     { label: "Cena", value: booking.price ? `${Number(booking.price).toFixed(0)} zł` : "Wycena indywidualna" },
     { label: "Płatność", value: paymentStatusLabel(booking) },
   ];

@@ -198,6 +198,10 @@ class Booking(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(7)],
         help_text="Liczba osób — pomaga zdecydować, czy wysłać bus czy auto osobowe.",
     )
+    flight_number = models.CharField(
+        max_length=20, blank=True,
+        help_text="Opcjonalny numer lotu (transfery lotniskowe) — pozwala dyspozytorowi sprawdzić opóźnienia.",
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOWA)
     distance_km = models.DecimalField(
         max_digits=6, decimal_places=1, null=True, blank=True,

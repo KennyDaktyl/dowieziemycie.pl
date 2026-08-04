@@ -17,6 +17,7 @@ from apps.bookings.models import Booking
 from apps.bookings.notifications import (
     notify_customer_driver_en_route,
     notify_customer_of_cancellation,
+    notify_customer_of_price_change,
     notify_customer_of_reschedule,
     notify_customer_ride_finished,
     notify_customer_ride_started,
@@ -134,12 +135,19 @@ class BookingUpdateSerializer(serializers.Serializer):
     scheduled_at = serializers.DateTimeField(required=False)
     passenger_count = serializers.IntegerField(min_value=1, max_value=7, required=False)
     assigned_driver_id = serializers.IntegerField(required=False, allow_null=True)
+    price = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
+    deposit_amount = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
 
 
 class UpdateBookingView(APIView):
     """PATCH /api/fleet/driver/bookings/<id>/update/ — dispatcher-only. Lets
     the dispatcher adjust ride details and hand-assign or unassign a driver
     directly from the app, instead of needing a Django Admin round trip.
+    Also covers price/deposit_amount — unlike ConfirmBookingView (only for
+    the initial NOWA -> POTWIERDZONA review), this works at any stage, e.g.
+    renegotiating a longer route mid-trip. If the customer already paid
+    something (paid_at set), they're texted the new total/balance so the
+    "dopłać" button they see in the panel isn't a surprise.
     Not available once a booking is ZAKONCZONA/ANULOWANA — nothing left to
     coordinate on a booking that's already over."""
 
@@ -166,8 +174,9 @@ class UpdateBookingView(APIView):
         data = serializer.validated_data
 
         old_scheduled_at = booking.scheduled_at
+        price_changed = ("price" in data or "deposit_amount" in data) and booking.paid_at is not None
         update_fields = []
-        for field in ("pickup_address", "dropoff_address", "scheduled_at", "passenger_count"):
+        for field in ("pickup_address", "dropoff_address", "scheduled_at", "passenger_count", "price", "deposit_amount"):
             if field in data:
                 setattr(booking, field, data[field])
                 update_fields.append(field)
@@ -219,6 +228,9 @@ class UpdateBookingView(APIView):
             notify_customer_driver_en_route(booking, new_driver)
         elif "scheduled_at" in data and data["scheduled_at"] != old_scheduled_at:
             notify_customer_of_reschedule(booking, old_scheduled_at)
+
+        if price_changed:
+            notify_customer_of_price_change(booking)
 
         return Response(DriverBookingSerializer(booking).data)
 

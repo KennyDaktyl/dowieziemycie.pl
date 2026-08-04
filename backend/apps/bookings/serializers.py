@@ -56,7 +56,7 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             "id", "pickup_address", "pickup_lat", "pickup_lng",
-            "dropoff_address", "dropoff_lat", "dropoff_lng",
+            "dropoff_address", "dropoff_lat", "dropoff_lng", "flight_number",
             "scheduled_at", "passenger_count", "status", "distance_km", "duration_minutes", "is_reserved",
             "price", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle",
             "driver_vehicle_plate", "driver_vehicle_seats", "created_at",
@@ -89,7 +89,7 @@ class DriverBookingSerializer(serializers.ModelSerializer):
         fields = [
             "id", "site", "customer_phone", "customer_name",
             "pickup_address", "pickup_lat", "pickup_lng",
-            "dropoff_address", "dropoff_lat", "dropoff_lng",
+            "dropoff_address", "dropoff_lat", "dropoff_lng", "flight_number",
             "scheduled_at", "passenger_count", "status", "distance_km", "duration_minutes", "price",
             "deposit_amount", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at", "created_at",
             "started_at", "completed_at",
@@ -204,6 +204,7 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
     dropoff_details = serializers.CharField(max_length=200)
     dropoff_lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     dropoff_lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
+    flight_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
     customer_name = serializers.CharField(required=False, allow_blank=True)
     customer_email = serializers.EmailField(required=False, allow_blank=True)
 
@@ -296,6 +297,7 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             dropoff_lng=dropoff_lng,
             scheduled_at=validated_data["scheduled_at"],
             passenger_count=validated_data["passenger_count"],
+            flight_number=validated_data.get("flight_number", ""),
             price=price_row.price,
             distance_km=distance_km,
             duration_minutes=duration_minutes,

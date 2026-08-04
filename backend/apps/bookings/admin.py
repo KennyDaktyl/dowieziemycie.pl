@@ -59,7 +59,7 @@ class BookingAdmin(admin.ModelAdmin):
     # snapshot, customer notification). Adjust the price inline, then use
     # the "Potwierdź" action below to move NOWA -> POTWIERDZONA properly.
     list_editable = ("price", "assigned_driver")
-    search_fields = ("customer__phone", "customer__name", "pickup_address", "dropoff_address")
+    search_fields = ("customer__phone", "customer__name", "pickup_address", "dropoff_address", "flight_number")
     date_hierarchy = "scheduled_at"
     autocomplete_fields = ("customer", "coupon")
     actions = ["confirm_selected"]

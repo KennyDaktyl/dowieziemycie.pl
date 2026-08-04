@@ -9,6 +9,7 @@ export interface DriverBooking {
   dropoff_address: string;
   dropoff_lat: string | null;
   dropoff_lng: string | null;
+  flight_number: string;
   scheduled_at: string;
   passenger_count: number;
   status: string;
