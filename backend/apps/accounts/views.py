@@ -51,6 +51,12 @@ class VerifyOtpView(APIView):
     the response is a driver-scoped token (role: "driver") instead of a
     customer one. Django Admin staff login is unrelated (separate username +
     password auth at /admin/) — this only distinguishes driver vs. customer.
+
+    A phone number can belong to both a Driver and a Customer (e.g. a driver
+    booking a ride for their own family) — callers that only ever want a
+    customer session (the booking-flow's inline verify step) pass
+    intent="customer" to skip the driver lookup entirely, instead of
+    silently getting a driver token they can't use.
     """
 
     permission_classes = [AllowAny]
@@ -60,6 +66,7 @@ class VerifyOtpView(APIView):
         serializer.is_valid(raise_exception=True)
         phone = serializer.validated_data["phone"]
         otp = serializer.validated_data["otp"]
+        intent = serializer.validated_data.get("intent")
 
         otp.verified = True
         otp.save(update_fields=["verified"])
@@ -67,7 +74,7 @@ class VerifyOtpView(APIView):
         from apps.fleet.models import Driver
         from apps.fleet.serializers import DriverLiveStatusSerializer
 
-        driver = Driver.objects.filter(phone=phone).select_related("vehicle").first()
+        driver = None if intent == "customer" else Driver.objects.filter(phone=phone).select_related("vehicle").first()
         if driver:
             refresh = RefreshToken.for_user(driver)
             return Response({

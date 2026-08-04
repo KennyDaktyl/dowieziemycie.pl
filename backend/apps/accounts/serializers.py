@@ -10,6 +10,7 @@ class RequestOtpSerializer(serializers.Serializer):
 class VerifyOtpSerializer(serializers.Serializer):
     phone = serializers.CharField(validators=[phone_validator])
     code = serializers.CharField(max_length=6, min_length=6)
+    intent = serializers.ChoiceField(choices=["customer", "driver"], required=False)
 
     def validate(self, attrs):
         otp = (
