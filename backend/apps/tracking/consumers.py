@@ -129,12 +129,31 @@ class BookingTrackConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
+        # Without this, a customer only ever sees a marker once the driver's
+        # app happens to push its next GPS fix — reloading the page (or
+        # opening it fresh) showed nothing for however long that takes, even
+        # though a perfectly good last-known position already existed.
+        driver_payload = await self._last_known_driver_position(booking_id)
+        if driver_payload is not None:
+            await self.send(text_data=json.dumps({"type": "update", "driver": driver_payload}))
+
     async def disconnect(self, close_code):
         if getattr(self, "group_name", None):
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def driver_update(self, event):
         await self.send(text_data=json.dumps({"type": "update", "driver": event["driver"]}))
+
+    @database_sync_to_async
+    def _last_known_driver_position(self, booking_id):
+        booking = (
+            Booking.objects.select_related("assigned_driver")
+            .filter(id=booking_id, assigned_driver__isnull=False, assigned_driver__current_lat__isnull=False)
+            .first()
+        )
+        if booking is None:
+            return None
+        return DriverLiveStatusSerializer(booking.assigned_driver).data
 
     @database_sync_to_async
     def _authorize(self, booking_id, token, code):

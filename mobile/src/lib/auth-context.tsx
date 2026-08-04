@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
 import { apiFetch } from "./api";
+import { requestLocationPermissions, startBackgroundTracking } from "./location-task";
 import {
   clearSession,
   getAccessToken,
@@ -9,6 +10,14 @@ import {
   saveSession,
   type DriverProfile,
 } from "./session";
+
+// Booking actions from Kursy/Szef/Harmonogram move the driver straight into
+// one of these statuses without going through Dashboard's own "Aktywny"
+// toggle (the only place background tracking used to get started) — so a
+// driver could end up marked JADACY_PO_KLIENTA/W_KURSIE while their phone
+// was never actually told to start sending GPS pings. Starting it here too
+// closes that gap regardless of which tab triggered the status change.
+const TRACKING_REQUIRED_STATUSES: DriverProfile["status"][] = ["JADACY_PO_KLIENTA", "W_KURSIE"];
 
 interface AuthContextValue {
   driver: DriverProfile | null;
@@ -64,6 +73,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       saveDriverProfile(next);
       return next;
     });
+
+    if (TRACKING_REQUIRED_STATUSES.includes(status)) {
+      requestLocationPermissions()
+        .then(startBackgroundTracking)
+        .catch(() => {
+          // Best effort — if permissions were never granted, the driver
+          // still sees "Pozycja nie jest udostępniana" on the Panel tab
+          // and can grant them from there.
+        });
+    }
   }
 
   return (
