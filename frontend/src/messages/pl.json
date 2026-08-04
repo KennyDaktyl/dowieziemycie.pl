@@ -38,8 +38,20 @@
   "Breadcrumbs": {
     "home": "Strona główna",
     "routes": "Kierunki",
+    "blog": "Blog",
     "myTrips": "Moje kursy",
     "tracking": "Śledzenie kursu"
+  },
+  "Blog": {
+    "heading": "Blog o lokalnym transporcie pod Krakowem",
+    "lead": "Poradniki o nocnych powrotach z Krakowa, transporcie na imprezy, busie na koncert, przewozie gości i bezpiecznych kursach do Rybnej, Liszek, Czernichowa, Kaszowa i Alwerni.",
+    "searchPlaceholder": "Szukaj: impreza, lotnisko, bus, wesele...",
+    "searchSubmit": "Szukaj",
+    "searchResultsCount": "Wyniki: {count} dla „{query}”.",
+    "searchClear": "Wyczyść",
+    "searchNoResults": "Brak pasujących artykułów.",
+    "backToIndex": "← Wróć do bloga",
+    "usefulLinksHeading": "Przydatne linki"
   },
   "BookingForm": {
     "from": "Skąd",

@@ -112,7 +112,11 @@ class SiteScopingTests(APITestCase):
 
     def test_blog_posts_are_scoped_per_site(self):
         res_default = self.client.get("/api/blog/")
-        self.assertEqual(len(res_default.data), 0)
+        default_slugs = {p["slug"] for p in res_default.data}
+        self.assertIn("transport-z-imprezy-do-domu-krakow", default_slugs)
+        self.assertNotIn("krakow-airport-transfer-to-hotel-guide", default_slugs)
 
         res_transfer247 = self.client.get("/api/blog/", HTTP_X_SITE="transfer247")
-        self.assertEqual(len(res_transfer247.data), 4)
+        transfer_slugs = {p["slug"] for p in res_transfer247.data}
+        self.assertIn("krakow-airport-transfer-to-hotel-guide", transfer_slugs)
+        self.assertNotIn("transport-z-imprezy-do-domu-krakow", transfer_slugs)

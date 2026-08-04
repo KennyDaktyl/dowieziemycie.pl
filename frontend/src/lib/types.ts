@@ -114,6 +114,41 @@ export interface ContentPage {
   seo_description_en: string;
 }
 
+export interface BlogPostPhoto {
+  image: string;
+  thumbnail: string;
+  caption: string;
+  order: number;
+}
+
+export interface BlogPostLink {
+  label_pl: string;
+  label_en: string;
+  url: string;
+  order: number;
+}
+
+export interface BlogPost {
+  slug: string;
+  tag_pl: string;
+  tag_en: string;
+  title_pl: string;
+  title_en: string;
+  excerpt_pl: string;
+  excerpt_en: string;
+  body_pl: string;
+  body_en: string;
+  cover_image: string | null;
+  youtube_url: string;
+  photos: BlogPostPhoto[];
+  links: BlogPostLink[];
+  seo_title_pl: string;
+  seo_title_en: string;
+  seo_description_pl: string;
+  seo_description_en: string;
+  published_at: string;
+}
+
 export interface DriverLiveStatus {
   id: number;
   name: string;

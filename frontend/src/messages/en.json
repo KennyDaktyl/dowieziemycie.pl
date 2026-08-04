@@ -38,8 +38,20 @@
   "Breadcrumbs": {
     "home": "Home",
     "routes": "Routes",
+    "blog": "Blog",
     "myTrips": "My trips",
     "tracking": "Ride tracking"
+  },
+  "Blog": {
+    "heading": "Local transport blog around Kraków",
+    "lead": "Practical guides about late-night rides from Kraków, event transport, concerts, wedding guest transfers and safe trips to Rybna, Liszki, Czernichów, Kaszów and Alwernia.",
+    "searchPlaceholder": "Search: party, airport, van, wedding...",
+    "searchSubmit": "Search",
+    "searchResultsCount": "{count} results for “{query}”.",
+    "searchClear": "Clear",
+    "searchNoResults": "No matching articles.",
+    "backToIndex": "← Back to blog",
+    "usefulLinksHeading": "Useful links"
   },
   "BookingForm": {
     "from": "From",
