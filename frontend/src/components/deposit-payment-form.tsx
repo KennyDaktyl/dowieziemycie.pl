@@ -1,6 +1,12 @@
 "use client";
 
-import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import {
+  Elements,
+  ExpressCheckoutElement,
+  PaymentElement,
+  useElements,
+  useStripe,
+} from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -134,8 +140,7 @@ function PaymentElementForm({
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function confirm() {
     if (!stripe || !elements) return;
     setSubmitting(true);
     onError("");
@@ -156,8 +161,27 @@ function PaymentElementForm({
     await pollUntilPaid(bookingId, kind, router);
   }
 
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    await confirm();
+  }
+
+  // Renders nothing when the customer's browser/device has no wallet
+  // available (no Apple Pay set up, not Safari/Chrome, etc.) — Stripe
+  // decides that automatically, nothing to gate here.
+  async function handleExpressConfirm() {
+    if (!stripe || !elements) return;
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      onError(submitError.message ?? t("error"));
+      return;
+    }
+    await confirm();
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <ExpressCheckoutElement onConfirm={handleExpressConfirm} />
       <PaymentElement />
       <button
         type="submit"
