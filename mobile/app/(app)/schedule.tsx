@@ -11,26 +11,30 @@ import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
 
 const STATUS_LABELS: Record<string, string> = {
+  OPLACONA: "Przyjęty, jeszcze nie wyjechałeś",
   KIEROWCA_W_DRODZE: "W drodze do klienta",
   W_TRAKCIE: "W trakcie kursu",
   POTWIERDZONA: "Potwierdzona",
   NOWA: "Nowa",
 };
 
-// A booking only ever lands in "my schedule" already assigned to me
-// (accept sets both at once) — so the only actions are moving it forward
-// one step: KIEROWCA_W_DRODZE -> W_TRAKCIE -> ZAKONCZONA (which then drops
-// off this list and into Historia).
+// A booking lands in "my schedule" as soon as it's assigned to me (accept
+// only claims it — see AcceptBookingView), so the visible actions cover the
+// whole lifecycle from there: OPLACONA -> KIEROWCA_W_DRODZE (explicit "I'm
+// actually leaving now" step, HeadToCustomerView) -> W_TRAKCIE -> ZAKONCZONA
+// (which then drops off this list and into Historia).
 const NEXT_ACTION: Record<string, { endpoint: string; label: string } | undefined> = {
+  OPLACONA: { endpoint: "head-to-customer", label: "Jadę do klienta" },
   KIEROWCA_W_DRODZE: { endpoint: "start", label: "Rozpocznij kurs" },
   W_TRAKCIE: { endpoint: "finish", label: "Zakończ kurs" },
 };
 
-// The backend flips Driver.status as a side effect of these two endpoints
-// (start -> W_KURSIE, finish -> DOSTEPNY) — mirrored here so the Panel tab's
-// status picker doesn't keep showing stale state until something else
-// happens to refresh it.
-const RESULTING_DRIVER_STATUS: Record<string, "W_KURSIE" | "DOSTEPNY"> = {
+// The backend flips Driver.status as a side effect of these endpoints
+// (head-to-customer -> JADACY_PO_KLIENTA, start -> W_KURSIE, finish ->
+// DOSTEPNY) — mirrored here so the Panel tab's status picker doesn't keep
+// showing stale state until something else happens to refresh it.
+const RESULTING_DRIVER_STATUS: Record<string, "JADACY_PO_KLIENTA" | "W_KURSIE" | "DOSTEPNY"> = {
+  "head-to-customer": "JADACY_PO_KLIENTA",
   start: "W_KURSIE",
   finish: "DOSTEPNY",
 };

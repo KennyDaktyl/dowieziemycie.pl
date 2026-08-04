@@ -8,6 +8,7 @@ from .driver_views import (
     ConfirmBookingView,
     DriverBookingHistoryView,
     FinishBookingView,
+    HeadToCustomerView,
     MyScheduleView,
     OpenBookingsListView,
     PendingConfirmationListView,
@@ -29,6 +30,11 @@ urlpatterns = [
     path("driver/token/refresh/", TokenRefreshView.as_view(), name="driver-token-refresh"),
     path("driver/bookings/open/", OpenBookingsListView.as_view(), name="driver-bookings-open"),
     path("driver/bookings/<int:booking_id>/accept/", AcceptBookingView.as_view(), name="driver-booking-accept"),
+    path(
+        "driver/bookings/<int:booking_id>/head-to-customer/",
+        HeadToCustomerView.as_view(),
+        name="driver-booking-head-to-customer",
+    ),
     path(
         "driver/bookings/pending-confirmation/",
         PendingConfirmationListView.as_view(),

@@ -247,17 +247,13 @@ export default function AllBookingsScreen() {
     setSavingId(booking.id);
     setError(null);
     try {
+      // Just a claim — doesn't touch the booking's status or the driver's
+      // own busy/free status. "Jadę do klienta" is the separate, explicit
+      // step for that (see handleLifecycleAction).
       await apiFetch(`/api/fleet/driver/bookings/${booking.id}/update/`, accessToken, {
         method: "PATCH",
         body: JSON.stringify({ assigned_driver_id: driverId }),
       });
-      // Mirrors UpdateBookingView's side effect: assigning yourself to a
-      // still-OPLACONA booking claims it exactly like AcceptBookingView does
-      // (status -> KIEROWCA_W_DRODZE, driver.status -> JADACY_PO_KLIENTA) —
-      // without this the Panel tab would keep showing stale status.
-      if (driverId != null && driverId === driver?.id && booking.status === "OPLACONA") {
-        updateStatus("JADACY_PO_KLIENTA");
-      }
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się zmienić przypisania kierowcy.");
@@ -271,7 +267,9 @@ export default function AllBookingsScreen() {
     setError(null);
     try {
       await apiFetch(`/api/fleet/driver/bookings/${booking.id}/${endpoint}/`, accessToken, { method: "POST" });
-      const resultingStatus = { accept: "JADACY_PO_KLIENTA", start: "W_KURSIE", finish: "DOSTEPNY" } as const;
+      const resultingStatus = {
+        "head-to-customer": "JADACY_PO_KLIENTA", start: "W_KURSIE", finish: "DOSTEPNY",
+      } as const;
       if (endpoint in resultingStatus) updateStatus(resultingStatus[endpoint as keyof typeof resultingStatus]);
       await load();
     } catch (e) {
@@ -667,6 +665,19 @@ export default function AllBookingsScreen() {
                           <ActivityIndicator size="small" color="#1A1305" />
                         ) : (
                           <Text style={styles.confirmButtonText}>Przyjmij kurs (ja)</Text>
+                        )}
+                      </Pressable>
+                    )}
+                    {item.status === "OPLACONA" && isMine && (
+                      <Pressable
+                        onPress={() => handleLifecycleAction(item, "head-to-customer")}
+                        disabled={savingId === item.id}
+                        style={styles.confirmButton}
+                      >
+                        {savingId === item.id ? (
+                          <ActivityIndicator size="small" color="#1A1305" />
+                        ) : (
+                          <Text style={styles.confirmButtonText}>Jadę do klienta</Text>
                         )}
                       </Pressable>
                     )}

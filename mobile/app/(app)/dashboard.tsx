@@ -17,11 +17,11 @@ import type { DriverStatus } from "@/lib/session";
 import { colors } from "@/lib/theme";
 
 // "W drodze do klienta" / "W kursie" are shown for visibility but are never
-// manually tappable — they're driven by accepting/starting a booking (see
-// the Kursy/Harmonogram tabs), so this picker can't drift out of sync with
-// whichever booking the driver is actually on. While either is active, the
-// other three go read-only too — you can't manually go OFFLINE mid-ride,
-// you have to finish the booking first.
+// manually tappable — they're driven by "Jadę do klienta"/starting a
+// booking (see the Harmonogram tab), so this picker can't drift out of
+// sync with whichever booking the driver is actually on. While either is
+// active, the other three go read-only too — you can't manually go
+// OFFLINE mid-ride, you have to finish the booking first.
 const STATUS_OPTIONS: { value: DriverStatus; label: string; manual: boolean }[] = [
   { value: "DOSTEPNY", label: "Aktywny (wolny)", manual: true },
   { value: "JADACY_PO_KLIENTA", label: "W drodze do klienta", manual: false },

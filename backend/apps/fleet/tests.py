@@ -81,15 +81,20 @@ class DriverBookingWorkflowTests(TestCase):
         res = self.client.get("/api/fleet/driver/bookings/open/")
         self.assertEqual(res.status_code, 401)
 
-    def test_accept_assigns_driver_and_notifies_customer(self):
+    def test_accept_assigns_driver_without_advancing_status(self):
+        # Accepting a job is just a claim — it must not jump the booking to
+        # KIEROWCA_W_DRODZE or mark the driver busy on its own (see
+        # HeadToCustomerView for the separate "I'm actually leaving" step).
         booking = _make_booking(self.customer)
         res = self.client.post(
             f"/api/fleet/driver/bookings/{booking.id}/accept/", **_driver_auth_header(self.driver)
         )
         self.assertEqual(res.status_code, 200)
         booking.refresh_from_db()
+        self.driver.refresh_from_db()
         self.assertEqual(booking.assigned_driver, self.driver)
-        self.assertEqual(booking.status, Booking.Status.KIEROWCA_W_DRODZE)
+        self.assertEqual(booking.status, Booking.Status.OPLACONA)
+        self.assertEqual(self.driver.status, Driver.Status.DOSTEPNY)
 
     def test_accept_is_atomic_second_driver_gets_409(self):
         booking = _make_booking(self.customer)
@@ -116,11 +121,32 @@ class DriverBookingWorkflowTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual([b["id"] for b in res.data], [mine.id])
 
-    def test_accept_also_marks_driver_as_heading_to_customer(self):
-        booking = _make_booking(self.customer)
-        self.client.post(f"/api/fleet/driver/bookings/{booking.id}/accept/", **_driver_auth_header(self.driver))
+    def test_head_to_customer_advances_status_and_marks_driver_busy(self):
+        booking = _make_booking(self.customer, assigned_driver=self.driver, status=Booking.Status.OPLACONA)
+        res = self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/head-to-customer/", **_driver_auth_header(self.driver)
+        )
+        self.assertEqual(res.status_code, 200)
+        booking.refresh_from_db()
         self.driver.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.KIEROWCA_W_DRODZE)
+        self.assertTrue(booking.tracking_code)
         self.assertEqual(self.driver.status, Driver.Status.JADACY_PO_KLIENTA)
+
+    def test_head_to_customer_rejects_unclaimed_booking(self):
+        booking = _make_booking(self.customer, status=Booking.Status.OPLACONA)
+        res = self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/head-to-customer/", **_driver_auth_header(self.driver)
+        )
+        self.assertEqual(res.status_code, 409)
+
+    def test_head_to_customer_rejects_someone_elses_booking(self):
+        other = Driver.objects.create(user=User.objects.create_user(username="driverH"), name="Driver H")
+        booking = _make_booking(self.customer, assigned_driver=other, status=Booking.Status.OPLACONA)
+        res = self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/head-to-customer/", **_driver_auth_header(self.driver)
+        )
+        self.assertEqual(res.status_code, 409)
 
     def test_start_moves_booking_to_w_trakcie_and_driver_to_w_kursie(self):
         booking = _make_booking(
@@ -388,12 +414,11 @@ class DispatcherConfirmWorkflowTests(TestCase):
         )
         self.assertEqual(res.status_code, 409)
 
-    def test_assigning_driver_to_paid_booking_advances_status_and_claims_it(self):
-        # This is the "Przypisz do mnie" bug from the Szef tab: hand-assigning
-        # a driver to an OPLACONA booking must behave like AcceptBookingView
-        # (advance status, mint a tracking code, flip the driver's own
-        # status) — otherwise the booking gets a driver but never leaves
-        # OPLACONA and neither Kursy nor Harmonogram ever show an action for it.
+    def test_assigning_driver_to_paid_booking_claims_without_advancing_status(self):
+        # Hand-assigning from the Szef tab is just a claim, same as
+        # AcceptBookingView — it must NOT jump the booking to
+        # KIEROWCA_W_DRODZE or mark the driver busy on its own (that's the
+        # separate "Jadę do klienta" step, HeadToCustomerView).
         booking = _make_booking(self.customer, status=Booking.Status.OPLACONA)
         res = self.client.patch(
             f"/api/fleet/driver/bookings/{booking.id}/update/", {"assigned_driver_id": self.plain_driver.id},
@@ -402,9 +427,10 @@ class DispatcherConfirmWorkflowTests(TestCase):
         self.assertEqual(res.status_code, 200)
         booking.refresh_from_db()
         self.plain_driver.refresh_from_db()
-        self.assertEqual(booking.status, Booking.Status.KIEROWCA_W_DRODZE)
-        self.assertTrue(booking.tracking_code)
-        self.assertEqual(self.plain_driver.status, Driver.Status.JADACY_PO_KLIENTA)
+        self.assertEqual(booking.assigned_driver_id, self.plain_driver.id)
+        self.assertEqual(booking.status, Booking.Status.OPLACONA)
+        self.assertFalse(booking.tracking_code)
+        self.assertNotEqual(self.plain_driver.status, Driver.Status.JADACY_PO_KLIENTA)
 
     def test_reassigning_driver_on_in_progress_booking_does_not_reset_status(self):
         other = Driver.objects.create(user=User.objects.create_user(username="driverG"), name="Driver G")

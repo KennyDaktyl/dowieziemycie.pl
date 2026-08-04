@@ -189,16 +189,12 @@ class UpdateBookingView(APIView):
             booking.tracking_code_expires_at = booking.scheduled_at + timedelta(hours=4)
             update_fields += ["tracking_code_valid_from", "tracking_code_expires_at"]
 
-        # Hand-assigning a driver to a still-unclaimed (OPLACONA) booking is
-        # the "Przypisz do mnie/kierowcy" action from the Szef tab — it needs
-        # to do everything AcceptBookingView does (advance the status, mint a
-        # tracking code, flip the driver's own status, text the customer),
-        # otherwise the booking gets a driver but never leaves OPLACONA and
-        # has no action button anywhere to move it forward. Reassigning a
-        # driver on a booking that's already past that point (e.g.
-        # KIEROWCA_W_DRODZE) just swaps the driver, no side effects.
-        just_claimed = False
-        new_driver = None
+        # Hand-assigning a driver from the Szef tab ("Przypisz do
+        # mnie/kierowcy") is just a claim, same as AcceptBookingView — it
+        # does NOT advance the booking past OPLACONA or mark the driver
+        # busy. The driver (dispatcher or otherwise) still takes the
+        # separate, explicit "Jadę do klienta" step (HeadToCustomerView)
+        # once they actually set off.
         if "assigned_driver_id" in data:
             driver_id = data["assigned_driver_id"]
             if driver_id is None:
@@ -208,25 +204,12 @@ class UpdateBookingView(APIView):
                 if not new_driver:
                     return Response({"detail": "Nie znaleziono kierowcy."}, status=status.HTTP_404_NOT_FOUND)
                 booking.assigned_driver = new_driver
-                if booking.status == Booking.Status.OPLACONA:
-                    just_claimed = True
-                    booking.status = Booking.Status.KIEROWCA_W_DRODZE
-                    booking.tracking_code = f"{random.randint(0, 9999):04d}"
-                    booking.tracking_code_valid_from = booking.scheduled_at - timedelta(hours=1)
-                    booking.tracking_code_expires_at = booking.scheduled_at + timedelta(hours=4)
-                    update_fields += [
-                        "status", "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
-                    ]
             update_fields.append("assigned_driver")
 
         if update_fields:
             booking.save(update_fields=update_fields)
 
-        if just_claimed and new_driver:
-            new_driver.status = Driver.Status.JADACY_PO_KLIENTA
-            new_driver.save(update_fields=["status"])
-            notify_customer_driver_en_route(booking, new_driver)
-        elif "scheduled_at" in data and data["scheduled_at"] != old_scheduled_at:
+        if "scheduled_at" in data and data["scheduled_at"] != old_scheduled_at:
             notify_customer_of_reschedule(booking, old_scheduled_at)
 
         if price_changed:
@@ -368,9 +351,41 @@ class AcceptBookingView(APIView):
     Atomically claims an open booking for the authenticated driver — first
     to accept wins, everyone else gets 409 (two drivers tapping "I'll take
     it" on the same push notification is the whole reason this needs to be
-    atomic, not a check-then-set race). Texts the customer that a driver is
-    on the way.
+    atomic, not a check-then-set race).
+
+    Claiming is deliberately just a claim: it does NOT move the booking to
+    KIEROWCA_W_DRODZE or mark the driver busy — a driver might accept a job
+    that's hours away while still finishing something else. Booking.status
+    stays OPLACONA (assigned_driver being set is what drops it out of the
+    open-bookings list); actually setting off is a separate, explicit step
+    (see HeadToCustomerView) the driver takes when they're really leaving.
     """
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        driver = request.user
+        updated = Booking.objects.filter(
+            id=booking_id, status=Booking.Status.OPLACONA, assigned_driver__isnull=True,
+        ).update(assigned_driver=driver)
+        if not updated:
+            return Response(
+                {"detail": "Ten kurs został już przyjęty przez innego kierowcę albo nie istnieje."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        booking = Booking.objects.select_related("customer").get(id=booking_id)
+        return Response(DriverBookingSerializer(booking).data)
+
+
+class HeadToCustomerView(APIView):
+    """POST /api/fleet/driver/bookings/<id>/head-to-customer/ — the driver
+    this booking is assigned to has actually set off. OPLACONA (claimed,
+    not yet departed) -> KIEROWCA_W_DRODZE: mints the tracking code, marks
+    the driver busy, and texts the customer a driver is on the way. This is
+    the step AcceptBookingView used to do automatically — split out because
+    "I'll take this job" and "I'm driving there right now" aren't the same
+    moment."""
 
     authentication_classes = [DriverJWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -379,20 +394,20 @@ class AcceptBookingView(APIView):
         driver = request.user
         with transaction.atomic():
             updated = Booking.objects.filter(
-                id=booking_id, status=Booking.Status.OPLACONA, assigned_driver__isnull=True,
-            ).update(assigned_driver=driver, status=Booking.Status.KIEROWCA_W_DRODZE)
+                id=booking_id, assigned_driver=driver, status=Booking.Status.OPLACONA,
+            ).update(status=Booking.Status.KIEROWCA_W_DRODZE)
             if not updated:
                 return Response(
-                    {"detail": "Ten kurs został już przyjęty przez innego kierowcę albo nie istnieje."},
+                    {"detail": "Ten kurs nie jest przypisany do Ciebie albo nie oczekuje na wyjazd."},
                     status=status.HTTP_409_CONFLICT,
                 )
             booking = Booking.objects.select_related("customer").get(id=booking_id)
             driver.status = Driver.Status.JADACY_PO_KLIENTA
             driver.save(update_fields=["status"])
-            # Anchored to the *ride's* scheduled time, not to accept time —
+            # Anchored to the *ride's* scheduled time, not to this moment —
             # a booking accepted days ahead of a 20:00 ride gets a code
             # that only activates at 19:00 that day, not one that's already
-            # (uselessly) active the moment a driver claims it. If accept
+            # (uselessly) active the moment a driver sets off. If this
             # happens after that activation point, the code is simply
             # usable right away, since valid_from is already in the past.
             booking.tracking_code = f"{random.randint(0, 9999):04d}"
