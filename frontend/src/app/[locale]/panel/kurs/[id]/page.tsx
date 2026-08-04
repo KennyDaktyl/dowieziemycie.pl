@@ -43,7 +43,7 @@ export default async function BookingTrackingPage({
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-[900px] px-6 py-16">
+      <main className="mx-auto max-w-[1360px] px-6 py-16">
         <Breadcrumbs
           items={[
             { label: tCrumbs("home"), href: "/" },

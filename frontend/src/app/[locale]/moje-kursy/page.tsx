@@ -32,7 +32,7 @@ export default async function MyTripsPage({ params }: { params: Promise<{ locale
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-[900px] px-6 py-16">
+      <main className="mx-auto max-w-[1360px] px-6 py-16">
         <Breadcrumbs items={[{ label: tCrumbs("home"), href: "/" }, { label: t("title") }]} />
         <h1 className="font-heading mt-3 mb-8 text-2xl font-semibold">{t("title")}</h1>
         <BookingsList bookings={bookings} locale={locale} />

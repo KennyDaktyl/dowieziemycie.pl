@@ -69,6 +69,17 @@ class BookingAdmin(admin.ModelAdmin):
         "started_at", "completed_at", "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
     )
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        status_paid_gate = ("POTWIERDZONA", "OPLACONA", "KIEROWCA_W_DRODZE", "W_TRAKCIE")
+        if change and "status" in form.changed_data and obj.status in status_paid_gate and not obj.deposit_amount:
+            self.message_user(
+                request,
+                f"Rezerwacja #{obj.id}: status ustawiony ręcznie na {obj.status}, ale brak ceny/zaliczki — "
+                "klient nie zobaczy przycisku płatności w panelu, dopóki nie ustawisz ceny i zaliczki.",
+                level="warning",
+            )
+
     @admin.action(description="Potwierdź wybrane rezerwacje (wysyła SMS/e-mail do klienta)")
     def confirm_selected(self, request, queryset):
         confirmed, failed = 0, 0
