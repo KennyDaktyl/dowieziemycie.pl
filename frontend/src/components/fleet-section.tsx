@@ -28,7 +28,7 @@ export async function FleetSection() {
   ];
 
   return (
-    <section className="border-t border-line px-6 py-[70px]">
+    <section id="fleet" className="border-t border-line px-6 py-[70px]">
       <div className="mx-auto grid max-w-[1360px] grid-cols-1 items-center gap-12 md:grid-cols-2">
         <div>
           <span className="font-label text-[13px] font-semibold tracking-[0.16em] text-amber uppercase">

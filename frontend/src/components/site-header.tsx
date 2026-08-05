@@ -18,9 +18,10 @@ export async function SiteHeader() {
   // Anchor ids are language-neutral on purpose (same on /pl and /en) — prefixed
   // with the current locale's home path so nav works from any page, not just "/".
   const navLinks = [
-    { href: `/${locale}#coverage`, label: tNav("coverage") },
-    { href: `/${locale}#how-it-works`, label: tNav("howItWorks") },
+    { href: "/imprezy", label: tNav("imprezy") },
     { href: `/${locale}#routes`, label: tNav("routes") },
+    { href: "/wynajem-busa-z-kierowca", label: tNav("wynajemBusa") },
+    { href: `/${locale}#how-it-works`, label: tNav("howItWorks") },
     { href: "/na-zywo", label: tNav("tracking") },
     { href: "/blog", label: tNav("blog") },
     { href: "/cennik", label: tNav("pricing") },
@@ -86,15 +87,22 @@ export async function SiteHeader() {
             </Link>
             <a
               href="tel:+48506029980"
-              className="rounded-md bg-amber px-[14px] py-[9px] text-sm font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)] sm:px-[18px]"
+              className="hidden rounded-md border border-line px-[14px] py-[9px] text-sm font-semibold whitespace-nowrap text-text transition-colors hover:border-amber hover:text-amber sm:inline-block"
             >
               {t("call")}
             </a>
+            <Link
+              href="/rezerwacja"
+              className="rounded-md bg-amber px-[14px] py-[9px] text-sm font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)] sm:px-[18px]"
+            >
+              {tNav("bookNow")}
+            </Link>
             <MobileNav
               navLinks={navLinks}
               loginHref={customer ? "/moje-kursy" : "/logowanie"}
               loginLabel={customer ? t("myTrips") : t("login")}
               trackByCodeLabel={tNav("trackByCode")}
+              bookNowLabel={tNav("bookNow")}
               speaksEnglishLabel={t("speaksEnglish")}
               isLoggedIn={Boolean(customer)}
               logoutLabel={t("logout")}

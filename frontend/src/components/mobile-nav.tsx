@@ -12,6 +12,7 @@ export function MobileNav({
   loginHref,
   loginLabel,
   trackByCodeLabel,
+  bookNowLabel,
   speaksEnglishLabel,
   isLoggedIn,
   logoutLabel,
@@ -20,6 +21,7 @@ export function MobileNav({
   loginHref: string;
   loginLabel: string;
   trackByCodeLabel: string;
+  bookNowLabel: string;
   speaksEnglishLabel: string;
   isLoggedIn: boolean;
   logoutLabel: string;
@@ -94,6 +96,13 @@ export function MobileNav({
               className="mt-2 rounded-md border border-amber px-2 py-3 text-center font-semibold text-amber transition-colors hover:bg-amber/10"
             >
               {trackByCodeLabel}
+            </Link>
+            <Link
+              href="/rezerwacja"
+              onClick={() => setOpen(false)}
+              className="mt-2 rounded-md bg-amber px-2 py-3 text-center font-semibold text-[#1a1305] transition-colors"
+            >
+              {bookNowLabel}
             </Link>
           </nav>
 

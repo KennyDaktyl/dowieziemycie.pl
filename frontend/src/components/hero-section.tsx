@@ -1,9 +1,8 @@
-import { getLocale } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
+import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
 import type { HomeContent } from "@/lib/types";
-
-import { BookingCard } from "./booking-card";
 
 function renderHeadline(headline: string, highlight: string) {
   // "Bezpieczny przejazd. Każdej {highlight}" -> "Bezpieczny przejazd." <br/> "Każdej " + <amber>highlight</amber>
@@ -19,8 +18,11 @@ function renderHeadline(headline: string, highlight: string) {
 }
 
 export async function HeroSection() {
-  const locale = await getLocale();
-  const homeContent = await apiFetch<HomeContent>("/api/home-content/", { next: { revalidate: 60 } });
+  const [locale, t, homeContent] = await Promise.all([
+    getLocale(),
+    getTranslations("Hero"),
+    apiFetch<HomeContent>("/api/home-content/", { next: { revalidate: 60 } }),
+  ]);
 
   const eyebrow = locale === "en" ? homeContent.eyebrow_en : homeContent.eyebrow_pl;
   const headline = locale === "en" ? homeContent.headline_en : homeContent.headline_pl;
@@ -30,7 +32,7 @@ export async function HeroSection() {
   return (
     <section className="px-6 pt-16 pb-10">
       <div className="mx-auto max-w-[1360px]">
-        <div className="mb-10 max-w-[720px]">
+        <div className="max-w-[720px]">
           <span className="font-label text-[13px] font-semibold tracking-[0.16em] text-amber uppercase">
             {eyebrow}
           </span>
@@ -39,7 +41,21 @@ export async function HeroSection() {
           </h1>
           <p className="max-w-[560px] text-[16.5px] leading-relaxed text-muted">{lead}</p>
         </div>
-        <BookingCard />
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/rezerwacja"
+            className="rounded-md bg-amber px-6 py-3.5 text-[15px] font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)]"
+          >
+            {t("ctaBook")}
+          </Link>
+          <Link
+            href="/imprezy"
+            className="rounded-md border border-line px-6 py-3.5 text-[15px] font-semibold whitespace-nowrap text-text transition-colors hover:border-amber hover:text-amber"
+          >
+            {t("ctaEvents")}
+          </Link>
+        </div>
+        <p className="mt-5 text-[13px] text-muted">{t("trustBar")}</p>
       </div>
     </section>
   );

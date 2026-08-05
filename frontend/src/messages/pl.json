@@ -33,14 +33,21 @@
     "tracking": "Kierowca na żywo",
     "trackByCode": "Śledź pozycję kierowcy",
     "blog": "Blog",
-    "pricing": "Cennik"
+    "pricing": "Cennik",
+    "imprezy": "Imprezy",
+    "wynajemBusa": "Wynajem / długie trasy",
+    "bookNow": "Zarezerwuj kurs"
   },
   "Breadcrumbs": {
     "home": "Strona główna",
     "routes": "Kierunki",
     "blog": "Blog",
     "myTrips": "Moje kursy",
-    "tracking": "Śledzenie kursu"
+    "tracking": "Śledzenie kursu",
+    "imprezy": "Imprezy",
+    "wynajemBusa": "Wynajem busa z kierowcą",
+    "pricing": "Cennik",
+    "booking": "Rezerwacja"
   },
   "Blog": {
     "heading": "Blog o lokalnym transporcie pod Krakowem",
@@ -126,11 +133,54 @@
     "eyebrow": "Proces",
     "title": "Jak to działa",
     "step1Title": "Zamawiasz i wpłacasz zaliczkę",
-    "step1Body": "Wybierasz skąd i dokąd, płacisz BLIK-iem. Im wcześniej zarezerwujesz, tym niższa cena — kurs na już też jest możliwy.",
+    "step1Body": "Kurs lokalny zamawiasz online i płacisz zaliczkę BLIK-iem. Imprezę okolicznościową albo dłuższą trasę ustalasz telefonicznie lub na WhatsApp — to zawsze wycena indywidualna.",
     "step2Title": "Śledzisz kierowcę na mapie",
     "step2Body": "Widzisz dokładną pozycję auta na żywo i realny czas dojazdu. Zero niepewności, czy ktoś w ogóle przyjedzie.",
     "step3Title": "Wsiadasz — bezpiecznie i na czas",
     "step3Body": "Cena ustalona przy rezerwacji się nie zmienia. Bez negocjacji na miejscu, o każdej porze dnia i nocy."
+  },
+  "Hero": {
+    "ctaBook": "Zarezerwuj kurs",
+    "ctaEvents": "Zapytaj o imprezę",
+    "trustBar": "Dostępni 24/7 · ubezpieczony pojazd · stała cena, znana z góry"
+  },
+  "Pillars": {
+    "eyebrow": "Czym się zajmujemy",
+    "title": "Dwa sposoby, w jakie możemy Cię dowieźć",
+    "eventsTitle": "Imprezy okolicznościowe",
+    "eventsBody": "Koncerty, wieczory kawalerskie i panieńskie — jeden bus, jeden kierowca na cały wieczór. Wycena indywidualna, dzwonisz i ustalasz plan.",
+    "eventsCta": "Zobacz ofertę imprezową",
+    "localTitle": "Lokalny przewóz osób",
+    "localBody": "Codzienny transport po okolicy gminy Czernichów oraz bezpieczny, komfortowy powrót do domu — także z Krakowa w nocy, gdy nie ma już komunikacji.",
+    "localCta": "Zobacz obsługiwane kierunki"
+  },
+  "TopicTiles": {
+    "eyebrow": "Na co jeszcze możesz nas zabrać",
+    "title": "Wybierz, co Cię interesuje",
+    "concertsTitle": "Koncerty i wydarzenia",
+    "concertsBody": "Odbiór całej grupy, powrót prosto do domu — nawet po północy.",
+    "stagTitle": "Wieczór kawalerski",
+    "stagBody": "Elastyczna trasa po kilku miejscówkach, kierowca czeka między przystankami.",
+    "henTitle": "Wieczór panieński",
+    "henBody": "To samo co przy kawalerskim — spokojny transport bez pilnowania zegarka.",
+    "nightTitle": "Bezpieczny powrót w nocy",
+    "nightBody": "Wracasz z Krakowa, gdy nie ma już komunikacji miejskiej — dowozimy pod same drzwi.",
+    "businessTitle": "Przewóz pracowników i długie trasy",
+    "businessBody": "Dojazd do pracy zmianowej, eventy firmowe albo wyjazd busem z kierowcą, np. Kraków–Berlin."
+  },
+  "Imprezy": {
+    "callCta": "Zadzwoń po wycenę",
+    "whatsappCta": "Napisz na WhatsApp"
+  },
+  "WynajemBusa": {
+    "callCta": "Zadzwoń po wycenę",
+    "whatsappCta": "Napisz na WhatsApp"
+  },
+  "Rezerwacja": {
+    "title": "Zarezerwuj kurs",
+    "lead": "Podaj adresy, wybierz termin — zaliczkę płacisz online, resztę załatwiamy przez SMS.",
+    "seoTitle": "Zarezerwuj kurs | dowieziemycie.pl",
+    "seoDescription": "Zarezerwuj lokalny kurs w okolicy Krakowa — podaj adresy i termin, zapłać zaliczkę online, kierowcę śledzisz na żywo."
   },
   "Routes": {
     "eyebrow": "Kierunki, które obsługujemy",

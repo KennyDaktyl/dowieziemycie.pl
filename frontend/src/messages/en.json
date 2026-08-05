@@ -33,14 +33,21 @@
     "tracking": "Driver, live",
     "trackByCode": "Track your driver",
     "blog": "Blog",
-    "pricing": "Pricing"
+    "pricing": "Pricing",
+    "imprezy": "Events",
+    "wynajemBusa": "Van hire / long routes",
+    "bookNow": "Book a ride"
   },
   "Breadcrumbs": {
     "home": "Home",
     "routes": "Routes",
     "blog": "Blog",
     "myTrips": "My trips",
-    "tracking": "Ride tracking"
+    "tracking": "Ride tracking",
+    "imprezy": "Events",
+    "wynajemBusa": "Van hire with a driver",
+    "pricing": "Pricing",
+    "booking": "Booking"
   },
   "Blog": {
     "heading": "Local transport blog around Kraków",
@@ -126,11 +133,54 @@
     "eyebrow": "Process",
     "title": "How it works",
     "step1Title": "Book and pay a deposit",
-    "step1Body": "Pick where from and where to, pay by BLIK. The earlier you book, the lower the price — on-demand rides are possible too.",
+    "step1Body": "Book a local ride online and pay the deposit via BLIK. An event or a longer trip is arranged by phone or WhatsApp — always quoted individually.",
     "step2Title": "Track the driver on the map",
     "step2Body": "See the car's exact live position and a real ETA. Zero uncertainty about whether anyone's actually coming.",
     "step3Title": "Get in — safe and on time",
     "step3Body": "The price set at booking doesn't change. No haggling on arrival, any time of day or night."
+  },
+  "Hero": {
+    "ctaBook": "Book a ride",
+    "ctaEvents": "Ask about an event",
+    "trustBar": "Available 24/7 · insured vehicle · fixed price, known upfront"
+  },
+  "Pillars": {
+    "eyebrow": "What we do",
+    "title": "Two ways we can get you there",
+    "eventsTitle": "Occasional events",
+    "eventsBody": "Concerts, bachelor and bachelorette parties — one van, one driver for the whole evening. Individually quoted, just call and plan it out.",
+    "eventsCta": "See our events offer",
+    "localTitle": "Local passenger transport",
+    "localBody": "Everyday transport around the Czernichów area and a safe, comfortable ride home — including from Kraków at night, once public transport has stopped.",
+    "localCta": "See the routes we cover"
+  },
+  "TopicTiles": {
+    "eyebrow": "What else you can book us for",
+    "title": "Pick what you need",
+    "concertsTitle": "Concerts and events",
+    "concertsBody": "We pick up the whole group and drop everyone home — even past midnight.",
+    "stagTitle": "Bachelor party",
+    "stagBody": "A flexible route across a few spots, the driver waits between stops.",
+    "henTitle": "Bachelorette party",
+    "henBody": "Same as the bachelor party — calm transport, no clock-watching.",
+    "nightTitle": "Safe ride home at night",
+    "nightBody": "Heading back from Kraków once public transport has stopped — we drop you right at the door.",
+    "businessTitle": "Employee transport and long routes",
+    "businessBody": "Shift commutes, company events, or van hire with a driver, e.g. Kraków–Berlin."
+  },
+  "Imprezy": {
+    "callCta": "Call for a quote",
+    "whatsappCta": "Message on WhatsApp"
+  },
+  "WynajemBusa": {
+    "callCta": "Call for a quote",
+    "whatsappCta": "Message on WhatsApp"
+  },
+  "Rezerwacja": {
+    "title": "Book a ride",
+    "lead": "Enter the addresses, pick a time — pay the deposit online, we handle the rest by SMS.",
+    "seoTitle": "Book a ride | dowieziemycie.pl",
+    "seoDescription": "Book a local ride around Kraków — enter addresses and a time, pay the deposit online, track your driver live."
   },
   "Routes": {
     "eyebrow": "Directions we cover",
