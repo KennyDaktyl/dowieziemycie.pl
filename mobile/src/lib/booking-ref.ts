@@ -8,7 +8,7 @@
 const NOISE_PREFIXES = ["gmina ", "powiat ", "województwo "];
 const POSTAL_CODE_RE = /\b\d{2}-\d{3}\b/;
 
-function extractLocality(address: string): string {
+export function extractLocality(address: string): string {
   const cleaned = address
     .split(",")
     .map((part) => part.replace(POSTAL_CODE_RE, "").trim())

@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
@@ -14,7 +15,7 @@ import {
 } from "@/lib/location-task";
 import { registerForPushNotifications } from "@/lib/notifications";
 import type { DriverStatus } from "@/lib/session";
-import { colors } from "@/lib/theme";
+import { colors, statusTone, type StatusTone } from "@/lib/theme";
 
 // "W drodze do klienta" / "W kursie" are shown for visibility but are never
 // manually tappable — they're driven by "Jadę do klienta"/starting a
@@ -22,15 +23,25 @@ import { colors } from "@/lib/theme";
 // sync with whichever booking the driver is actually on. While either is
 // active, the other three go read-only too — you can't manually go
 // OFFLINE mid-ride, you have to finish the booking first.
-const STATUS_OPTIONS: { value: DriverStatus; label: string; manual: boolean }[] = [
-  { value: "DOSTEPNY", label: "Aktywny (wolny)", manual: true },
-  { value: "JADACY_PO_KLIENTA", label: "W drodze do klienta", manual: false },
-  { value: "W_KURSIE", label: "W trakcie kursu", manual: false },
-  { value: "WRACA_DO_BAZY", label: "Wraca do bazy", manual: true },
-  { value: "OFFLINE", label: "Poza służbą / przerwa", manual: true },
+const STATUS_OPTIONS: {
+  value: DriverStatus; label: string; manual: boolean; icon: keyof typeof Ionicons.glyphMap; tone: StatusTone;
+}[] = [
+  // "flash" rather than a checkmark-style icon — a checkmark here reads as
+  // "this option is currently selected" (the actual active-row indicator,
+  // rendered separately on the right of whichever row IS active), which
+  // made this row look selected even while OFFLINE was the real status.
+  { value: "DOSTEPNY", label: "Aktywny (wolny)", manual: true, icon: "flash", tone: "green" },
+  { value: "JADACY_PO_KLIENTA", label: "W drodze do klienta", manual: false, icon: "car", tone: "amber" },
+  { value: "W_KURSIE", label: "W trakcie kursu", manual: false, icon: "navigate", tone: "amber" },
+  { value: "WRACA_DO_BAZY", label: "Wraca do bazy", manual: true, icon: "home", tone: "blue" },
+  { value: "OFFLINE", label: "Poza służbą / przerwa", manual: true, icon: "moon", tone: "muted" },
 ];
 
 const BOOKING_DRIVEN_STATUSES: DriverStatus[] = ["JADACY_PO_KLIENTA", "W_KURSIE"];
+
+function statusOptionFor(status: DriverStatus) {
+  return STATUS_OPTIONS.find((o) => o.value === status) ?? STATUS_OPTIONS[0];
+}
 
 export default function DashboardScreen() {
   const { driver, accessToken, updateStatus, logout } = useAuth();
@@ -85,14 +96,26 @@ export default function DashboardScreen() {
   if (!driver) return null;
 
   const isBookingDriven = BOOKING_DRIVEN_STATUSES.includes(driver.status);
+  const current = statusOptionFor(driver.status);
+  const currentTone = statusTone[current.tone];
 
   return (
     <SafeAreaView style={styles.screen} edges={["bottom"]}>
       <View style={styles.content}>
-        <Text style={styles.greeting}>Cześć, {driver.name}</Text>
-        <Text style={styles.vehicle}>
-          {driver.vehicle_name ? `${driver.vehicle_name}${driver.vehicle_plate ? ` · ${driver.vehicle_plate}` : ""}` : "Brak przypisanego pojazdu"}
-        </Text>
+        <View style={styles.headerRow}>
+          <View style={styles.flex1}>
+            <Text style={styles.greeting}>Cześć, {driver.name}</Text>
+            <Text style={styles.vehicle}>
+              {driver.vehicle_name ? `${driver.vehicle_name}${driver.vehicle_plate ? ` · ${driver.vehicle_plate}` : ""}` : "Brak przypisanego pojazdu"}
+            </Text>
+          </View>
+          {/* Persistent chip — the current status is always visible here,
+              even after scrolling past the picker below. */}
+          <View style={[styles.statusChip, { backgroundColor: currentTone.bg, borderColor: currentTone.fg }]}>
+            <Ionicons name={current.icon} size={14} color={currentTone.fg} />
+            <Text style={[styles.statusChipText, { color: currentTone.fg }]}>{current.label}</Text>
+          </View>
+        </View>
 
         <View style={styles.trackingCard}>
           <View style={[styles.trackingDot, { backgroundColor: tracking ? colors.green : colors.muted }]} />
@@ -103,6 +126,7 @@ export default function DashboardScreen() {
 
         {isBookingDriven && (
           <View style={styles.bookingNotice}>
+            <Ionicons name="information-circle" size={16} color={colors.amber} />
             <Text style={styles.bookingNoticeText}>
               Masz aktywny kurs — zakończ go w zakładce „Harmonogram”, żeby znowu móc zmienić status ręcznie.
             </Text>
@@ -114,6 +138,7 @@ export default function DashboardScreen() {
           {STATUS_OPTIONS.map((option) => {
             const active = driver.status === option.value;
             const disabled = busy || !option.manual || isBookingDriven;
+            const tone = statusTone[option.tone];
             return (
               <Pressable
                 key={option.value}
@@ -121,16 +146,25 @@ export default function DashboardScreen() {
                 onPress={() => handleStatusChange(option.value)}
                 style={({ pressed }) => [
                   styles.statusOption,
-                  active && styles.statusOptionActive,
-                  !option.manual && styles.statusOptionReadOnly,
-                  disabled && !active && styles.statusOptionDisabled,
+                  active
+                    ? { backgroundColor: tone.bg, borderColor: tone.fg }
+                    : disabled && styles.statusOptionDisabled,
                   !disabled && pressed && { opacity: 0.85 },
                 ]}
               >
-                <Text style={[styles.statusOptionText, active && styles.statusOptionTextActive]}>
-                  {option.label}
-                </Text>
-                {busy && active ? <ActivityIndicator size="small" color={colors.amber} /> : null}
+                <View style={styles.statusOptionLeft}>
+                  <Ionicons name={option.icon} size={19} color={active ? tone.fg : colors.muted} />
+                  <Text style={[styles.statusOptionText, active && { color: tone.fg, fontWeight: "800" }]}>
+                    {option.label}
+                  </Text>
+                </View>
+                {busy && active ? (
+                  <ActivityIndicator size="small" color={tone.fg} />
+                ) : active ? (
+                  <Ionicons name="checkmark-circle" size={20} color={tone.fg} />
+                ) : !option.manual ? (
+                  <Text style={styles.autoLabel}>auto</Text>
+                ) : null}
               </Pressable>
             );
           })}
@@ -149,8 +183,21 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   content: { flex: 1, padding: 20 },
+  headerRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 20 },
+  flex1: { flex: 1 },
   greeting: { color: colors.text, fontSize: 22, fontWeight: "700" },
-  vehicle: { color: colors.muted, fontSize: 13.5, marginTop: 4, marginBottom: 20 },
+  vehicle: { color: colors.muted, fontSize: 13.5, marginTop: 4 },
+  statusChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    maxWidth: 150,
+  },
+  statusChipText: { fontSize: 11.5, fontWeight: "700", flexShrink: 1 },
   trackingCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -166,7 +213,10 @@ const styles = StyleSheet.create({
   trackingDot: { width: 9, height: 9, borderRadius: 5 },
   trackingText: { color: colors.text, fontSize: 13.5, fontWeight: "600" },
   bookingNotice: {
-    backgroundColor: colors.panel2,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: colors.amberSoft,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.amber,
@@ -174,7 +224,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginBottom: 16,
   },
-  bookingNoticeText: { color: colors.amber, fontSize: 13, fontWeight: "600" },
+  bookingNoticeText: { color: colors.amber, fontSize: 13, fontWeight: "600", flex: 1 },
   label: { color: colors.muted, fontSize: 11, fontWeight: "600", letterSpacing: 1, marginBottom: 8 },
   statusList: { gap: 8 },
   statusOption: {
@@ -186,13 +236,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingVertical: 14,
   },
-  statusOptionActive: { borderColor: colors.amber, backgroundColor: colors.panel2 },
-  statusOptionReadOnly: { opacity: 0.55 },
-  statusOptionDisabled: { opacity: 0.4 },
-  statusOptionText: { color: colors.muted, fontSize: 14.5, fontWeight: "600" },
-  statusOptionTextActive: { color: colors.text },
+  statusOptionLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  statusOptionDisabled: { opacity: 0.5 },
+  statusOptionText: { color: colors.text, fontSize: 14.5, fontWeight: "600" },
+  autoLabel: {
+    color: colors.muted,
+    fontSize: 10.5,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
   error: { color: colors.red, fontSize: 13, marginTop: 16, textAlign: "center" },
   logout: { marginTop: "auto", alignItems: "center", paddingVertical: 12 },
   logoutText: { color: colors.muted, fontSize: 13, fontWeight: "600", textDecorationLine: "underline" },

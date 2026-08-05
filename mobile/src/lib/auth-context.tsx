@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { AppState, type AppStateStatus } from "react-native";
 
-import { apiFetch } from "./api";
+import { apiFetch, ApiError } from "./api";
 import { requestLocationPermissions, startBackgroundTracking } from "./location-task";
 import {
   clearSession,
@@ -34,14 +35,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [driver, setDriver] = useState<DriverProfile | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const tokenRef = useRef<string | null>(null);
+
+  // The cached profile (SecureStore) is what renders instantly on cold
+  // start, but it's only ever written at login or by a local optimistic
+  // update (updateStatus below) — a status changed elsewhere (Django admin,
+  // a dispatcher action) never reaches it on its own. This was a real bug:
+  // a driver's status flipped in admin stayed stuck on their phone
+  // indefinitely because nothing ever re-asked the backend. Reconciling
+  // against /driver/me/ right after the cached profile loads, and again
+  // whenever the app comes back to the foreground, closes that gap.
+  async function refreshDriver() {
+    if (!tokenRef.current) return;
+    try {
+      const fresh = await apiFetch<DriverProfile>("/api/fleet/driver/me/", tokenRef.current);
+      setDriver(fresh);
+      await saveDriverProfile(fresh);
+    } catch (err) {
+      // A stale/expired token here just means the next authenticated call
+      // elsewhere in the app will surface the same 401 and route to login —
+      // no need to duplicate that handling for a background reconciliation.
+      if (!(err instanceof ApiError)) throw err;
+    }
+  }
 
   useEffect(() => {
     (async () => {
       const [token, profile] = await Promise.all([getAccessToken(), getDriverProfile()]);
+      tokenRef.current = token;
       setAccessToken(token);
       setDriver(profile);
       setLoading(false);
+      await refreshDriver();
     })();
+  }, []);
+
+  useEffect(() => {
+    function onAppStateChange(next: AppStateStatus) {
+      if (next === "active") refreshDriver();
+    }
+    const sub = AppState.addEventListener("change", onAppStateChange);
+    return () => sub.remove();
   }, []);
 
   async function login(username: string, password: string, rememberMe: boolean) {
@@ -56,12 +90,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (rememberMe) {
       await saveSession(data.access, data.refresh, data.driver);
     }
+    tokenRef.current = data.access;
     setAccessToken(data.access);
     setDriver(data.driver);
   }
 
   async function logout() {
     await clearSession();
+    tokenRef.current = null;
     setAccessToken(null);
     setDriver(null);
   }

@@ -1,38 +1,27 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useState } from "react";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BookingDetailModal } from "@/components/BookingDetailModal";
+import { BookingCard } from "@/components/BookingCard";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { siteLabel } from "@/lib/site";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
 
-const STATUS_LABELS: Record<string, string> = {
-  OPLACONA: "Przyjęty, jeszcze nie wyjechałeś",
-  KIEROWCA_W_DRODZE: "W drodze do klienta",
-  W_TRAKCIE: "W trakcie kursu",
-  POTWIERDZONA: "Potwierdzona",
-  NOWA: "Nowa",
-};
-
 // A booking lands in "my schedule" as soon as it's assigned to me (accept
-// only claims it — see AcceptBookingView), so the visible actions cover the
-// whole lifecycle from there: OPLACONA -> KIEROWCA_W_DRODZE (explicit "I'm
-// actually leaving now" step, HeadToCustomerView) -> W_TRAKCIE -> ZAKONCZONA
-// (which then drops off this list and into Historia).
-const NEXT_ACTION: Record<string, { endpoint: string; label: string } | undefined> = {
-  OPLACONA: { endpoint: "head-to-customer", label: "Jadę do klienta" },
-  KIEROWCA_W_DRODZE: { endpoint: "start", label: "Rozpocznij kurs" },
-  W_TRAKCIE: { endpoint: "finish", label: "Zakończ kurs" },
+// only claims it), so the visible action covers the whole lifecycle from
+// there: OPLACONA -> KIEROWCA_W_DRODZE ("Jadę do klienta") -> W_TRAKCIE
+// ("Rozpocznij kurs") -> ZAKONCZONA ("Zakończ kurs", drops off this list).
+// Kept as a quick-action right on the card (not just inside the detail
+// screen) since it's the single most frequent thing a driver taps all day.
+const NEXT_ACTION: Record<string, { endpoint: string; label: string; icon: keyof typeof Ionicons.glyphMap } | undefined> = {
+  OPLACONA: { endpoint: "head-to-customer", label: "Jadę do klienta", icon: "car" },
+  KIEROWCA_W_DRODZE: { endpoint: "start", label: "Rozpocznij kurs", icon: "play" },
+  W_TRAKCIE: { endpoint: "finish", label: "Zakończ kurs", icon: "checkmark-done" },
 };
 
-// The backend flips Driver.status as a side effect of these endpoints
-// (head-to-customer -> JADACY_PO_KLIENTA, start -> W_KURSIE, finish ->
-// DOSTEPNY) — mirrored here so the Panel tab's status picker doesn't keep
-// showing stale state until something else happens to refresh it.
 const RESULTING_DRIVER_STATUS: Record<string, "JADACY_PO_KLIENTA" | "W_KURSIE" | "DOSTEPNY"> = {
   "head-to-customer": "JADACY_PO_KLIENTA",
   start: "W_KURSIE",
@@ -41,19 +30,16 @@ const RESULTING_DRIVER_STATUS: Record<string, "JADACY_PO_KLIENTA" | "W_KURSIE" |
 
 export default function ScheduleScreen() {
   const { accessToken, updateStatus } = useAuth();
+  const router = useRouter();
   const [bookings, setBookings] = useState<DriverBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [actingId, setActingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<DriverBooking | null>(null);
 
   const load = useCallback(async () => {
-    setError(null);
     try {
       const data = await apiFetch<DriverBooking[]>("/api/fleet/driver/schedule/", accessToken);
       setBookings(data);
-    } catch {
-      setError("Nie udało się pobrać listy kursów.");
     } finally {
       setLoading(false);
     }
@@ -71,39 +57,14 @@ export default function ScheduleScreen() {
     setActingId(booking.id);
     setError(null);
     try {
-      await apiFetch(`/api/fleet/driver/bookings/${booking.id}/${action.endpoint}/`, accessToken, {
-        method: "POST",
-      });
-      updateStatus(RESULTING_DRIVER_STATUS[action.endpoint]);
-      setSelected(null);
+      await apiFetch(`/api/fleet/driver/bookings/${booking.id}/${action.endpoint}/`, accessToken, { method: "POST" });
+      updateStatus(RESULTING_DRIVER_STATUS[action.endpoint as keyof typeof RESULTING_DRIVER_STATUS]);
       load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Nie udało się zaktualizować kursu.");
     } finally {
       setActingId(null);
     }
-  }
-
-  function renderActionButton(booking: DriverBooking) {
-    const action = NEXT_ACTION[booking.status];
-    if (!action) return null;
-    return (
-      <Pressable
-        onPress={() => handleAction(booking)}
-        disabled={actingId === booking.id}
-        style={({ pressed }) => [
-          styles.actionButton,
-          actingId === booking.id && styles.actionButtonDisabled,
-          pressed && { opacity: 0.85 },
-        ]}
-      >
-        {actingId === booking.id ? (
-          <ActivityIndicator size="small" color="#1A1305" />
-        ) : (
-          <Text style={styles.actionButtonText}>{action.label}</Text>
-        )}
-      </Pressable>
-    );
   }
 
   return (
@@ -123,22 +84,42 @@ export default function ScheduleScreen() {
               <Text style={styles.emptyText}>Brak zaplanowanych kursów.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <Pressable onPress={() => setSelected(item)} style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.site}>{siteLabel(item.site)}</Text>
-                <Text style={styles.badge}>{STATUS_LABELS[item.status] ?? item.status}</Text>
-              </View>
-              <Text style={styles.route}>
-                {item.pickup_address} → {item.dropoff_address}
-              </Text>
-              <Text style={styles.meta}>
-                {new Date(item.scheduled_at).toLocaleString("pl-PL")} · {item.customer_name || item.customer_phone}
-              </Text>
-              <Text style={styles.meta}>{item.customer_phone}</Text>
-              {renderActionButton(item)}
-            </Pressable>
-          )}
+          renderItem={({ item }) => {
+            const action = NEXT_ACTION[item.status];
+            return (
+              <BookingCard
+                booking={item}
+                onPress={() =>
+                  router.push({
+                    pathname: "/booking/[id]",
+                    params: { id: String(item.id), source: "schedule", booking: JSON.stringify(item) },
+                  })
+                }
+                footer={
+                  action ? (
+                    <Pressable
+                      onPress={() => handleAction(item)}
+                      disabled={actingId === item.id}
+                      style={({ pressed }) => [
+                        styles.actionButton,
+                        actingId === item.id && styles.actionButtonDisabled,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                    >
+                      {actingId === item.id ? (
+                        <ActivityIndicator size="small" color="#1A1305" />
+                      ) : (
+                        <>
+                          <Ionicons name={action.icon} size={16} color="#1A1305" />
+                          <Text style={styles.actionButtonText}>{action.label}</Text>
+                        </>
+                      )}
+                    </Pressable>
+                  ) : null
+                }
+              />
+            );
+          }}
         />
       )}
       {error && (
@@ -146,9 +127,6 @@ export default function ScheduleScreen() {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
-      <BookingDetailModal booking={selected} onClose={() => setSelected(null)}>
-        {selected && renderActionButton(selected)}
-      </BookingDetailModal>
     </SafeAreaView>
   );
 }
@@ -158,40 +136,15 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: 60 },
   emptyText: { color: colors.muted, fontSize: 14 },
   list: { padding: 16, gap: 12 },
-  card: {
-    backgroundColor: colors.panel,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 16,
-  },
-  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8 },
-  site: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  route: { color: colors.text, fontSize: 15, fontWeight: "700", marginTop: 6 },
-  badge: {
-    color: colors.amber,
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  meta: { color: colors.muted, fontSize: 13, marginTop: 6 },
   actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
     backgroundColor: colors.amber,
     borderRadius: 9,
     paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 12,
+    marginTop: 10,
   },
   actionButtonDisabled: { opacity: 0.6 },
   actionButtonText: { color: "#1A1305", fontWeight: "700", fontSize: 14 },
