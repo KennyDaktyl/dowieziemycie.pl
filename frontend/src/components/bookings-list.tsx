@@ -285,6 +285,9 @@ function BookingCard({
         <div className="mb-3 rounded-[10px] border border-line bg-panel-2 p-4">
           {booking.price && (
             <div className="mb-3">
+              <div className="text-[11px] font-semibold tracking-wide text-muted uppercase">
+                {t("totalPriceLabel")}
+              </div>
               <div className="font-heading text-[20px] font-bold">{Number(booking.price).toFixed(0)} zł</div>
               <div className="text-[11.5px] text-muted">
                 {t("vatIncluded", { net: netFromGross(booking.price).toFixed(2) })}

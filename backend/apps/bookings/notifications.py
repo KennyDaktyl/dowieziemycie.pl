@@ -11,7 +11,6 @@ import logging
 import re
 
 from django.conf import settings
-from django.core.mail import send_mail
 from django.utils import timezone
 
 from config.sites import SITE_DISPLAY_NAMES
@@ -52,11 +51,29 @@ def short_address(address: str, max_len: int = 50) -> str:
     return (short or address)[:max_len]
 
 
-def _send_email(to_email: str, subject: str, body: str) -> None:
+def _send_email(to_email: str, subject: str, body: str, site: str) -> None:
     if not to_email:
         return
+    from django.core.mail import EmailMessage, get_connection
+
+    account = settings.EMAIL_ACCOUNTS.get(site) or {}
+    from_email = account.get("from_email") or settings.DEFAULT_FROM_EMAIL
     try:
-        send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [to_email], fail_silently=False)
+        # A per-site connection (not the bare send_mail() shortcut, which
+        # always uses the single global EMAIL_HOST_* connection) — each
+        # brand's own mailbox (kontakt@dowieziemycie.pl / kontakt@
+        # transfer247.pl) sends its own notifications. Falls back to the
+        # shared account automatically when a site-specific one isn't
+        # configured — see settings._email_account.
+        connection = get_connection(
+            backend=settings.EMAIL_BACKEND,
+            host=account.get("host") or None,
+            port=account.get("port") or None,
+            username=account.get("username") or None,
+            password=account.get("password") or None,
+            use_tls=account.get("use_tls", True),
+        )
+        EmailMessage(subject, body, from_email, [to_email], connection=connection).send(fail_silently=False)
     except Exception:
         logger.exception("Nie udało się wysłać e-maila do %s", to_email)
 
@@ -97,6 +114,7 @@ def notify_dispatcher_of_new_booking(booking) -> None:
         booking_settings.dispatcher_email,
         f"{site_name}: nowa rezerwacja #{booking.id} do potwierdzenia",
         email_body,
+        booking.site,
     )
 
     from apps.fleet.models import Driver
@@ -128,6 +146,7 @@ def notify_customer_of_confirmation(booking) -> None:
         booking.customer.email,
         f"{site_name}: rezerwacja potwierdzona — zapłać zaliczkę",
         text,
+        booking.site,
     )
 
 
@@ -171,7 +190,7 @@ def notify_customer_ride_finished(booking) -> None:
     site_name = SITE_DISPLAY_NAMES[booking.site]
     text = f"{site_name}: Kurs zakończony. Dziękujemy za skorzystanie z naszych usług!"
     _send_sms(booking.customer.phone, text, booking.site)
-    _send_email(booking.customer.email, f"{site_name}: kurs zakończony — dziękujemy", text)
+    _send_email(booking.customer.email, f"{site_name}: kurs zakończony — dziękujemy", text, booking.site)
 
 
 def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
@@ -187,7 +206,7 @@ def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
         f"na {booking.scheduled_at:%d.%m %H:%M}."
     )
     _send_sms(booking.customer.phone, sms_text, booking.site)
-    _send_email(booking.customer.email, f"{site_name}: zmiana terminu kursu", text)
+    _send_email(booking.customer.email, f"{site_name}: zmiana terminu kursu", text, booking.site)
 
 
 def notify_dispatcher_of_customer_cancellation(booking) -> None:
@@ -204,7 +223,12 @@ def notify_dispatcher_of_customer_cancellation(booking) -> None:
         f"({short_address(booking.pickup_address)} -> {short_address(booking.dropoff_address)})."
     )
     _send_sms(booking_settings.dispatcher_phone, sms_text, booking.site)
-    _send_email(booking_settings.dispatcher_email, f"{site_name}: rezerwacja #{booking.id} anulowana przez klienta", text)
+    _send_email(
+        booking_settings.dispatcher_email,
+        f"{site_name}: rezerwacja #{booking.id} anulowana przez klienta",
+        text,
+        booking.site,
+    )
 
     if booking.assigned_driver and booking.assigned_driver.expo_push_token:
         from apps.fleet.push import send_push
@@ -230,4 +254,4 @@ def notify_customer_of_cancellation(booking) -> None:
         f"zostal anulowany. Przepraszamy za utrudnienia."
     )
     _send_sms(booking.customer.phone, sms_text, booking.site)
-    _send_email(booking.customer.email, f"{site_name}: kurs anulowany", text)
+    _send_email(booking.customer.email, f"{site_name}: kurs anulowany", text, booking.site)

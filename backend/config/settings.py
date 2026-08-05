@@ -233,16 +233,45 @@ ADVANCE_BOOKING_THRESHOLD_HOURS = int(os.environ.get("ADVANCE_BOOKING_THRESHOLD_
 # Email notifications for the confirm-before-pay booking workflow (see
 # apps/bookings/notifications.py). "console" (dev) prints the message instead
 # of sending it; set EMAIL_BACKEND=smtp + the EMAIL_HOST_* vars in prod.
-if os.environ.get("EMAIL_BACKEND", "console") == "smtp":
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
-    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
-    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
-    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
-    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true") == "true"
-else:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if os.environ.get("EMAIL_BACKEND", "console") == "smtp"
+    else "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "true") == "true"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "no-reply@dowieziemycie.pl")
+
+
+def _email_account(prefix: str, fallback_from: str) -> dict:
+    """One mailbox per brand (kontakt@dowieziemycie.pl / kontakt@transfer247.pl)
+    — a customer emailed about a transfer247.pl booking should see that
+    inbox as the sender, not the sibling brand's. Every field falls back to
+    the shared EMAIL_* settings above when a site-specific one isn't set, so
+    this works unconfigured (both brands share one mailbox, or none at all
+    while EMAIL_BACKEND=console) exactly like before this existed."""
+    username = os.environ.get(f"EMAIL_HOST_USER_{prefix}", "") or EMAIL_HOST_USER
+    use_tls_raw = os.environ.get(f"EMAIL_USE_TLS_{prefix}", "")
+    return {
+        "host": os.environ.get(f"EMAIL_HOST_{prefix}", "") or EMAIL_HOST,
+        "port": int(os.environ.get(f"EMAIL_PORT_{prefix}", "") or EMAIL_PORT),
+        "username": username,
+        "password": os.environ.get(f"EMAIL_HOST_PASSWORD_{prefix}", "") or EMAIL_HOST_PASSWORD,
+        "use_tls": (use_tls_raw == "true") if use_tls_raw else EMAIL_USE_TLS,
+        # The "From" address should normally match the authenticated mailbox
+        # (username) or a lot of SMTP providers reject/flag the message —
+        # prefer that over a separately-typed DEFAULT_FROM_EMAIL_* value.
+        "from_email": os.environ.get(f"DEFAULT_FROM_EMAIL_{prefix}", "") or username or fallback_from,
+    }
+
+
+EMAIL_ACCOUNTS = {
+    "dowieziemycie": _email_account("DOWIEZIEMYCIE", DEFAULT_FROM_EMAIL),
+    "transfer247": _email_account("TRANSFER247", DEFAULT_FROM_EMAIL),
+}
 
 # Stripe — one shared account for both brands (see apps/bookings/payments.py).
 # Empty by default; create_payment_intent() raises a clear PaymentError instead

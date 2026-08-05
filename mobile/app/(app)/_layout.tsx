@@ -1,9 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect, Tabs } from "expo-router";
 import type { ColorValue } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { TopTabBar, TOP_TAB_BAR_CONTENT_HEIGHT } from "@/components/TopTabBar";
 import { useAuth } from "@/lib/auth-context";
-import { colors } from "@/lib/theme";
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -13,19 +14,25 @@ function TabIcon({ name, color, focused }: { name: IconName; color: ColorValue; 
 
 export default function AppLayout() {
   const { driver, loading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   if (loading) return null;
   if (!driver) return <Redirect href="/login" />;
 
   return (
     <Tabs
+      tabBar={(props) => <TopTabBar {...props} />}
       screenOptions={{
-        headerStyle: { backgroundColor: colors.panel },
-        headerTintColor: colors.text,
-        tabBarStyle: { backgroundColor: colors.panel, borderTopColor: colors.line, height: 58, paddingBottom: 6, paddingTop: 6 },
-        tabBarActiveTintColor: colors.amber,
-        tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
+        // The native per-screen header used to show the screen title above
+        // a bottom tab bar — now that TopTabBar itself sits at the top and
+        // already highlights the active tab's own label, a separate header
+        // would just duplicate that (and stacking both would need exact
+        // native header height math to avoid overlapping TopTabBar).
+        headerShown: false,
+        // Reserves space at the top of every screen for the absolutely-
+        // positioned TopTabBar (see that file) instead of content rendering
+        // underneath it.
+        sceneStyle: { paddingTop: insets.top + TOP_TAB_BAR_CONTENT_HEIGHT },
       }}
     >
       <Tabs.Screen

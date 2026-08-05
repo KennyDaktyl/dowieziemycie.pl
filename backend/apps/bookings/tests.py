@@ -824,3 +824,68 @@ class CatalogBookingCreateViewTests(TestCase):
 
         res = self._post(fixed_route_slug=self.route.slug)
         self.assertEqual(res.status_code, 400)
+
+
+class SiteAwareEmailTests(TestCase):
+    """notify_customer_of_confirmation sends both SMS and email whenever the
+    customer has an email on file, and picks the From address for the
+    booking's own brand — see settings._email_account /
+    apps.bookings.notifications._send_email."""
+
+    def setUp(self):
+        from .models import Booking
+
+        self.customer = Customer.objects.create(phone="+48500222333", email="klient@example.com")
+        self.Booking = Booking
+
+    def _make_booking(self, site):
+        return self.Booking.objects.create(
+            customer=self.customer,
+            site=site,
+            pickup_address="Rybna",
+            dropoff_address="Kraków",
+            scheduled_at=timezone.now() + timedelta(hours=5),
+            price=150,
+            deposit_amount=50,
+        )
+
+    @override_settings(
+        EMAIL_ACCOUNTS={
+            "dowieziemycie": {"from_email": "kontakt@dowieziemycie.pl"},
+            "transfer247": {"from_email": "kontakt@transfer247.pl"},
+        },
+    )
+    def test_confirmation_email_uses_the_bookings_own_brand_mailbox(self):
+        from django.core import mail
+
+        from .notifications import notify_customer_of_confirmation
+
+        notify_customer_of_confirmation(self._make_booking("dowieziemycie"))
+        notify_customer_of_confirmation(self._make_booking("transfer247"))
+
+        self.assertEqual(len(mail.outbox), 2)
+        self.assertEqual(mail.outbox[0].from_email, "kontakt@dowieziemycie.pl")
+        self.assertEqual(mail.outbox[1].from_email, "kontakt@transfer247.pl")
+        self.assertEqual(mail.outbox[0].to, ["klient@example.com"])
+
+    def test_confirmation_skips_email_when_customer_has_none(self):
+        from django.core import mail
+
+        from .notifications import notify_customer_of_confirmation
+
+        self.customer.email = ""
+        self.customer.save(update_fields=["email"])
+        notify_customer_of_confirmation(self._make_booking("dowieziemycie"))
+
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_confirmation_sends_sms_and_email_together_when_email_is_set(self):
+        from django.core import mail
+
+        from .notifications import notify_customer_of_confirmation
+
+        with patch("apps.bookings.notifications._send_sms") as mock_sms:
+            notify_customer_of_confirmation(self._make_booking("dowieziemycie"))
+
+        mock_sms.assert_called_once()
+        self.assertEqual(len(mail.outbox), 1)

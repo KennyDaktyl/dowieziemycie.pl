@@ -301,7 +301,8 @@
     "emptyCancelled": "Nie masz żadnych anulowanych kursów.",
     "seats": "{count} miejsc",
     "downloadConfirmation": "Pobierz potwierdzenie",
-    "bookSimilar": "Zamów podobny kurs"
+    "bookSimilar": "Zamów podobny kurs",
+    "totalPriceLabel": "Cena całkowita kursu"
   },
   "BookingStatus": {
     "NOWA": "Nowa (oczekuje na potwierdzenie)",
