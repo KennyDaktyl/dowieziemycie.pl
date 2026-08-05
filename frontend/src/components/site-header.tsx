@@ -19,7 +19,7 @@ export async function SiteHeader() {
   // with the current locale's home path so nav works from any page, not just "/".
   const navLinks = [
     { href: "/imprezy", label: tNav("imprezy") },
-    { href: `/${locale}#routes`, label: tNav("routes") },
+    { href: "/kierunki", label: tNav("routes") },
     { href: "/wynajem-busa-z-kierowca", label: tNav("wynajemBusa") },
     { href: `/${locale}#how-it-works`, label: tNav("howItWorks") },
     { href: "/na-zywo", label: tNav("tracking") },

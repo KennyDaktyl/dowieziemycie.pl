@@ -166,14 +166,16 @@
     "nightTitle": "Safe ride home at night",
     "nightBody": "Heading back from Kraków once public transport has stopped — we drop you right at the door.",
     "businessTitle": "Employee transport and long routes",
-    "businessBody": "Shift commutes, company events, or van hire with a driver, e.g. Kraków–Berlin."
+    "businessBody": "Shift commutes, company events, or van hire with a driver, e.g. Kraków–Berlin.",
+    "priceFrom": "from {price} zł"
   },
   "Imprezy": {
     "callCta": "Call for a quote",
     "whatsappCta": "Message on WhatsApp",
     "seeMore": "See more",
     "backToIndex": "← All events",
-    "galleryHeading": "Gallery"
+    "galleryHeading": "Gallery",
+    "priceFrom": "from {price} zł"
   },
   "WynajemBusa": {
     "callCta": "Call for a quote",
@@ -191,7 +193,8 @@
     "description": "Regular runs to the Czernichów, Liszki, Alwernia and Krzeszowice municipalities — every day, any time of day or night.",
     "priceFrom": "from {price} zł",
     "customQuote": "Custom quote",
-    "cta": "See details →"
+    "cta": "See details →",
+    "seeAll": "See all routes"
   },
   "RoutePage": {
     "backToHome": "← All directions",

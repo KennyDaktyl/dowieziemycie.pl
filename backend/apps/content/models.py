@@ -176,6 +176,21 @@ class LocalRoute(models.Model):
     seo_description_en = models.CharField(max_length=320, blank=True)
     is_published = models.BooleanField(default=True)
     order = models.PositiveSmallIntegerField(default=0)
+    show_on_homepage = models.BooleanField(
+        default=True,
+        help_text=(
+            "Pokazuj na liście kierunków na stronie głównej. Wyłącz, żeby trasa była dostępna tylko pod "
+            "swoim linkiem i na pełnej liście /kierunki, bez zajmowania miejsca na stronie głównej."
+        ),
+    )
+    price_from = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text=(
+            "Cena „od” pokazywana na kafelku i stronie trasy. Puste = wyliczana automatycznie z cennika "
+            "odległościowego (jak dotychczas) — to pole NIE wpływa na cenę faktycznej rezerwacji, tylko "
+            "na to, co widać na tej stronie."
+        ),
+    )
 
     class Meta:
         ordering = ["order", "destination_town"]
@@ -434,6 +449,17 @@ class EventOffer(models.Model):
     seo_description_pl = models.CharField(max_length=320, blank=True)
     seo_description_en = models.CharField(max_length=320, blank=True)
     is_published = models.BooleanField(default=True)
+    show_on_homepage = models.BooleanField(
+        default=False,
+        help_text="Pokazuj tę imprezę jako kafelek na stronie głównej (obok filaru „Imprezy okolicznościowe”).",
+    )
+    price_from = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text=(
+            "Orientacyjna cena „od” (opcjonalnie), np. „od 400 zł” — dalej zawsze wycena indywidualna, to "
+            "tylko punkt odniesienia. Puste = pokazujemy samo „Wycena indywidualna”, bez kwoty."
+        ),
+    )
 
     class Meta:
         ordering = ["order", "title_pl"]

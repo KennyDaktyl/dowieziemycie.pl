@@ -97,13 +97,15 @@ class TourAdmin(admin.ModelAdmin):
 
 @admin.register(LocalRoute)
 class LocalRouteAdmin(admin.ModelAdmin):
-    list_display = ("destination_town", "title_pl", "is_published", "order")
-    list_editable = ("is_published", "order")
+    list_display = ("destination_town", "title_pl", "price_from", "show_on_homepage", "is_published", "order")
+    list_editable = ("price_from", "show_on_homepage", "is_published", "order")
+    list_filter = ("show_on_homepage", "is_published")
     prepopulated_fields = {"slug": ("title_pl",)}
     search_fields = ("destination_town", "title_pl", "title_en", "slug")
     fieldsets = (
         (None, {"fields": (
-            "slug", "destination_town", "destination_lat", "destination_lng", "is_published", "order",
+            "slug", "destination_town", "destination_lat", "destination_lng",
+            "price_from", "show_on_homepage", "is_published", "order",
         )}),
         ("Polski", {"fields": ("title_pl", "lead_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("title_en", "lead_en", "body_en", "seo_title_en", "seo_description_en")}),
@@ -227,14 +229,18 @@ class EventOfferPhotoInline(admin.TabularInline):
 
 @admin.register(EventOffer)
 class EventOfferAdmin(admin.ModelAdmin):
-    list_display = ("title_pl", "slug", "site", "order", "is_published")
-    list_editable = ("order", "is_published")
-    list_filter = ("site", "is_published")
+    list_display = ("title_pl", "slug", "site", "price_from", "show_on_homepage", "order", "is_published")
+    list_editable = ("price_from", "show_on_homepage", "order", "is_published")
+    list_filter = ("site", "show_on_homepage", "is_published")
     prepopulated_fields = {"slug": ("title_pl",)}
     search_fields = ("title_pl", "title_en", "excerpt_pl", "excerpt_en", "slug")
     inlines = [EventOfferPhotoInline]
     fieldsets = (
-        (None, {"fields": ("site", "slug", "order", "icon", "cover_image", "is_published")}),
+        (None, {
+            "fields": (
+                "site", "slug", "order", "icon", "cover_image", "price_from", "show_on_homepage", "is_published",
+            ),
+        }),
         (
             "Polski",
             {"fields": ("title_pl", "h1_pl", "excerpt_pl", "body_pl", "seo_title_pl", "seo_description_pl")},

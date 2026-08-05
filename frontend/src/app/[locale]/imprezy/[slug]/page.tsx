@@ -97,6 +97,12 @@ export default async function EventOfferPage({
           />
         ) : null}
 
+        {offer.price_from != null && (
+          <p className="mb-4 text-[15px] font-bold text-green">
+            {t("priceFrom", { price: Number(offer.price_from).toFixed(0) })}
+          </p>
+        )}
+
         <div className="mb-8 flex flex-wrap gap-3">
           <a
             href="tel:+48506029980"

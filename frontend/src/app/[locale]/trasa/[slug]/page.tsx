@@ -75,12 +75,12 @@ export default async function RoutePage({
         <Breadcrumbs
           items={[
             { label: tCrumbs("home"), href: "/" },
-            { label: tCrumbs("routes"), href: "/#routes" },
+            { label: tCrumbs("routes"), href: "/kierunki" },
             { label: title },
           ]}
         />
 
-        <Link href="/#routes" className="mt-3 mb-6 inline-block text-[13px] font-semibold text-amber">
+        <Link href="/kierunki" className="mt-3 mb-6 inline-block text-[13px] font-semibold text-amber">
           {t("backToHome")}
         </Link>
 
@@ -124,7 +124,7 @@ export default async function RoutePage({
         )}
 
         <Link
-          href="/#routes"
+          href="/kierunki"
           className="mb-14 inline-block rounded-[9px] bg-amber px-6 py-[15px] text-[15.5px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)]"
         >
           {t("bookCta")}

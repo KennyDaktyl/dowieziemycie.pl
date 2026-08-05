@@ -105,6 +105,11 @@ export default async function ImprezyPage({ params }: { params: Promise<{ locale
                   <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
                     {localize(offer, "excerpt", appLocale)}
                   </p>
+                  {offer.price_from != null && (
+                    <p className="mt-2 text-[13.5px] font-bold text-green">
+                      {t("priceFrom", { price: Number(offer.price_from).toFixed(0) })}
+                    </p>
+                  )}
                   <span className="mt-4 inline-block text-[13.5px] font-semibold text-amber group-hover:underline">
                     {t("seeMore")} →
                   </span>

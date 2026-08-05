@@ -11,6 +11,20 @@ const nextConfig: NextConfig = {
   experimental: {
     globalNotFound: true,
   },
+  async redirects() {
+    // Slugs renamed to include "bus" — barely a day old with no real
+    // backlinks yet, but a permanent redirect costs nothing and is correct.
+    const renames: Record<string, string> = {
+      koncerty: "bus-na-koncert",
+      "wieczor-kawalerski": "bus-na-wieczor-kawalerski",
+      "wieczor-panienski": "bus-na-wieczor-panienski",
+    };
+    return Object.entries(renames).map(([oldSlug, newSlug]) => ({
+      source: `/:locale(pl|en)/imprezy/${oldSlug}`,
+      destination: `/:locale/imprezy/${newSlug}`,
+      permanent: true,
+    }));
+  },
 };
 
 export default withNextIntl(nextConfig);

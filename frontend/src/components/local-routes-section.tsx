@@ -8,7 +8,9 @@ export async function LocalRoutesSection() {
   const [t, locale, routes] = await Promise.all([
     getTranslations("Routes"),
     getLocale(),
-    apiFetch<LocalRoute[]>("/api/routes/", { next: { revalidate: 60 } }),
+    // ?homepage=1 — only routes flagged show_on_homepage in admin, so the
+    // homepage shows a curated set rather than every published route.
+    apiFetch<LocalRoute[]>("/api/routes/?homepage=1", { next: { revalidate: 60 } }),
   ]);
 
   return (
@@ -45,6 +47,9 @@ export async function LocalRoutesSection() {
             </Link>
           ))}
         </div>
+        <Link href="/kierunki" className="mt-8 inline-block text-[13.5px] font-semibold text-amber hover:underline">
+          {t("seeAll")} →
+        </Link>
       </div>
     </section>
   );

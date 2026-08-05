@@ -129,6 +129,7 @@ export interface EventOfferListItem {
   title_en: string;
   excerpt_pl: string;
   excerpt_en: string;
+  price_from: string | null;
 }
 
 export interface EventOffer extends EventOfferListItem {

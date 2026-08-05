@@ -116,6 +116,12 @@ class LocalRouteSerializer(serializers.ModelSerializer):
         return self._estimate(obj).distance_km
 
     def get_example_price(self, obj):
+        # An admin-set price_from always wins — it's the whole point of the
+        # field (control over what's displayed, decoupled from the live
+        # distance-tier estimate below, which stays untouched for real
+        # bookings).
+        if obj.price_from is not None:
+            return obj.price_from
         return self._estimate(obj).price
 
 
@@ -210,7 +216,9 @@ class EventOfferPhotoSerializer(serializers.ModelSerializer):
 class EventOfferListSerializer(serializers.ModelSerializer):
     class Meta:
         model = EventOffer
-        fields = ["slug", "icon", "cover_image", "title_pl", "title_en", "excerpt_pl", "excerpt_en"]
+        fields = [
+            "slug", "icon", "cover_image", "title_pl", "title_en", "excerpt_pl", "excerpt_en", "price_from",
+        ]
 
 
 class EventOfferDetailSerializer(serializers.ModelSerializer):
@@ -220,6 +228,6 @@ class EventOfferDetailSerializer(serializers.ModelSerializer):
         model = EventOffer
         fields = [
             "slug", "icon", "cover_image", "title_pl", "title_en", "h1_pl", "h1_en",
-            "excerpt_pl", "excerpt_en", "body_pl", "body_en",
+            "excerpt_pl", "excerpt_en", "body_pl", "body_en", "price_from",
             "seo_title_pl", "seo_title_en", "seo_description_pl", "seo_description_en", "photos",
         ]

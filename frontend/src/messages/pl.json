@@ -166,14 +166,16 @@
     "nightTitle": "Bezpieczny powrót w nocy",
     "nightBody": "Wracasz z Krakowa, gdy nie ma już komunikacji miejskiej — dowozimy pod same drzwi.",
     "businessTitle": "Przewóz pracowników i długie trasy",
-    "businessBody": "Dojazd do pracy zmianowej, eventy firmowe albo wyjazd busem z kierowcą, np. Kraków–Berlin."
+    "businessBody": "Dojazd do pracy zmianowej, eventy firmowe albo wyjazd busem z kierowcą, np. Kraków–Berlin.",
+    "priceFrom": "od {price} zł"
   },
   "Imprezy": {
     "callCta": "Zadzwoń po wycenę",
     "whatsappCta": "Napisz na WhatsApp",
     "seeMore": "Zobacz więcej",
     "backToIndex": "← Wszystkie imprezy",
-    "galleryHeading": "Galeria"
+    "galleryHeading": "Galeria",
+    "priceFrom": "od {price} zł"
   },
   "WynajemBusa": {
     "callCta": "Zadzwoń po wycenę",
@@ -191,7 +193,8 @@
     "description": "Stałe kursy do gmin Czernichów, Liszki, Alwernia i Krzeszowice — codziennie, o każdej porze dnia i nocy.",
     "priceFrom": "od {price} zł",
     "customQuote": "Wycena indywidualna",
-    "cta": "Zobacz szczegóły →"
+    "cta": "Zobacz szczegóły →",
+    "seeAll": "Zobacz wszystkie kierunki"
   },
   "RoutePage": {
     "backToHome": "← Wszystkie kierunki",

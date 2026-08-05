@@ -50,9 +50,18 @@ class TourDetailView(generics.RetrieveAPIView):
 
 
 class LocalRouteListView(generics.ListAPIView):
+    """GET /api/routes/ — all published routes, for /kierunki. Pass
+    ?homepage=1 to get only the ones flagged show_on_homepage, for the
+    homepage's own routes section."""
+
     permission_classes = [AllowAny]
     serializer_class = LocalRouteSerializer
-    queryset = LocalRoute.objects.filter(is_published=True)
+
+    def get_queryset(self):
+        qs = LocalRoute.objects.filter(is_published=True)
+        if self.request.query_params.get("homepage"):
+            qs = qs.filter(show_on_homepage=True)
+        return qs
 
 
 class LocalRouteDetailView(generics.RetrieveAPIView):
@@ -115,11 +124,18 @@ class ContentPageDetailView(generics.RetrieveAPIView):
 
 
 class EventOfferListView(generics.ListAPIView):
+    """GET /api/events/ — all published event offers, for the /imprezy hub.
+    Pass ?homepage=1 for only the ones flagged show_on_homepage, for the
+    homepage's own tiles."""
+
     permission_classes = [AllowAny]
     serializer_class = EventOfferListSerializer
 
     def get_queryset(self):
-        return EventOffer.objects.filter(is_published=True, site=self.request.site_code)
+        qs = EventOffer.objects.filter(is_published=True, site=self.request.site_code)
+        if self.request.query_params.get("homepage"):
+            qs = qs.filter(show_on_homepage=True)
+        return qs
 
 
 class EventOfferDetailView(generics.RetrieveAPIView):
