@@ -6,9 +6,9 @@ export async function TopicTilesSection() {
   const t = await getTranslations("TopicTiles");
 
   const tiles = [
-    { icon: "🎤", title: t("concertsTitle"), body: t("concertsBody"), href: "/imprezy" },
-    { icon: "🤵", title: t("stagTitle"), body: t("stagBody"), href: "/imprezy" },
-    { icon: "👰", title: t("henTitle"), body: t("henBody"), href: "/imprezy" },
+    { icon: "🎤", title: t("concertsTitle"), body: t("concertsBody"), href: "/imprezy/koncerty" },
+    { icon: "🤵", title: t("stagTitle"), body: t("stagBody"), href: "/imprezy/wieczor-kawalerski" },
+    { icon: "👰", title: t("henTitle"), body: t("henBody"), href: "/imprezy/wieczor-panienski" },
     { icon: "🌙", title: t("nightTitle"), body: t("nightBody"), href: "#routes" },
     { icon: "🏢", title: t("businessTitle"), body: t("businessBody"), href: "/wynajem-busa-z-kierowca" },
   ];

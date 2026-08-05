@@ -4,20 +4,24 @@ import { notFound } from "next/navigation";
 
 import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 import { Breadcrumbs } from "@/components/breadcrumbs";
-import { FaqJsonLd } from "@/components/faq-jsonld";
 import { MarkdownContent } from "@/components/markdown-content";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { WhatsAppButton } from "@/components/whatsapp-button";
+import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import { apiFetch } from "@/lib/api";
-import { extractFaqPairs } from "@/lib/faq";
+import { absoluteImageUrl } from "@/lib/images";
 import { localize } from "@/lib/localize";
 import { buildAlternates } from "@/lib/seo";
-import type { ContentPage } from "@/lib/types";
+import type { ContentPage, EventOfferListItem } from "@/lib/types";
 
 async function getPage(): Promise<ContentPage | null> {
   return apiFetch<ContentPage>("/api/content-pages/imprezy/", { next: { revalidate: 60 } }).catch(() => null);
+}
+
+async function getOffers(): Promise<EventOfferListItem[]> {
+  return apiFetch<EventOfferListItem[]>("/api/events/", { next: { revalidate: 60 } }).catch(() => []);
 }
 
 export async function generateMetadata({
@@ -38,26 +42,25 @@ export default async function ImprezyPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, tCrumbs, appLocale, page] = await Promise.all([
+  const [t, tCrumbs, appLocale, page, offers] = await Promise.all([
     getTranslations("Imprezy"),
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
     getPage(),
+    getOffers(),
   ]);
 
   if (!page) notFound();
 
   const title = localize(page, "title", appLocale);
   const body = localize(page, "body", appLocale);
-  const faqs = extractFaqPairs(body);
   const breadcrumbItems = [{ label: tCrumbs("home"), href: "/" }, { label: tCrumbs("imprezy") }];
 
   return (
     <>
       <BreadcrumbJsonLd items={breadcrumbItems} locale={locale} />
-      <FaqJsonLd faqs={faqs} />
       <SiteHeader />
-      <main className="mx-auto max-w-[900px] px-6 py-16">
+      <main className="mx-auto max-w-[1120px] px-6 py-16">
         <Breadcrumbs items={breadcrumbItems} />
         <h1 className="font-heading mt-3 mb-4 text-[32px] font-semibold md:text-[40px]">{title}</h1>
         <div className="mb-8 flex flex-wrap gap-3">
@@ -76,7 +79,40 @@ export default async function ImprezyPage({ params }: { params: Promise<{ locale
             {t("whatsappCta")}
           </a>
         </div>
-        <MarkdownContent markdown={body} />
+        <div className="max-w-[720px]">
+          <MarkdownContent markdown={body} />
+        </div>
+
+        {offers.length > 0 && (
+          <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {offers.map((offer) => (
+              <Link
+                key={offer.slug}
+                href={`/imprezy/${offer.slug}`}
+                className="group overflow-hidden rounded-xl border border-line bg-panel transition-colors hover:border-amber"
+              >
+                {offer.cover_image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={absoluteImageUrl(offer.cover_image)}
+                    alt={localize(offer, "title", appLocale)}
+                    className="h-[160px] w-full object-cover"
+                  />
+                ) : null}
+                <div className="p-6">
+                  {offer.icon && <span className="text-[28px]">{offer.icon}</span>}
+                  <h2 className="mt-3 text-[18px] font-semibold">{localize(offer, "title", appLocale)}</h2>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
+                    {localize(offer, "excerpt", appLocale)}
+                  </p>
+                  <span className="mt-4 inline-block text-[13.5px] font-semibold text-amber group-hover:underline">
+                    {t("seeMore")} →
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </main>
       <SiteFooter />
       <WhatsAppButton />

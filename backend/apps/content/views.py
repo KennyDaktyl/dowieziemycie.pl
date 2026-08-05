@@ -4,10 +4,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BlogPost, ContentPage, FixedRoute, HomeContent, LocalRoute, Tour
+from .models import BlogPost, ContentPage, EventOffer, FixedRoute, HomeContent, LocalRoute, Tour
 from .serializers import (
     BlogPostSerializer,
     ContentPageSerializer,
+    EventOfferDetailSerializer,
+    EventOfferListSerializer,
     FixedRouteSerializer,
     HomeContentSerializer,
     LocalRouteSerializer,
@@ -110,3 +112,20 @@ class ContentPageDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return ContentPage.objects.filter(is_published=True, site=self.request.site_code)
+
+
+class EventOfferListView(generics.ListAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = EventOfferListSerializer
+
+    def get_queryset(self):
+        return EventOffer.objects.filter(is_published=True, site=self.request.site_code)
+
+
+class EventOfferDetailView(generics.RetrieveAPIView):
+    permission_classes = [AllowAny]
+    serializer_class = EventOfferDetailSerializer
+    lookup_field = "slug"
+
+    def get_queryset(self):
+        return EventOffer.objects.filter(is_published=True, site=self.request.site_code).prefetch_related("photos")

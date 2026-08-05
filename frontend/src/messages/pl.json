@@ -170,7 +170,10 @@
   },
   "Imprezy": {
     "callCta": "Zadzwoń po wycenę",
-    "whatsappCta": "Napisz na WhatsApp"
+    "whatsappCta": "Napisz na WhatsApp",
+    "seeMore": "Zobacz więcej",
+    "backToIndex": "← Wszystkie imprezy",
+    "galleryHeading": "Galeria"
   },
   "WynajemBusa": {
     "callCta": "Zadzwoń po wycenę",

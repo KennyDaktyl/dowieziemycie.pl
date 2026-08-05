@@ -5,6 +5,8 @@ from .models import (
     BlogPostLink,
     BlogPostPhoto,
     ContentPage,
+    EventOffer,
+    EventOfferPhoto,
     FixedRoute,
     FixedRoutePhoto,
     FixedRouteVehiclePrice,
@@ -196,4 +198,28 @@ class ContentPageSerializer(serializers.ModelSerializer):
         fields = [
             "slug", "page_type", "title_pl", "title_en", "body_pl", "body_en",
             "seo_title_pl", "seo_title_en", "seo_description_pl", "seo_description_en",
+        ]
+
+
+class EventOfferPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventOfferPhoto
+        fields = ["image", "thumbnail", "caption", "order"]
+
+
+class EventOfferListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventOffer
+        fields = ["slug", "icon", "cover_image", "title_pl", "title_en", "excerpt_pl", "excerpt_en"]
+
+
+class EventOfferDetailSerializer(serializers.ModelSerializer):
+    photos = EventOfferPhotoSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = EventOffer
+        fields = [
+            "slug", "icon", "cover_image", "title_pl", "title_en", "h1_pl", "h1_en",
+            "excerpt_pl", "excerpt_en", "body_pl", "body_en",
+            "seo_title_pl", "seo_title_en", "seo_description_pl", "seo_description_en", "photos",
         ]

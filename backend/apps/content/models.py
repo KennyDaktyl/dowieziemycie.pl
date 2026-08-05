@@ -403,3 +403,66 @@ class ContentPage(models.Model):
 
     def __str__(self):
         return f"{self.title_pl} ({self.get_page_type_display()})"
+
+
+class EventOffer(models.Model):
+    """One occasional-transport offering with its own URL under /imprezy/<slug>
+    — a concert-transport page, a bachelor-party page, a wedding-car-rental
+    page, etc. Each gets its own title/H1/meta/body/gallery so it can be
+    indexed and found on its own keyword, instead of being one section
+    inside a single catch-all /imprezy page. New offerings (wedding guest
+    transport, wedding car hire, ...) are added here as they come up, no
+    deploy required."""
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
+    slug = models.SlugField(max_length=160, unique=True)
+    order = models.PositiveSmallIntegerField(default=0, help_text="Kolejność na liście /imprezy — mniejsze wyżej.")
+    icon = models.CharField(max_length=8, blank=True, help_text="Emoji do kafelka na liście, np. 🤵")
+    cover_image = models.ImageField(upload_to="events/covers/", blank=True, null=True)
+    title_pl = models.CharField(max_length=200, help_text="Tytuł do zakładki przeglądarki i kafelka na liście.")
+    title_en = models.CharField(max_length=200)
+    h1_pl = models.CharField(
+        max_length=200, blank=True, help_text="Nagłówek H1 na stronie — puste = użyty tytuł powyżej.",
+    )
+    h1_en = models.CharField(max_length=200, blank=True)
+    excerpt_pl = models.CharField(max_length=320, blank=True, help_text="Krótki opis na kafelek listy /imprezy.")
+    excerpt_en = models.CharField(max_length=320, blank=True)
+    body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown — nagłówki ## stają się H2).")
+    body_en = models.TextField(blank=True)
+    seo_title_pl = models.CharField(max_length=160, blank=True)
+    seo_title_en = models.CharField(max_length=160, blank=True)
+    seo_description_pl = models.CharField(max_length=320, blank=True)
+    seo_description_en = models.CharField(max_length=320, blank=True)
+    is_published = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "title_pl"]
+        verbose_name = "Impreza / usługa okolicznościowa"
+        verbose_name_plural = "Imprezy / usługi okolicznościowe"
+
+    def save(self, *args, **kwargs):
+        process_cover_image(self, "cover_image")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.title_pl
+
+
+class EventOfferPhoto(models.Model):
+    offer = models.ForeignKey(EventOffer, related_name="photos", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="events/gallery/")
+    thumbnail = models.ImageField(upload_to="events/gallery/thumbs/", blank=True, editable=False)
+    caption = models.CharField(max_length=160, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Zdjęcie"
+        verbose_name_plural = "Galeria zdjęć"
+
+    def save(self, *args, **kwargs):
+        process_gallery_photo(self, "image", "thumbnail")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.caption or f"Zdjęcie #{self.pk}"

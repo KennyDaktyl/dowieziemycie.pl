@@ -114,6 +114,35 @@ export interface ContentPage {
   seo_description_en: string;
 }
 
+export interface EventOfferPhoto {
+  image: string;
+  thumbnail: string;
+  caption: string;
+  order: number;
+}
+
+export interface EventOfferListItem {
+  slug: string;
+  icon: string;
+  cover_image: string | null;
+  title_pl: string;
+  title_en: string;
+  excerpt_pl: string;
+  excerpt_en: string;
+}
+
+export interface EventOffer extends EventOfferListItem {
+  h1_pl: string;
+  h1_en: string;
+  body_pl: string;
+  body_en: string;
+  seo_title_pl: string;
+  seo_title_en: string;
+  seo_description_pl: string;
+  seo_description_en: string;
+  photos: EventOfferPhoto[];
+}
+
 export interface BlogPostPhoto {
   image: string;
   thumbnail: string;

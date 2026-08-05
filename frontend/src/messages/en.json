@@ -170,7 +170,10 @@
   },
   "Imprezy": {
     "callCta": "Call for a quote",
-    "whatsappCta": "Message on WhatsApp"
+    "whatsappCta": "Message on WhatsApp",
+    "seeMore": "See more",
+    "backToIndex": "← All events",
+    "galleryHeading": "Gallery"
   },
   "WynajemBusa": {
     "callCta": "Call for a quote",

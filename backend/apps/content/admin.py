@@ -5,6 +5,8 @@ from .models import (
     BlogPostLink,
     BlogPostPhoto,
     ContentPage,
+    EventOffer,
+    EventOfferPhoto,
     FixedRoute,
     FixedRoutePhoto,
     FixedRouteVehiclePrice,
@@ -205,4 +207,40 @@ class ContentPageAdmin(admin.ModelAdmin):
         (None, {"fields": ("site", "slug", "page_type", "is_published")}),
         ("Polski", {"fields": ("title_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("title_en", "body_en", "seo_title_en", "seo_description_en")}),
+    )
+
+
+class EventOfferPhotoInline(admin.TabularInline):
+    model = EventOfferPhoto
+    extra = 1
+    fields = ("image", "thumbnail_preview", "caption", "order")
+    readonly_fields = ("thumbnail_preview",)
+
+    @admin.display(description="Podgląd")
+    def thumbnail_preview(self, obj):
+        if not obj.thumbnail:
+            return "—"
+        from django.utils.html import format_html
+
+        return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.thumbnail.url)
+
+
+@admin.register(EventOffer)
+class EventOfferAdmin(admin.ModelAdmin):
+    list_display = ("title_pl", "slug", "site", "order", "is_published")
+    list_editable = ("order", "is_published")
+    list_filter = ("site", "is_published")
+    prepopulated_fields = {"slug": ("title_pl",)}
+    search_fields = ("title_pl", "title_en", "excerpt_pl", "excerpt_en", "slug")
+    inlines = [EventOfferPhotoInline]
+    fieldsets = (
+        (None, {"fields": ("site", "slug", "order", "icon", "cover_image", "is_published")}),
+        (
+            "Polski",
+            {"fields": ("title_pl", "h1_pl", "excerpt_pl", "body_pl", "seo_title_pl", "seo_description_pl")},
+        ),
+        (
+            "English",
+            {"fields": ("title_en", "h1_en", "excerpt_en", "body_en", "seo_title_en", "seo_description_en")},
+        ),
     )
