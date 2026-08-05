@@ -43,6 +43,37 @@ def _driver_auth_header(driver):
     return {"HTTP_AUTHORIZATION": f"Bearer {token}"}
 
 
+class DriverMeViewTests(TestCase):
+    """The app caches its driver profile locally and only had a way to
+    refresh it by logging out and back in — /driver/me/ exists so it can
+    reconcile status against the DB (e.g. after an admin-side edit) without
+    that. Regression coverage for a real bug: a driver whose status was
+    changed in Django admin kept seeing their stale cached status on the
+    phone indefinitely."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="szef")
+        self.driver = Driver.objects.create(user=self.user, name="Szef", status=Driver.Status.W_KURSIE)
+
+    def test_returns_the_drivers_current_status(self):
+        res = self.client.get("/api/fleet/driver/me/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["status"], "W_KURSIE")
+
+    def test_reflects_a_status_changed_elsewhere_eg_django_admin(self):
+        self.driver.status = Driver.Status.OFFLINE
+        self.driver.save(update_fields=["status"])
+
+        res = self.client.get("/api/fleet/driver/me/", **_driver_auth_header(self.driver))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["status"], "OFFLINE")
+
+    def test_requires_authentication(self):
+        res = self.client.get("/api/fleet/driver/me/")
+        self.assertEqual(res.status_code, 401)
+
+
 def _make_booking(customer, **overrides):
     defaults = dict(
         customer=customer,

@@ -28,8 +28,29 @@ from apps.tracking.services import broadcast_driver_update, update_driver_positi
 
 from .authentication import DriverJWTAuthentication
 from .models import Driver
+from .serializers import DriverLiveStatusSerializer
 
 ACTIVE_DRIVER_STATUSES = (Driver.Status.JADACY_PO_KLIENTA, Driver.Status.W_KURSIE)
+
+
+class DriverMeView(APIView):
+    """GET /api/fleet/driver/me/ — the driver's own current status, straight
+    from the database. The app caches its driver profile locally (SecureStore)
+    for offline-first use, but nothing was ever re-pulling it after login —
+    an admin-side status change (or a status the app's own local cache
+    missed, e.g. set by a dispatcher action) could silently disagree with
+    what the phone displays indefinitely. Called on app foreground/mount to
+    reconcile."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # DriverJWTAuthentication resolves request.user fresh from the DB on
+        # every request (see .authentication) — never the stale token payload.
+        data = DriverLiveStatusSerializer(request.user).data
+        data["is_dispatcher"] = request.user.is_dispatcher
+        return Response(data)
 
 
 class OpenBookingsListView(generics.ListAPIView):
