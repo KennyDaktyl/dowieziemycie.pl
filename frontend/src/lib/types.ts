@@ -15,6 +15,7 @@ export interface HomeContent {
 
 export interface VehiclePhotoItem {
   image: string;
+  thumbnail: string;
   caption: string;
   order: number;
 }
@@ -24,6 +25,9 @@ export interface Vehicle {
   name: string;
   model: string;
   seats: number;
+  description_pl: string;
+  description_en: string;
+  description_de: string;
   cover_photo: string | null;
   photos: VehiclePhotoItem[];
 }

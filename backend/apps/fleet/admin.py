@@ -14,7 +14,7 @@ STATUS_COLORS = {
 
 class VehiclePhotoInline(admin.TabularInline):
     model = VehiclePhoto
-    extra = 1
+    extra = 4
     fields = ("image", "thumbnail_preview", "caption", "order")
     readonly_fields = ("thumbnail_preview",)
 

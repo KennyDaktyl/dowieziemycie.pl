@@ -37,6 +37,7 @@
     "blog": "Blog",
     "pricing": "Cennik",
     "terms": "Regulamin",
+    "fleet": "Flota",
     "imprezy": "Imprezy",
     "transport": "Przewóz",
     "wynajemBusa": "Wynajem / długie trasy",
@@ -51,7 +52,8 @@
     "imprezy": "Imprezy",
     "wynajemBusa": "Wynajem busa z kierowcą",
     "pricing": "Cennik",
-    "booking": "Rezerwacja"
+    "booking": "Rezerwacja",
+    "fleet": "Flota"
   },
   "Blog": {
     "heading": "Blog o lokalnym transporcie pod Krakowem",
@@ -75,6 +77,11 @@
     "date": "Data",
     "time": "Godzina",
     "passengers": "Liczba osób",
+    "passengersHint": "Maksymalnie {count} miejsc w aktualnie aktywnej flocie.",
+    "vehiclePreviewTitle": "Auto do kursu",
+    "vehiclePreviewEmpty": "Auto pokaże się tutaj po dodaniu aktywnego pojazdu w panelu.",
+    "vehiclePreviewSeats": "{count} miejsca dla klientów",
+    "vehiclePreviewLink": "Zobacz flotę",
     "childSeats": "Dzieci / foteliki",
     "childSeatsHint": "Dodaj dziecko i podaj wiek, żebym przygotował odpowiedni fotelik albo podkładkę.",
     "addChild": "Dodaj dziecko",
@@ -221,11 +228,22 @@
   "Fleet": {
     "eyebrow": "Flota",
     "title": "Nasza flota",
-    "description": "Komfortowe auto, jeden standard. Miejsce na całą rodzinę albo grupę znajomych wracających z jednej imprezy.",
+    "description": "Pokazujemy realne auta, które obsługują kursy. Teraz dostępne auto ma 4 miejsca dla klientów, a docelowo do floty dojdzie komfortowy 8-osobowy bus z przestronnym wnętrzem.",
     "seats": "Miejsc",
+    "customerSeats": "{count} miejsca dla klientów",
     "availability": "Dostępność",
     "fixedRange": "Stała cena",
-    "empty": "Flota będzie widoczna tutaj, gdy tylko dodamy auto w panelu admina."
+    "empty": "Flota będzie widoczna tutaj, gdy tylko dodamy auto w panelu admina.",
+    "seeFleet": "Zobacz flotę",
+    "bookRide": "Zarezerwuj kurs",
+    "gallery": "Galeria zdjęć",
+    "plannedTitle": "W planie: komfortowy 8-osobowy bus",
+    "plannedBody": "Więcej miejsca, wygodne wnętrze i opcja obsługi większych grup, imprez oraz dłuższych tras jednym autem.",
+    "pageLead": "Tu zobaczysz auta, liczbę miejsc, opis komfortu i pełną galerię zdjęć dodawaną z panelu admina.",
+    "closeGallery": "Zamknij galerię",
+    "previousPhoto": "Poprzednie zdjęcie",
+    "nextPhoto": "Następne zdjęcie",
+    "openPhoto": "Powiększ zdjęcie"
   },
   "LiveMap": {
     "caption": "Nasz kierowca na żywo",

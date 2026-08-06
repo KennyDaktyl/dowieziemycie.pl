@@ -8,7 +8,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.models import Customer
-from apps.fleet.models import Driver
+from apps.fleet.models import Driver, Vehicle
 
 VALID_BOOKING = {
     "pickup_address": "Rybna",
@@ -50,6 +50,17 @@ class BookingAvailabilityGateTests(TestCase):
         # signal for whether new bookings should be accepted.
         res = self._post_booking()
         self.assertEqual(res.status_code, 201)
+
+    def test_rejects_more_passengers_than_active_fleet_seats(self):
+        Vehicle.objects.update(is_active=False)
+        Vehicle.objects.create(name="Toyota Auris Hybrid", plate="KR12345", seats=4, is_active=True)
+        body = {
+            **VALID_BOOKING,
+            "scheduled_at": (timezone.now() + timedelta(hours=3)).isoformat(),
+            "passenger_count": 5,
+        }
+        res = self.client.post("/api/bookings/", body, format="json")
+        self.assertEqual(res.status_code, 400)
 
     def test_allows_booking_when_all_drivers_offline(self):
         Driver.objects.create(

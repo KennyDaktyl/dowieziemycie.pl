@@ -37,6 +37,7 @@
     "blog": "Blog",
     "pricing": "Pricing",
     "terms": "Terms",
+    "fleet": "Fleet",
     "imprezy": "Events",
     "transport": "Transport",
     "wynajemBusa": "Van hire / long routes",
@@ -51,7 +52,8 @@
     "imprezy": "Events",
     "wynajemBusa": "Van hire with a driver",
     "pricing": "Pricing",
-    "booking": "Booking"
+    "booking": "Booking",
+    "fleet": "Fleet"
   },
   "Blog": {
     "heading": "Local transport blog around Kraków",
@@ -75,6 +77,11 @@
     "date": "Date",
     "time": "Time",
     "passengers": "Passengers",
+    "passengersHint": "Maximum {count} customer seats in the active fleet.",
+    "vehiclePreviewTitle": "Vehicle for the ride",
+    "vehiclePreviewEmpty": "The vehicle will show here after an active vehicle is added in the admin panel.",
+    "vehiclePreviewSeats": "{count} customer seats",
+    "vehiclePreviewLink": "See fleet",
     "childSeats": "Children / seats",
     "childSeatsHint": "Add each child and their age so we can prepare the right child seat or booster.",
     "addChild": "Add child",
@@ -221,11 +228,22 @@
   "Fleet": {
     "eyebrow": "Fleet",
     "title": "Our fleet",
-    "description": "A comfortable car, one standard. Room for the whole family or a group of friends heading home from the same party.",
+    "description": "We show the real vehicles used for rides. The current active car has 4 customer seats, and the fleet is planned to grow with a comfortable 8-passenger van with a spacious interior.",
     "seats": "Seats",
+    "customerSeats": "{count} customer seats",
     "availability": "Availability",
     "fixedRange": "Flat rate",
-    "empty": "The fleet will show up here as soon as a vehicle is added in the admin panel."
+    "empty": "The fleet will show up here as soon as a vehicle is added in the admin panel.",
+    "seeFleet": "See fleet",
+    "bookRide": "Book a ride",
+    "gallery": "Photo gallery",
+    "plannedTitle": "Planned: comfortable 8-passenger van",
+    "plannedBody": "More space, a comfortable interior and the option to handle larger groups, events and longer routes in one vehicle.",
+    "pageLead": "See the vehicles, seat count, comfort description and full photo gallery managed from the admin panel.",
+    "closeGallery": "Close gallery",
+    "previousPhoto": "Previous photo",
+    "nextPhoto": "Next photo",
+    "openPhoto": "Open photo"
   },
   "LiveMap": {
     "caption": "Our driver, live",

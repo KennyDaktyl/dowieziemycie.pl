@@ -1,6 +1,8 @@
 import { getTranslations } from "next-intl/server";
 
+import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
+import { absoluteImageUrl } from "@/lib/images";
 import type { Vehicle } from "@/lib/types";
 
 function VanIcon() {
@@ -21,6 +23,14 @@ export async function FleetSection() {
   ]);
 
   const totalSeats = vehicles.reduce((sum, v) => sum + v.seats, 0);
+  const leadVehicle = [...vehicles].sort((a, b) => b.seats - a.seats)[0];
+  const leadPhoto = leadVehicle?.cover_photo ?? leadVehicle?.photos[0]?.image;
+  const previewPhotos = leadVehicle
+    ? [
+        ...(leadVehicle.cover_photo ? [{ image: leadVehicle.cover_photo, caption: leadVehicle.name }] : []),
+        ...leadVehicle.photos,
+      ].slice(0, 4)
+    : [];
   const specs = [
     { n: totalSeats > 0 ? String(totalSeats) : "—", l: t("seats") },
     { n: "24/7", l: t("availability") },
@@ -46,32 +56,46 @@ export async function FleetSection() {
               </div>
             ))}
           </div>
-          {vehicles.length > 0 && (
-            <ul className="mt-6 flex flex-col gap-2">
-              {vehicles.map((v) => (
-                <li key={v.id} className="text-[14px] text-text">
-                  <span className="font-heading font-semibold">{v.name}</span>
-                  {v.model && <span className="text-muted"> · {v.model}</span>}
-                  <span className="text-muted"> · {v.seats} {t("seats").toLowerCase()}</span>
-                </li>
-              ))}
-            </ul>
+          {leadVehicle && (
+            <div className="mt-6 rounded-[12px] border border-line bg-panel p-4">
+              <div className="font-heading text-[18px] font-semibold">{leadVehicle.name}</div>
+              <p className="mt-1 text-[13.5px] text-muted">{t("customerSeats", { count: leadVehicle.seats })}</p>
+            </div>
           )}
+          <Link
+            href="/flota"
+            className="mt-6 inline-flex rounded-md border border-amber px-5 py-3 text-[14px] font-semibold text-amber transition-colors hover:bg-amber/10"
+          >
+            {t("seeFleet")}
+          </Link>
         </div>
-        <div className="flex h-[260px] items-center justify-center rounded-2xl border border-line bg-gradient-to-br from-panel-2 to-panel">
-          {(() => {
-            const photo = vehicles[0]?.cover_photo ?? vehicles[0]?.photos[0]?.image;
-            return photo ? (
+        <div className="rounded-[14px] border border-line bg-panel p-3">
+          <div className="flex h-[260px] items-center justify-center overflow-hidden rounded-[10px] bg-panel-2">
+            {leadPhoto && leadVehicle ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={photo}
-                alt={vehicles[0].name}
-                className="h-full w-full rounded-2xl object-cover"
+                src={absoluteImageUrl(leadPhoto)}
+                alt={leadVehicle.name}
+                className="h-full w-full object-cover"
               />
             ) : (
               <VanIcon />
-            );
-          })()}
+            )}
+          </div>
+          {previewPhotos.length > 1 && (
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {previewPhotos.map((photo, index) => (
+                <div key={`${photo.image}-${index}`} className="aspect-[4/3] overflow-hidden rounded-[7px] bg-panel-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={absoluteImageUrl("thumbnail" in photo && photo.thumbnail ? photo.thumbnail : photo.image)}
+                    alt={photo.caption || leadVehicle?.name || t("title")}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       {vehicles.length === 0 && <p className="mt-4 text-[13px] text-muted">{t("empty")}</p>}

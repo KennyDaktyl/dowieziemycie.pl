@@ -36,6 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...localizedEntry("", 1, "daily"),
     ...localizedEntry("/na-zywo", 0.5, "always"),
+    ...localizedEntry("/flota", 0.8, "weekly"),
     ...localizedEntry("/blog", 0.8, "weekly"),
     ...routeSlugs.flatMap((slug) => localizedEntry(`/trasa/${slug}`, 0.8, "weekly")),
     ...blogSlugs.flatMap((slug) => localizedEntry(`/blog/${slug}`, 0.7, "monthly")),

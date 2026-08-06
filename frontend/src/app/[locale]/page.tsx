@@ -23,13 +23,13 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <SiteHeader />
       <main>
         <HeroSection />
+        <FleetSection />
         <PillarsSection />
         <TopicTilesSection />
         <StatusLegendSection />
         <PricingTierSection />
         <HowItWorksSection />
         <LocalRoutesSection />
-        <FleetSection />
         <AboutSection />
       </main>
       <SiteFooter />

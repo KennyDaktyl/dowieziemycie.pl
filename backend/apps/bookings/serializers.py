@@ -1,3 +1,4 @@
+from django.db.models import Max
 from rest_framework import serializers
 
 from .availability import assert_bookings_open, has_conflicting_booking
@@ -40,6 +41,12 @@ def _update_customer_details(customer, name: str, email: str) -> None:
         update_fields.append("email")
     if update_fields:
         customer.save(update_fields=update_fields)
+
+
+def _active_fleet_max_seats() -> int:
+    from apps.fleet.models import Vehicle
+
+    return Vehicle.objects.filter(is_active=True).aggregate(max_seats=Max("seats"))["max_seats"] or 1
 
 
 class PricingTierSerializer(serializers.ModelSerializer):
@@ -158,8 +165,14 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         # as an auto-generated, not-required field) — the map-based booking
         # form on dowieziemycie.pl doesn't collect it, so it's routinely
         # absent from attrs entirely, not just falsy.
+        passenger_count = attrs.get("passenger_count", 1)
+        max_seats = _active_fleet_max_seats()
+        if passenger_count > max_seats:
+            raise serializers.ValidationError(
+                {"passenger_count": f"Aktywna flota ma maksymalnie {max_seats} miejsc dla klientów."}
+            )
         attrs["child_seat_ages"] = _validate_child_seat_ages(
-            attrs.get("child_seat_ages", []), attrs.get("passenger_count", 1)
+            attrs.get("child_seat_ages", []), passenger_count
         )
         if has_conflicting_booking(attrs["scheduled_at"], site_code):
             raise serializers.ValidationError(

@@ -9,7 +9,8 @@ import { Link } from "@/i18n/navigation";
 import { publicApiBaseUrl, withSiteHeader } from "@/lib/api";
 import type { AddressSuggestion } from "@/lib/geocode";
 import { reverseGeocode } from "@/lib/geocode";
-import type { DriverEta, RouteEstimate } from "@/lib/types";
+import { absoluteImageUrl } from "@/lib/images";
+import type { DriverEta, RouteEstimate, Vehicle } from "@/lib/types";
 
 import { AddressSearchField } from "./address-search-field";
 import { PhoneVerifyStep } from "./phone-verify-step";
@@ -20,7 +21,7 @@ const BookingMap = dynamic(() => import("./booking-map").then((m) => m.BookingMa
   loading: () => <div className="h-[240px] w-full animate-pulse rounded-lg bg-panel-2 lg:h-full" />,
 });
 
-const MAX_PASSENGERS = 7;
+const DEFAULT_MAX_PASSENGERS = 4;
 
 // "How soon can a driver reach you" only means anything for a ride
 // happening soon — it's computed from whichever driver happens to be
@@ -83,6 +84,7 @@ export function BookingCard() {
   const [etaLoading, setEtaLoading] = useState(false);
   const [availability, setAvailability] = useState<"checking" | "available" | "unavailable">("checking");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -106,8 +108,36 @@ export function BookingCard() {
     };
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`${publicApiBaseUrl()}/api/fleet/vehicles/`, {
+          signal: controller.signal,
+          headers: withSiteHeader(),
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as Vehicle[];
+        const activeVehicles = data.sort((a, b) => b.seats - a.seats);
+        const maxSeats = activeVehicles[0]?.seats ?? DEFAULT_MAX_PASSENGERS;
+        setVehicles(activeVehicles);
+        setPassengers((value) => Math.min(value, maxSeats));
+        setChildSeatAges((ages) => ages.slice(0, maxSeats));
+      } catch {
+        // Fleet preview is helpful, but not required to submit the form.
+      }
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, []);
+
   const scheduledSoon =
     !date || new Date(`${date}T${time || "00:00"}:00`).getTime() - Date.now() <= DRIVER_ETA_MAX_HOURS_AHEAD * 3600_000;
+  const maxPassengers = vehicles[0]?.seats ?? DEFAULT_MAX_PASSENGERS;
+  const previewVehicle = vehicles[0] ?? null;
+  const previewVehiclePhoto = previewVehicle?.cover_photo ?? previewVehicle?.photos[0]?.thumbnail ?? previewVehicle?.photos[0]?.image;
 
   useEffect(() => {
     if (!pickup || !scheduledSoon) {
@@ -210,7 +240,7 @@ export function BookingCard() {
 
   function addChildSeat() {
     setChildSeatAges((ages) => {
-      if (ages.length >= MAX_PASSENGERS) return ages;
+      if (ages.length >= maxPassengers) return ages;
       const next = [...ages, 3];
       if (next.length > passengers) setPassengers(next.length);
       return next;
@@ -406,6 +436,37 @@ export function BookingCard() {
             </div>
           </div>
 
+          <div className="rounded-[10px] border border-line bg-panel-2 p-3">
+            {previewVehicle ? (
+              <div className="flex gap-3">
+                <div className="h-[82px] w-[112px] shrink-0 overflow-hidden rounded-[8px] border border-line bg-panel">
+                  {previewVehiclePhoto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={absoluteImageUrl(previewVehiclePhoto)}
+                      alt={previewVehicle.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : null}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
+                    {t("vehiclePreviewTitle")}
+                  </div>
+                  <div className="mt-1 font-heading text-[16px] font-semibold text-text">{previewVehicle.name}</div>
+                  <div className="mt-1 text-[12.5px] text-muted">
+                    {t("vehiclePreviewSeats", { count: previewVehicle.seats })}
+                  </div>
+                  <Link href="/flota" className="mt-2 inline-block text-[12.5px] font-semibold text-amber hover:underline">
+                    {t("vehiclePreviewLink")}
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="text-[13px] text-muted">{t("vehiclePreviewEmpty")}</div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
@@ -420,12 +481,13 @@ export function BookingCard() {
                 }}
                 className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
               >
-                {Array.from({ length: MAX_PASSENGERS }, (_, i) => i + 1).map((n) => (
+                {Array.from({ length: maxPassengers }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={n}>
                     {n}
                   </option>
                 ))}
               </select>
+              <p className="text-[11.5px] text-muted">{t("passengersHint", { count: maxPassengers })}</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
@@ -451,7 +513,7 @@ export function BookingCard() {
               <button
                 type="button"
                 onClick={addChildSeat}
-                disabled={childSeatAges.length >= MAX_PASSENGERS}
+                disabled={childSeatAges.length >= maxPassengers}
                 className="shrink-0 rounded-md border border-amber px-3 py-2 text-[13px] font-semibold text-amber transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("addChild")}

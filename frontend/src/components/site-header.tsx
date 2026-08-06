@@ -26,6 +26,7 @@ export async function SiteHeader() {
     { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
   ];
   const informationLinks = [
+    { href: "/flota", label: tNav("fleet") },
     { href: `/${locale}#how-it-works`, label: tNav("howItWorks") },
     { href: "/na-zywo", label: tNav("tracking") },
     { href: "/cennik", label: tNav("pricing") },
@@ -33,9 +34,13 @@ export async function SiteHeader() {
     { href: "/regulamin", label: tNav("terms") },
   ];
   const mobileNavLinks = [
+    { href: "/rezerwacja", label: tNav("booking") },
     { href: `/${locale}#coverage`, label: tNav("coverage") },
     { href: `/${locale}#how-it-works`, label: tNav("howItWorks") },
     { href: `/${locale}#routes`, label: tNav("routes") },
+    { href: "/imprezy", label: tNav("imprezy") },
+    { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
+    { href: "/flota", label: tNav("fleet") },
     { href: "/na-zywo", label: tNav("tracking") },
     { href: "/blog", label: tNav("blog") },
     { href: "/cennik", label: tNav("pricing") },
