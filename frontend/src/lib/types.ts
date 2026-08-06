@@ -39,6 +39,14 @@ export interface PricingTier {
   price_on_demand: string;
 }
 
+export interface LocalFarePolicy {
+  minimum_fare: string;
+  included_km: number;
+  local_max_distance_km: number;
+  price_per_km: string;
+  proximity_threshold_km: string;
+}
+
 export interface RouteEstimate {
   distance_km: number;
   duration_min: number;

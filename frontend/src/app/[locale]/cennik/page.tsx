@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { LocalFareRulesSection } from "@/components/local-fare-rules-section";
 import { MarkdownContent } from "@/components/markdown-content";
 import { PricingTierSection } from "@/components/pricing-tier-section";
 import { SiteFooter } from "@/components/site-footer";
@@ -59,6 +60,7 @@ export default async function CennikPage({ params }: { params: Promise<{ locale:
           <MarkdownContent markdown={body} />
         </div>
       </main>
+      <LocalFareRulesSection />
       <PricingTierSection />
       <SiteFooter />
     </>

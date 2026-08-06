@@ -7,6 +7,7 @@ from .views import (
     CancelMyBookingView,
     CatalogBookingCreateView,
     CreatePaymentIntentView,
+    LocalFarePolicyView,
     PricingTierListView,
     RouteEstimateView,
     StripeWebhookView,
@@ -14,6 +15,7 @@ from .views import (
 
 urlpatterns = [
     path("pricing-tiers/", PricingTierListView.as_view(), name="pricing-tiers"),
+    path("local-fare-policy/", LocalFarePolicyView.as_view(), name="local-fare-policy"),
     path("route-estimate/", RouteEstimateView.as_view(), name="route-estimate"),
     path("bookings/", BookingCreateView.as_view(), name="booking-create"),
     path("bookings/catalog/", CatalogBookingCreateView.as_view(), name="booking-create-catalog"),

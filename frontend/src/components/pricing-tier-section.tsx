@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { CustomQuoteCta } from "@/components/custom-quote-cta";
 import { apiFetch } from "@/lib/api";
 import type { PricingTier } from "@/lib/types";
 
@@ -36,7 +37,12 @@ export async function PricingTierSection() {
             </div>
           ))}
         </div>
-        {maxKm !== null && <p className="mt-5 text-[13px] text-muted">{t("beyond", { km: maxKm })}</p>}
+        {maxKm !== null && (
+          <div className="mt-5">
+            <p className="text-[13px] text-muted">{t("beyond", { km: maxKm })}</p>
+            <CustomQuoteCta className="mt-1.5" />
+          </div>
+        )}
         <p className="mt-1.5 text-[12px] text-muted">{t("vatNote")}</p>
       </div>
     </section>

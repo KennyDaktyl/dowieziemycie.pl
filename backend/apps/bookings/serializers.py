@@ -2,7 +2,7 @@ from django.db.models import Max
 from rest_framework import serializers
 
 from .availability import assert_bookings_open, has_conflicting_booking
-from .models import Booking, Coupon, PricingTier
+from .models import Booking, Coupon, LocalFarePolicy, PricingTier
 from .pricing import estimate_price
 from .routing import get_route_distance_km
 
@@ -53,6 +53,16 @@ class PricingTierSerializer(serializers.ModelSerializer):
     class Meta:
         model = PricingTier
         fields = ["id", "max_distance_km", "price_reserved", "price_on_demand"]
+
+
+class LocalFarePolicySerializer(serializers.ModelSerializer):
+    """Public read-only view of the live local-fare rule — lets the
+    marketing copy on /cennik quote the actual configured numbers instead of
+    a hardcoded value that drifts out of sync whenever it's edited in admin."""
+
+    class Meta:
+        model = LocalFarePolicy
+        fields = ["minimum_fare", "included_km", "local_max_distance_km", "price_per_km", "proximity_threshold_km"]
 
 
 class RouteEstimateRequestSerializer(serializers.Serializer):

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { CustomQuoteCta } from "@/components/custom-quote-cta";
 import { Link } from "@/i18n/navigation";
 import { publicApiBaseUrl, withSiteHeader } from "@/lib/api";
 import type { AddressSuggestion } from "@/lib/geocode";
@@ -632,7 +633,7 @@ export function BookingCard() {
                   <div className="mt-0.5 text-right text-[11px] text-muted">{t("vatNote")}</div>
                 </div>
               ) : (
-                <div className="font-heading text-lg font-semibold text-muted">{t("customQuote")}</div>
+                <CustomQuoteCta className="text-right" />
               )}
             </div>
             {pickup && dropoff && estimate && estimate.price != null && (

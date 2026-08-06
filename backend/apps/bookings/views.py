@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Booking, Payment, PricingTier
+from .models import Booking, LocalFarePolicy, Payment, PricingTier
 from .notifications import notify_dispatcher_of_customer_cancellation
 from .payments import PaymentError, create_payment_intent
 from .pricing import estimate_price
@@ -17,6 +17,7 @@ from .serializers import (
     BookingCreateSerializer,
     BookingSerializer,
     CatalogBookingCreateSerializer,
+    LocalFarePolicySerializer,
     PricingTierSerializer,
     RouteEstimateRequestSerializer,
 )
@@ -35,6 +36,19 @@ class PricingTierListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     serializer_class = PricingTierSerializer
     queryset = PricingTier.objects.filter(is_active=True)
+
+
+class LocalFarePolicyView(APIView):
+    """GET /api/local-fare-policy/ — the live local-fare rule, for the
+    /cennik copy to quote real numbers instead of a hardcoded value."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        policy = LocalFarePolicy.objects.filter(is_active=True).first()
+        if not policy:
+            return Response(None)
+        return Response(LocalFarePolicySerializer(policy).data)
 
 
 class RouteEstimateView(APIView):

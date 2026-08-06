@@ -146,8 +146,17 @@
     "upTo": "Do {km} km",
     "reserved": "Rezerwacja z wyprzedzeniem",
     "onDemand": "Zamówienie na już",
-    "beyond": "Dalej niż {km} km — wycena indywidualna",
+    "beyond": "Dalej niż {km} km:",
     "vatNote": "Wszystkie ceny zawierają VAT (23%)."
+  },
+  "CustomQuote": {
+    "label": "Wycena indywidualna",
+    "or": "lub"
+  },
+  "LocalFareRules": {
+    "eyebrow": "Kursy lokalne",
+    "title": "Jak liczymy krótkie, lokalne kursy",
+    "body": "Jeśli miejsce odbioru jest w promieniu {radius} km od naszej bazy w Rybnej (albo od aktualnej lokalizacji kierowcy), a cała trasa nie przekracza {maxKm} km, liczymy ją jako kurs lokalny: {minFare} zł za pierwsze {includedKm} km, a każdy kolejny kilometr to {perKm} zł. Dłuższe trasy — np. dojazd do lub z Krakowa — rozliczamy według cennika strefowego poniżej."
   },
   "HowItWorks": {
     "eyebrow": "Proces",

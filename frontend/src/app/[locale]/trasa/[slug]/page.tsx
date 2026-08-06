@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { Link } from "@/i18n/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { CustomQuoteCta } from "@/components/custom-quote-cta";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { apiFetch } from "@/lib/api";
@@ -105,9 +106,7 @@ export default async function RoutePage({
                 <div className="text-xs text-muted">{t("vatNote")}</div>
               </>
             ) : (
-              <div className="font-heading text-xl font-semibold text-muted">
-                {locale === "en" ? "Custom quote" : "Wycena indywidualna"}
-              </div>
+              <CustomQuoteCta className="text-right" />
             )}
             <div className="font-label mt-0.5 text-xs text-muted">
               {t("exampleDistance", { km: route.example_distance_km })}

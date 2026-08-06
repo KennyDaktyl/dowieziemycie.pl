@@ -146,8 +146,17 @@
     "upTo": "Up to {km} km",
     "reserved": "Booked in advance",
     "onDemand": "On-demand",
-    "beyond": "Beyond {km} km — custom quote",
+    "beyond": "Beyond {km} km:",
     "vatNote": "All prices include VAT (23%)."
+  },
+  "CustomQuote": {
+    "label": "Custom quote",
+    "or": "or"
+  },
+  "LocalFareRules": {
+    "eyebrow": "Local rides",
+    "title": "How we price short, local rides",
+    "body": "If the pickup point is within {radius} km of our base in Rybna (or the driver's current location), and the whole route is no longer than {maxKm} km, we price it as a local ride: {minFare} zł for the first {includedKm} km, then {perKm} zł per km after that. Longer routes — e.g. to or from Kraków — are priced from the zone tariff below."
   },
   "HowItWorks": {
     "eyebrow": "Process",
