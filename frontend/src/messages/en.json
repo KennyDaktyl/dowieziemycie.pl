@@ -32,8 +32,10 @@
     "routes": "Routes",
     "tracking": "Driver, live",
     "trackByCode": "Track your driver",
+    "information": "Information",
     "blog": "Blog",
     "pricing": "Pricing",
+    "terms": "Terms",
     "imprezy": "Events",
     "wynajemBusa": "Van hire / long routes",
     "bookNow": "Book a ride"
