@@ -21,6 +21,8 @@ export async function SiteHeader() {
   const primaryLinks = [
     { href: `/${locale}#coverage`, label: tNav("coverage") },
     { href: `/${locale}#routes`, label: tNav("routes") },
+    { href: "/imprezy", label: tNav("imprezy") },
+    { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
   ];
   const informationLinks = [
     { href: `/${locale}#how-it-works`, label: tNav("howItWorks") },

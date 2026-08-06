@@ -59,7 +59,7 @@ export default async function WynajemBusaPage({ params }: { params: Promise<{ lo
       <BreadcrumbJsonLd items={breadcrumbItems} locale={locale} />
       <FaqJsonLd faqs={faqs} />
       <SiteHeader />
-      <main className="mx-auto max-w-[900px] px-6 py-16">
+      <main className="mx-auto max-w-[1360px] px-6 py-16">
         <Breadcrumbs items={breadcrumbItems} />
         <h1 className="font-heading mt-3 mb-4 text-[32px] font-semibold md:text-[40px]">{title}</h1>
         <div className="mb-8 flex flex-wrap gap-3">
@@ -78,7 +78,9 @@ export default async function WynajemBusaPage({ params }: { params: Promise<{ lo
             {t("whatsappCta")}
           </a>
         </div>
-        <MarkdownContent markdown={body} />
+        <div className="max-w-[900px]">
+          <MarkdownContent markdown={body} />
+        </div>
       </main>
       <SiteFooter />
       <WhatsAppButton />

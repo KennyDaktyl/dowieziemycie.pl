@@ -43,9 +43,13 @@ export default async function RegulaminPage({ params }: { params: Promise<{ loca
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-[900px] px-6 py-16">
+      <main className="mx-auto max-w-[1360px] px-6 py-16">
         <h1 className="font-heading mb-8 text-2xl font-semibold">{title}</h1>
-        {body && <MarkdownContent markdown={body} />}
+        {body && (
+          <div className="max-w-[900px]">
+            <MarkdownContent markdown={body} />
+          </div>
+        )}
       </main>
       <SiteFooter />
     </>

@@ -48,7 +48,7 @@ export default async function BlogIndexPage({
     <>
       <SiteHeader />
       <main>
-        <div className="mx-auto max-w-[1200px] px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-[1360px] px-4 py-16 sm:px-6 sm:py-20">
           <Breadcrumbs items={[{ label: tCrumbs("home"), href: "/" }, { label: tCrumbs("blog") }]} />
           <h1 className="font-heading mt-3 text-[32px] font-semibold text-text sm:text-[42px]">{t("heading")}</h1>
           <p className="mt-3 max-w-[680px] text-[16px] leading-relaxed text-muted">{t("lead")}</p>

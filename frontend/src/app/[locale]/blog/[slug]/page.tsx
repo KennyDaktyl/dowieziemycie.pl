@@ -63,7 +63,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ local
     <>
       <SiteHeader />
       <main>
-        <div className="mx-auto max-w-[1120px] px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-[1360px] px-4 py-14 sm:px-6 sm:py-20">
           <Breadcrumbs
             items={[{ label: tCrumbs("home"), href: "/" }, { label: tCrumbs("blog"), href: "/blog" }, { label: title }]}
           />

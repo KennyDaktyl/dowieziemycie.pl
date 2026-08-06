@@ -78,7 +78,7 @@ export default async function EventOfferPage({
       <BreadcrumbJsonLd items={breadcrumbItems} locale={locale} />
       <FaqJsonLd faqs={faqs} />
       <SiteHeader />
-      <main className="mx-auto max-w-[900px] px-6 py-16">
+      <main className="mx-auto max-w-[1360px] px-6 py-16">
         <Breadcrumbs items={breadcrumbItems} />
         <Link href="/imprezy" className="mt-3 inline-block text-[13px] font-medium text-amber">
           {t("backToIndex")}
@@ -120,7 +120,9 @@ export default async function EventOfferPage({
           </a>
         </div>
 
-        <MarkdownContent markdown={body} />
+        <div className="max-w-[900px]">
+          <MarkdownContent markdown={body} />
+        </div>
 
         {photos.length > 0 && (
           <div className="mt-10">

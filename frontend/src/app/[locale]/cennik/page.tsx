@@ -52,10 +52,12 @@ export default async function CennikPage({ params }: { params: Promise<{ locale:
     <>
       <BreadcrumbJsonLd items={breadcrumbItems} locale={locale} />
       <SiteHeader />
-      <main className="mx-auto max-w-[900px] px-6 pt-16">
+      <main className="mx-auto max-w-[1360px] px-6 pt-16">
         <Breadcrumbs items={breadcrumbItems} />
         <h1 className="font-heading mt-3 mb-4 text-[32px] font-semibold md:text-[40px]">{title}</h1>
-        <MarkdownContent markdown={body} />
+        <div className="max-w-[900px]">
+          <MarkdownContent markdown={body} />
+        </div>
       </main>
       <PricingTierSection />
       <SiteFooter />

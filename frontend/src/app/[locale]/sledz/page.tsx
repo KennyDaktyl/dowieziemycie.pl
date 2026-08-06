@@ -12,7 +12,7 @@ export default async function TrackByCodePage({ params }: { params: Promise<{ lo
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-[900px] px-6 py-16">
+      <main className="mx-auto max-w-[1360px] px-6 py-16">
         <h1 className="font-heading mb-2 text-center text-2xl font-semibold">{t("title")}</h1>
         <p className="mb-8 text-center text-[14px] text-muted">{t("lead")}</p>
         <TrackByCode />
