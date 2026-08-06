@@ -27,10 +27,14 @@ class PriceEstimate:
 
 def _local_fare_price(distance_km, pickup_lat, pickup_lng):
     """If a free (or soon-to-be-free) driver is already close to the pickup
-    point, price the whole trip like a local taxi run instead of looking up
-    the Kraków-corridor tier table — see LocalFarePolicy's docstring."""
+    point AND the route itself is still short, price the trip like a local
+    taxi run instead of looking up the Kraków-corridor tier table — see
+    LocalFarePolicy's docstring."""
     policy = LocalFarePolicy.objects.filter(is_active=True).first()
     if not policy:
+        return None
+
+    if distance_km > policy.local_max_distance_km:
         return None
 
     # Imported here, not at module level — apps.fleet.dispatch imports
@@ -42,7 +46,10 @@ def _local_fare_price(distance_km, pickup_lat, pickup_lng):
     if driver_distance_km is None or driver_distance_km > float(policy.proximity_threshold_km):
         return None
 
-    return max(Decimal(str(distance_km)) * policy.price_per_km, policy.minimum_fare)
+    distance = Decimal(str(distance_km))
+    if distance <= policy.included_km:
+        return policy.minimum_fare
+    return policy.minimum_fare + (distance - policy.included_km) * policy.price_per_km
 
 
 def estimate_price(pickup_lat, pickup_lng, dropoff_lat, dropoff_lng, scheduled_at, distance_km=None) -> PriceEstimate:

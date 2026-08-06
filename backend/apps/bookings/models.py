@@ -105,8 +105,12 @@ class LocalFarePolicy(models.Model):
     to be free — see their active booking's dropoff) is already close to the
     pickup point, a short local hop near their base (e.g. Rybna→Czernichów)
     shouldn't cost the same as a 25 km trip into Kraków. In that case we
-    price the whole trip at `price_per_km` (floored at `minimum_fare`)
-    instead of looking up a tier.
+    price the trip as `minimum_fare` for the first `included_km`, plus
+    `price_per_km` for each km beyond that — instead of looking up a tier —
+    as long as the route itself isn't longer than `local_max_distance_km`
+    (past that it's corridor territory, not a local hop, so it falls
+    through to the tier table same as any other pickup outside the
+    proximity radius).
     """
 
     proximity_threshold_km = models.DecimalField(
@@ -116,8 +120,19 @@ class LocalFarePolicy(models.Model):
             "bliżej niż X km od miejsca odbioru, stosujemy taryfę lokalną zamiast cennika."
         ),
     )
-    price_per_km = models.DecimalField(max_digits=5, decimal_places=2, default=4.00)
-    minimum_fare = models.DecimalField(max_digits=6, decimal_places=2, default=40.00)
+    included_km = models.PositiveSmallIntegerField(
+        default=10, help_text="Ile km trasy pokrywa stawka minimalna, zanim naliczy się cena za km.",
+    )
+    local_max_distance_km = models.PositiveSmallIntegerField(
+        default=20,
+        help_text="Powyżej ilu km trasy taryfa lokalna przestaje obowiązywać (dalej liczymy z cennika strefowego).",
+    )
+    price_per_km = models.DecimalField(
+        max_digits=5, decimal_places=2, default=4.00, help_text="Cena za każdy km powyżej included_km.",
+    )
+    minimum_fare = models.DecimalField(
+        max_digits=6, decimal_places=2, default=49.00, help_text="Stawka za pierwsze included_km trasy.",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -125,7 +140,7 @@ class LocalFarePolicy(models.Model):
         verbose_name_plural = "Taryfa lokalna"
 
     def __str__(self):
-        return f"Taryfa lokalna · {self.price_per_km} zł/km, min. {self.minimum_fare} zł"
+        return f"Taryfa lokalna · {self.minimum_fare} zł do {self.included_km} km, potem {self.price_per_km} zł/km"
 
 
 class Coupon(models.Model):

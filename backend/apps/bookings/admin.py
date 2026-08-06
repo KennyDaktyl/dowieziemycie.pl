@@ -14,7 +14,10 @@ class PricingTierAdmin(admin.ModelAdmin):
 
 @admin.register(LocalFarePolicy)
 class LocalFarePolicyAdmin(admin.ModelAdmin):
-    fields = ("proximity_threshold_km", "price_per_km", "minimum_fare", "is_active")
+    fields = (
+        "proximity_threshold_km", "included_km", "local_max_distance_km", "price_per_km", "minimum_fare",
+        "is_active",
+    )
 
     def has_add_permission(self, request):
         return not LocalFarePolicy.objects.exists()
