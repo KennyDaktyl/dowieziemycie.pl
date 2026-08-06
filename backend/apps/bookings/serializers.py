@@ -154,8 +154,12 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         assert_bookings_open(self.context["request"].site_code)
 
         site_code = self.context["request"].site_code
+        # passenger_count defaults to 1 on the model (Meta.fields pulls it in
+        # as an auto-generated, not-required field) — the map-based booking
+        # form on dowieziemycie.pl doesn't collect it, so it's routinely
+        # absent from attrs entirely, not just falsy.
         attrs["child_seat_ages"] = _validate_child_seat_ages(
-            attrs.get("child_seat_ages", []), attrs["passenger_count"]
+            attrs.get("child_seat_ages", []), attrs.get("passenger_count", 1)
         )
         if has_conflicting_booking(attrs["scheduled_at"], site_code):
             raise serializers.ValidationError(

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
+import { ObfuscatedEmail } from "@/components/obfuscated-email";
 import { PaymentBadge } from "@/components/payment-badge";
 import { Link } from "@/i18n/navigation";
 import { apiBaseUrl } from "@/lib/api";
@@ -26,7 +27,7 @@ export async function SiteFooter() {
             <p className="text-[13.5px] leading-[1.7] text-muted">
               <a href="tel:+48506029980">+48 506 029 980</a>
               <br />
-              kontakt@dowieziemycie.pl
+              <ObfuscatedEmail user="kontakt" domain="dowieziemycie.pl" />
             </p>
             <Link href="/regulamin" className="mt-2.5 inline-block text-[13.5px] text-muted hover:text-text">
               {t("terms")}

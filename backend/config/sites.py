@@ -24,3 +24,10 @@ SITE_DISPLAY_NAMES = {
     SITE_DOWIEZIEMYCIE: "dowieziemycie",
     SITE_TRANSFER247: "transfer247",
 }
+
+# The public frontend each brand's outgoing links (emails, etc.) should
+# point back to.
+SITE_URLS = {
+    SITE_DOWIEZIEMYCIE: "https://dowieziemycie.pl",
+    SITE_TRANSFER247: "https://transfer247.pl",
+}

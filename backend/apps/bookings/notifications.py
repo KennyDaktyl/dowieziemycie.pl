@@ -13,7 +13,7 @@ import re
 from django.conf import settings
 from django.utils import timezone
 
-from config.sites import SITE_DISPLAY_NAMES
+from config.sites import SITE_DISPLAY_NAMES, SITE_URLS
 
 from .models import BookingSettings
 
@@ -21,6 +21,10 @@ logger = logging.getLogger("apps.bookings.notifications")
 
 _POSTAL_CODE_RE = re.compile(r"\b\d{2}-\d{3}\b")
 _ADDRESS_NOISE_PREFIXES = ("gmina ", "powiat ", "województwo ")
+
+# dowieziemycie.pl has a dedicated booking page; transfer247.pl's booking
+# flow lives on the homepage itself — used for the "book again" CTA below.
+_BOOK_AGAIN_PATH = {"dowieziemycie": "/rezerwacja", "transfer247": "/"}
 
 
 def short_address(address: str, max_len: int = 50) -> str:
@@ -51,10 +55,10 @@ def short_address(address: str, max_len: int = 50) -> str:
     return (short or address)[:max_len]
 
 
-def _send_email(to_email: str, subject: str, body: str, site: str) -> None:
+def _send_email(to_email: str, subject: str, body: str, site: str, *, html_body: str = "") -> None:
     if not to_email:
         return
-    from django.core.mail import EmailMessage, get_connection
+    from django.core.mail import EmailMessage, EmailMultiAlternatives, get_connection
 
     account = settings.EMAIL_ACCOUNTS.get(site) or {}
     from_email = account.get("from_email") or settings.DEFAULT_FROM_EMAIL
@@ -73,9 +77,27 @@ def _send_email(to_email: str, subject: str, body: str, site: str) -> None:
             password=account.get("password") or None,
             use_tls=account.get("use_tls", True),
         )
-        EmailMessage(subject, body, from_email, [to_email], connection=connection).send(fail_silently=False)
+        if html_body:
+            message = EmailMultiAlternatives(subject, body, from_email, [to_email], connection=connection)
+            message.attach_alternative(html_body, "text/html")
+        else:
+            message = EmailMessage(subject, body, from_email, [to_email], connection=connection)
+        message.send(fail_silently=False)
     except Exception:
         logger.exception("Nie udało się wysłać e-maila do %s", to_email)
+
+
+def _send_customer_email(
+    to_email: str, subject: str, site: str, heading: str, body_lines: list, *, cta_label: str = "", cta_url: str = "",
+) -> None:
+    """Customer-facing emails get the branded HTML template (see
+    email_templates.py) — the plain-text part is just the body lines joined,
+    kept as the text/plain alternative for clients that prefer it."""
+    from .email_templates import render_customer_email_html
+
+    plain_body = "\n\n".join(body_lines)
+    html_body = render_customer_email_html(site, heading, body_lines, cta_label=cta_label, cta_url=cta_url)
+    _send_email(to_email, subject, plain_body, site, html_body=html_body)
 
 
 def _send_sms(phone: str, message: str, site: str) -> None:
@@ -151,11 +173,19 @@ def notify_customer_of_confirmation(booking) -> None:
         f"{BookingSettings.for_site(booking.site).payment_window_minutes} min, aby zachować termin."
     )
     _send_sms(booking.customer.phone, text, booking.site)
-    _send_email(
+    _send_customer_email(
         booking.customer.email,
         f"{site_name}: rezerwacja potwierdzona — zapłać zaliczkę",
-        text,
         booking.site,
+        "Rezerwacja potwierdzona!",
+        [
+            f"Twoja rezerwacja na {booking.scheduled_at:%d.%m %H:%M} została potwierdzona.",
+            f"Cena: {booking.price} zł, zaliczka: {booking.deposit_amount} zł.",
+            f"Zapłać w ciągu {BookingSettings.for_site(booking.site).payment_window_minutes} minut, "
+            "aby zachować termin.",
+        ],
+        cta_label="Zapłać zaliczkę",
+        cta_url=f"{SITE_URLS[booking.site]}/panel",
     )
 
 
@@ -199,7 +229,15 @@ def notify_customer_ride_finished(booking) -> None:
     site_name = SITE_DISPLAY_NAMES[booking.site]
     text = f"{site_name}: Kurs zakończony. Dziękujemy za skorzystanie z naszych usług!"
     _send_sms(booking.customer.phone, text, booking.site)
-    _send_email(booking.customer.email, f"{site_name}: kurs zakończony — dziękujemy", text, booking.site)
+    _send_customer_email(
+        booking.customer.email,
+        f"{site_name}: kurs zakończony — dziękujemy",
+        booking.site,
+        "Dziękujemy za skorzystanie z naszych usług!",
+        ["Kurs został zakończony. Mamy nadzieję, że podróż minęła komfortowo."],
+        cta_label="Zarezerwuj kolejny kurs",
+        cta_url=f"{SITE_URLS[booking.site]}{_BOOK_AGAIN_PATH[booking.site]}",
+    )
 
 
 def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
@@ -215,7 +253,15 @@ def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
         f"na {booking.scheduled_at:%d.%m %H:%M}."
     )
     _send_sms(booking.customer.phone, sms_text, booking.site)
-    _send_email(booking.customer.email, f"{site_name}: zmiana terminu kursu", text, booking.site)
+    _send_customer_email(
+        booking.customer.email,
+        f"{site_name}: zmiana terminu kursu",
+        booking.site,
+        "Zmiana terminu kursu",
+        [text],
+        cta_label="Zobacz szczegóły w panelu",
+        cta_url=f"{SITE_URLS[booking.site]}/panel",
+    )
 
 
 def notify_dispatcher_of_customer_cancellation(booking) -> None:
@@ -263,4 +309,12 @@ def notify_customer_of_cancellation(booking) -> None:
         f"zostal anulowany. Przepraszamy za utrudnienia."
     )
     _send_sms(booking.customer.phone, sms_text, booking.site)
-    _send_email(booking.customer.email, f"{site_name}: kurs anulowany", text, booking.site)
+    _send_customer_email(
+        booking.customer.email,
+        f"{site_name}: kurs anulowany",
+        booking.site,
+        "Kurs anulowany",
+        [text],
+        cta_label="Zarezerwuj nowy termin",
+        cta_url=f"{SITE_URLS[booking.site]}{_BOOK_AGAIN_PATH[booking.site]}",
+    )
