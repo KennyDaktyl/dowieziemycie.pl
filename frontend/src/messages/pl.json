@@ -27,6 +27,7 @@
     "backHome": "Strona główna"
   },
   "Nav": {
+    "booking": "Rezerwacje",
     "coverage": "Wyceny",
     "howItWorks": "Jak to działa",
     "routes": "Kierunki",
@@ -74,6 +75,15 @@
     "date": "Data",
     "time": "Godzina",
     "passengers": "Liczba osób",
+    "childSeats": "Dzieci / foteliki",
+    "childSeatsHint": "Dodaj dziecko i podaj wiek, żebym przygotował odpowiedni fotelik albo podkładkę.",
+    "addChild": "Dodaj dziecko",
+    "childAge": "Wiek dziecka {number}",
+    "ageYears": "{age} lat",
+    "removeChild": "Usuń dziecko",
+    "bikeTransport": "Przewóz rowerów",
+    "bikeTransportHint": "Zaznacz, jeśli mamy zabrać rowery na bagażniku.",
+    "bikeCount": "Liczba rowerów",
     "priceLabel": "Cena kursu",
     "priceSub": "zaliczka przez BLIK rezerwuje auto",
     "customQuote": "Wycena indywidualna",

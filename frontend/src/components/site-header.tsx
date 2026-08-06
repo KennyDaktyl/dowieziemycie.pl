@@ -19,6 +19,7 @@ export async function SiteHeader() {
   // Anchor ids are language-neutral on purpose (same on /pl and /en) — prefixed
   // with the current locale's home path so nav works from any page, not just "/".
   const primaryLinks = [
+    { href: "/rezerwacja", label: tNav("booking") },
     { href: `/${locale}#coverage`, label: tNav("coverage") },
     { href: `/${locale}#routes`, label: tNav("routes") },
     { href: "/imprezy", label: tNav("imprezy") },
@@ -59,7 +60,7 @@ export async function SiteHeader() {
             </div>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center gap-5 text-[14.5px] whitespace-nowrap text-muted xl:flex">
+          <nav className="hidden min-w-0 flex-1 items-center gap-4 text-[14.5px] whitespace-nowrap text-muted xl:flex">
             {primaryLinks.map((link) =>
               link.href.includes("#") ? (
                 <a key={link.href} href={link.href} className="transition-colors hover:text-text">
@@ -75,10 +76,10 @@ export async function SiteHeader() {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
-            <div className="hidden xl:block">
+            <div className="hidden 2xl:block">
               <LocaleSwitcher />
             </div>
-            <div className="hidden xl:block">
+            <div className="hidden 2xl:block">
               {customer ? (
                 <CustomerMenu myTripsLabel={t("myTrips")} logoutLabel={t("logout")} />
               ) : (

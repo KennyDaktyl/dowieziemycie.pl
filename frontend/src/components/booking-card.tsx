@@ -70,6 +70,8 @@ export function BookingCard() {
   const [locating, setLocating] = useState(false);
   const [{ date, time }, setDateTime] = useState(defaultDateTime);
   const [passengers, setPassengers] = useState(1);
+  const [childSeatAges, setChildSeatAges] = useState<number[]>([]);
+  const [bikeCount, setBikeCount] = useState(0);
   const [couponCode, setCouponCode] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -226,6 +228,8 @@ export function BookingCard() {
           dropoff_lng: dropoff.lng,
           scheduled_at: scheduledAt,
           passenger_count: passengers,
+          child_seat_ages: childSeatAges,
+          bike_count: bikeCount,
           coupon_code: couponCode || undefined,
           customer_name: customerName,
           customer_email: customerEmail || undefined,
@@ -392,7 +396,11 @@ export function BookingCard() {
               </label>
               <select
                 value={passengers}
-                onChange={(e) => setPassengers(Number(e.target.value))}
+                onChange={(e) => {
+                  const nextPassengers = Number(e.target.value);
+                  setPassengers(nextPassengers);
+                  setChildSeatAges((ages) => ages.slice(0, nextPassengers));
+                }}
                 className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
               >
                 {Array.from({ length: MAX_PASSENGERS }, (_, i) => i + 1).map((n) => (
@@ -413,6 +421,91 @@ export function BookingCard() {
                 className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
               />
             </div>
+          </div>
+
+          <div className="rounded-[10px] border border-line bg-panel-2 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
+                  {t("childSeats")}
+                </div>
+                <p className="mt-1 text-[12.5px] leading-relaxed text-muted">{t("childSeatsHint")}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setChildSeatAges((ages) => [...ages, 3])}
+                disabled={childSeatAges.length >= passengers}
+                className="shrink-0 rounded-md border border-amber px-3 py-2 text-[13px] font-semibold text-amber transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t("addChild")}
+              </button>
+            </div>
+            {childSeatAges.length > 0 && (
+              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {childSeatAges.map((age, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <label className="sr-only">{t("childAge", { number: index + 1 })}</label>
+                    <select
+                      value={age}
+                      onChange={(e) =>
+                        setChildSeatAges((ages) => ages.map((item, i) => (i === index ? Number(e.target.value) : item)))
+                      }
+                      className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-3 py-2.5 text-[14px] text-text outline-none focus:border-amber"
+                      aria-label={t("childAge", { number: index + 1 })}
+                    >
+                      {Array.from({ length: 13 }, (_, i) => i).map((n) => (
+                        <option key={n} value={n}>
+                          {t("ageYears", { age: n })}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setChildSeatAges((ages) => ages.filter((_, i) => i !== index))}
+                      className="rounded-md border border-line px-3 py-2.5 text-[13px] font-semibold text-muted transition-colors hover:bg-panel hover:text-text"
+                      aria-label={t("removeChild")}
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-[10px] border border-line bg-panel-2 p-4">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={bikeCount > 0}
+                onChange={(e) => setBikeCount(e.target.checked ? 1 : 0)}
+                className="mt-1 h-4 w-4 accent-amber"
+              />
+              <span>
+                <span className="font-label block text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
+                  {t("bikeTransport")}
+                </span>
+                <span className="mt-1 block text-[12.5px] leading-relaxed text-muted">{t("bikeTransportHint")}</span>
+              </span>
+            </label>
+            {bikeCount > 0 && (
+              <div className="mt-3 flex max-w-[220px] flex-col gap-1.5">
+                <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
+                  {t("bikeCount")}
+                </label>
+                <select
+                  value={bikeCount}
+                  onChange={(e) => setBikeCount(Number(e.target.value))}
+                  className="rounded-lg border border-line bg-panel px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
+                >
+                  {[1, 2, 3, 4].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -27,6 +27,7 @@
     "backHome": "Back home"
   },
   "Nav": {
+    "booking": "Bookings",
     "coverage": "Pricing examples",
     "howItWorks": "How it works",
     "routes": "Routes",
@@ -74,6 +75,15 @@
     "date": "Date",
     "time": "Time",
     "passengers": "Passengers",
+    "childSeats": "Children / seats",
+    "childSeatsHint": "Add each child and their age so we can prepare the right child seat or booster.",
+    "addChild": "Add child",
+    "childAge": "Child {number} age",
+    "ageYears": "{age} years",
+    "removeChild": "Remove child",
+    "bikeTransport": "Bike transport",
+    "bikeTransportHint": "Select this if we should carry bikes on the rack.",
+    "bikeCount": "Number of bikes",
     "priceLabel": "Ride price",
     "priceSub": "a BLIK deposit reserves the car",
     "customQuote": "Custom quote",

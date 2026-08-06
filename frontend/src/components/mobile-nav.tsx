@@ -36,7 +36,7 @@ export function MobileNav({
   }, [open]);
 
   return (
-    <div className="xl:hidden">
+    <div className="2xl:hidden">
       <button
         type="button"
         aria-label={open ? "Zamknij menu" : "Otwórz menu"}

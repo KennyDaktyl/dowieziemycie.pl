@@ -56,34 +56,35 @@ export function InformationMenu({ label, items }: { label: string; items: Inform
       </button>
 
       <div
-        role="menu"
-        className={`absolute top-full left-0 z-50 mt-2 w-56 rounded-[12px] border border-line bg-panel p-2 transition-all duration-200 ${
+        className={`absolute top-full left-0 z-50 w-56 pt-2 transition-all duration-200 ${
           open ? "translate-y-0 opacity-100" : "-translate-y-1 pointer-events-none opacity-0"
         }`}
       >
-        {items.map((item) =>
-          item.href.includes("#") ? (
-            <a
-              key={item.href}
-              href={item.href}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="block rounded-[8px] px-3 py-2.5 text-[14px] text-muted transition-colors hover:bg-panel-2 hover:text-text focus:bg-panel-2 focus:text-text focus:outline-none"
-            >
-              {item.label}
-            </a>
-          ) : (
-            <Link
-              key={item.href}
-              href={item.href}
-              role="menuitem"
-              onClick={() => setOpen(false)}
-              className="block rounded-[8px] px-3 py-2.5 text-[14px] text-muted transition-colors hover:bg-panel-2 hover:text-text focus:bg-panel-2 focus:text-text focus:outline-none"
-            >
-              {item.label}
-            </Link>
-          ),
-        )}
+        <div role="menu" className="rounded-[12px] border border-line bg-panel p-2">
+          {items.map((item) =>
+            item.href.includes("#") ? (
+              <a
+                key={item.href}
+                href={item.href}
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="block rounded-[8px] px-3 py-2.5 text-[14px] text-muted transition-colors hover:bg-panel-2 hover:text-text focus:bg-panel-2 focus:text-text focus:outline-none"
+              >
+                {item.label}
+              </a>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                role="menuitem"
+                onClick={() => setOpen(false)}
+                className="block rounded-[8px] px-3 py-2.5 text-[14px] text-muted transition-colors hover:bg-panel-2 hover:text-text focus:bg-panel-2 focus:text-text focus:outline-none"
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
+        </div>
       </div>
     </div>
   );
