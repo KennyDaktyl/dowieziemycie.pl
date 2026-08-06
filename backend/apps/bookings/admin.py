@@ -51,7 +51,8 @@ class BookingSettingsAdmin(admin.ModelAdmin):
 class BookingAdmin(admin.ModelAdmin):
     list_display = (
         "customer", "pickup_address", "dropoff_address", "scheduled_at", "passenger_count",
-        "status", "distance_km", "pricing_mode", "is_reserved", "price", "coupon", "assigned_driver",
+        "child_seat_ages", "bike_count", "status", "distance_km", "pricing_mode", "is_reserved",
+        "price", "coupon", "assigned_driver",
     )
     list_filter = ("status", "pricing_mode", "is_reserved", "assigned_driver")
     list_editable = ("price", "assigned_driver")

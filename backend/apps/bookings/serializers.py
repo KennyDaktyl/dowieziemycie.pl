@@ -6,6 +6,26 @@ from .pricing import estimate_price
 from .routing import get_route_distance_km
 
 
+def _validate_child_seat_ages(value, passenger_count: int):
+    if value in (None, ""):
+        return []
+    if not isinstance(value, list):
+        raise serializers.ValidationError({"child_seat_ages": "Podaj listę wieku dzieci."})
+    if len(value) > passenger_count:
+        raise serializers.ValidationError(
+            {"child_seat_ages": "Liczba dzieci nie może być większa niż liczba pasażerów."}
+        )
+
+    ages = []
+    for age in value:
+        if isinstance(age, bool) or not isinstance(age, int):
+            raise serializers.ValidationError({"child_seat_ages": "Wiek dziecka musi być liczbą całkowitą."})
+        if age < 0 or age > 12:
+            raise serializers.ValidationError({"child_seat_ages": "Wiek dziecka musi być w zakresie 0-12 lat."})
+        ages.append(age)
+    return ages
+
+
 def _update_customer_details(customer, name: str, email: str) -> None:
     """Customer.name/email aren't settable during OTP verification (see
     apps.accounts.VerifyOtpView) — collected here instead, at the point the
@@ -57,7 +77,8 @@ class BookingSerializer(serializers.ModelSerializer):
         fields = [
             "id", "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng", "flight_number",
-            "scheduled_at", "passenger_count", "status", "distance_km", "duration_minutes", "is_reserved",
+            "scheduled_at", "passenger_count", "child_seat_ages", "bike_count",
+            "status", "distance_km", "duration_minutes", "is_reserved",
             "price", "price_eur", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle",
             "driver_vehicle_plate", "driver_vehicle_seats", "created_at",
             "confirmed_at", "payment_deadline", "deposit_amount", "paid_at", "remainder_paid_at",
@@ -91,7 +112,8 @@ class DriverBookingSerializer(serializers.ModelSerializer):
             "id", "site", "customer_phone", "customer_name",
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng", "flight_number",
-            "scheduled_at", "passenger_count", "status", "distance_km", "actual_distance_km",
+            "scheduled_at", "passenger_count", "child_seat_ages", "bike_count",
+            "status", "distance_km", "actual_distance_km",
             "duration_minutes", "price",
             "deposit_amount", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at", "created_at",
             "started_at", "completed_at",
@@ -118,7 +140,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         fields = [
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
-            "scheduled_at", "passenger_count", "coupon_code",
+            "scheduled_at", "passenger_count", "child_seat_ages", "bike_count", "coupon_code",
             "customer_name", "customer_email",
         ]
 
@@ -132,6 +154,9 @@ class BookingCreateSerializer(serializers.ModelSerializer):
         assert_bookings_open(self.context["request"].site_code)
 
         site_code = self.context["request"].site_code
+        attrs["child_seat_ages"] = _validate_child_seat_ages(
+            attrs.get("child_seat_ages", []), attrs["passenger_count"]
+        )
         if has_conflicting_booking(attrs["scheduled_at"], site_code):
             raise serializers.ValidationError(
                 "Ten termin nie jest dostępny — inny kurs jest zaplanowany zbyt blisko tej godziny. "
@@ -205,6 +230,10 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
     vehicle_id = serializers.IntegerField()
     scheduled_at = serializers.DateTimeField()
     passenger_count = serializers.IntegerField(min_value=1, max_value=7)
+    child_seat_ages = serializers.ListField(
+        child=serializers.IntegerField(min_value=0, max_value=12), required=False, allow_empty=True
+    )
+    bike_count = serializers.IntegerField(min_value=0, max_value=4, required=False, default=0)
     pickup_details = serializers.CharField(max_length=200)
     pickup_lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     pickup_lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
@@ -223,6 +252,9 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
 
         site_code = self.context["request"].site_code
         assert_bookings_open(site_code)
+        attrs["child_seat_ages"] = _validate_child_seat_ages(
+            attrs.get("child_seat_ages", []), attrs["passenger_count"]
+        )
 
         # Only fetched here for its duration_minutes, ahead of the full
         # lookup (with price/vehicle validation) in create() — a long tour
@@ -304,6 +336,8 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             dropoff_lng=dropoff_lng,
             scheduled_at=validated_data["scheduled_at"],
             passenger_count=validated_data["passenger_count"],
+            child_seat_ages=validated_data.get("child_seat_ages", []),
+            bike_count=validated_data.get("bike_count", 0),
             flight_number=validated_data.get("flight_number", ""),
             price=price_row.price,
             price_eur=price_row.price_eur,

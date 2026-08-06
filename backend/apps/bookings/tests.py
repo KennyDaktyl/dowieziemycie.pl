@@ -771,10 +771,12 @@ class CatalogBookingCreateViewTests(TestCase):
         return self.client.post("/api/bookings/catalog/", body, format="json", HTTP_X_SITE="transfer247")
 
     def test_books_a_fixed_route_with_price_from_the_catalog(self):
-        res = self._post(fixed_route_slug=self.route.slug)
+        res = self._post(fixed_route_slug=self.route.slug, child_seat_ages=[2, 7], bike_count=3)
         self.assertEqual(res.status_code, 201)
         self.assertEqual(str(res.data["price"]), "180.00")
         self.assertEqual(res.data["dropoff_address"], "Lotnisko Balice, Terminal 1")
+        self.assertEqual(res.data["child_seat_ages"], [2, 7])
+        self.assertEqual(res.data["bike_count"], 3)
 
         from .models import Booking
 
@@ -784,9 +786,19 @@ class CatalogBookingCreateViewTests(TestCase):
         self.assertEqual(booking.pickup_address, "Hotel Wawel, ul. Poselska 22")
         self.assertEqual(booking.duration_minutes, 45)  # snapshotted from self.route
         self.assertEqual(str(booking.price_eur), "40.00")  # snapshotted from FixedRouteVehiclePrice
+        self.assertEqual(booking.child_seat_ages, [2, 7])
+        self.assertEqual(booking.bike_count, 3)
 
     def test_rejects_more_passengers_than_the_vehicle_seats(self):
         res = self._post(fixed_route_slug=self.route.slug, passenger_count=5)  # self.vehicle only has 4 seats
+        self.assertEqual(res.status_code, 400)
+
+    def test_rejects_more_child_seats_than_passengers(self):
+        res = self._post(fixed_route_slug=self.route.slug, passenger_count=1, child_seat_ages=[2, 7])
+        self.assertEqual(res.status_code, 400)
+
+    def test_rejects_more_than_four_bikes(self):
+        res = self._post(fixed_route_slug=self.route.slug, bike_count=5)
         self.assertEqual(res.status_code, 400)
 
     def test_books_a_tour_with_price_from_the_catalog(self):

@@ -104,10 +104,19 @@ def notify_dispatcher_of_new_booking(booking) -> None:
     )
     if booking.flight_number:
         sms_text += f" Lot: {booking.flight_number}."
+    if booking.child_seat_ages:
+        sms_text += f" Dzieci/foteliki: {', '.join(str(age) for age in booking.child_seat_ages)} lat."
+    if booking.bike_count:
+        sms_text += f" Rowery: {booking.bike_count}."
     _send_sms(booking_settings.dispatcher_phone, sms_text, booking.site)
     flight_line = f"\nNumer lotu: {booking.flight_number}." if booking.flight_number else ""
+    child_seats_line = (
+        f"\nDzieci/foteliki: {', '.join(str(age) for age in booking.child_seat_ages)} lat."
+        if booking.child_seat_ages else ""
+    )
+    bikes_line = f"\nRowery: {booking.bike_count}." if booking.bike_count else ""
     email_body = (
-        f"{text}{flight_line}\n\nCena wyliczona automatycznie: {booking.price} zł.\n"
+        f"{text}{flight_line}{child_seats_line}{bikes_line}\n\nCena wyliczona automatycznie: {booking.price} zł.\n"
         "Potwierdź w Django Admin lub w aplikacji kierowcy."
     )
     _send_email(

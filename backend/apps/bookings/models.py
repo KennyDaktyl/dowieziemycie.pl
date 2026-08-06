@@ -198,6 +198,15 @@ class Booking(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(7)],
         help_text="Liczba osób — pomaga zdecydować, czy wysłać bus czy auto osobowe.",
     )
+    child_seat_ages = models.JSONField(
+        default=list, blank=True,
+        help_text="Wiek dzieci, dla których trzeba przygotować fotelik lub podkładkę.",
+    )
+    bike_count = models.PositiveSmallIntegerField(
+        default=0,
+        validators=[MinValueValidator(0), MaxValueValidator(4)],
+        help_text="Liczba rowerów do przewiezienia na bagażniku Thule VeloSpace (0-4).",
+    )
     flight_number = models.CharField(
         max_length=20, blank=True,
         help_text="Opcjonalny numer lotu (transfery lotniskowe) — pozwala dyspozytorowi sprawdzić opóźnienia.",
