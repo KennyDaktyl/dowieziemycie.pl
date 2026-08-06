@@ -208,6 +208,23 @@ export function BookingCard() {
     }
   }
 
+  function addChildSeat() {
+    setChildSeatAges((ages) => {
+      if (ages.length >= MAX_PASSENGERS) return ages;
+      const next = [...ages, 3];
+      if (next.length > passengers) setPassengers(next.length);
+      return next;
+    });
+  }
+
+  function updateChildSeatAge(index: number, age: number) {
+    setChildSeatAges((ages) => ages.map((item, i) => (i === index ? age : item)));
+  }
+
+  function removeChildSeat(index: number) {
+    setChildSeatAges((ages) => ages.filter((_, i) => i !== index));
+  }
+
   async function handleSubmit(): Promise<boolean> {
     if (!pickup || !dropoff || !date || !customerName) {
       setAttemptedSubmit(true);
@@ -433,8 +450,8 @@ export function BookingCard() {
               </div>
               <button
                 type="button"
-                onClick={() => setChildSeatAges((ages) => [...ages, 3])}
-                disabled={childSeatAges.length >= passengers}
+                onClick={addChildSeat}
+                disabled={childSeatAges.length >= MAX_PASSENGERS}
                 className="shrink-0 rounded-md border border-amber px-3 py-2 text-[13px] font-semibold text-amber transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t("addChild")}
@@ -447,9 +464,7 @@ export function BookingCard() {
                     <label className="sr-only">{t("childAge", { number: index + 1 })}</label>
                     <select
                       value={age}
-                      onChange={(e) =>
-                        setChildSeatAges((ages) => ages.map((item, i) => (i === index ? Number(e.target.value) : item)))
-                      }
+                      onChange={(e) => updateChildSeatAge(index, Number(e.target.value))}
                       className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-3 py-2.5 text-[14px] text-text outline-none focus:border-amber"
                       aria-label={t("childAge", { number: index + 1 })}
                     >
@@ -461,7 +476,7 @@ export function BookingCard() {
                     </select>
                     <button
                       type="button"
-                      onClick={() => setChildSeatAges((ages) => ages.filter((_, i) => i !== index))}
+                      onClick={() => removeChildSeat(index)}
                       className="rounded-md border border-line px-3 py-2.5 text-[13px] font-semibold text-muted transition-colors hover:bg-panel hover:text-text"
                       aria-label={t("removeChild")}
                     >
