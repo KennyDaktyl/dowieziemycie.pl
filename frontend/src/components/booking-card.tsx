@@ -3,15 +3,17 @@
 import { useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CustomQuoteCta } from "@/components/custom-quote-cta";
+import { ToastStack } from "@/components/toast";
 import { Link } from "@/i18n/navigation";
 import { publicApiBaseUrl, withSiteHeader } from "@/lib/api";
 import type { AddressSuggestion } from "@/lib/geocode";
 import { reverseGeocode } from "@/lib/geocode";
 import { absoluteImageUrl } from "@/lib/images";
 import type { DriverEta, RouteEstimate, Vehicle } from "@/lib/types";
+import { useToasts } from "@/lib/use-toasts";
 
 import { AddressSearchField } from "./address-search-field";
 import { PhoneVerifyStep } from "./phone-verify-step";
@@ -23,14 +25,7 @@ const BookingMap = dynamic(() => import("./booking-map").then((m) => m.BookingMa
 });
 
 const DEFAULT_MAX_PASSENGERS = 4;
-
-// "How soon can a driver reach you" only means anything for a ride
-// happening soon — it's computed from whichever driver happens to be
-// active *right now*, which has no bearing on who ends up assigned to a
-// ride booked weeks or months out. Showing it regardless of the picked
-// date was confusing a "driver busy" state that's true this instant into
-// looking like a reason a September booking couldn't be made.
-const DRIVER_ETA_MAX_HOURS_AHEAD = 6;
+const FORM_STORAGE_KEY = "dowieziemycie:booking-form-draft";
 
 const LEG_LABEL_KEYS = {
   direct_to_pickup: "legDirectToPickup",
@@ -63,6 +58,7 @@ export function BookingCard() {
   const tTiers = useTranslations("PricingTiers");
   const tEta = useTranslations("DriverEta");
   const router = useRouter();
+  const { toasts, pushToast, dismissToast } = useToasts();
 
   const [pickup, setPickup] = useState<LatLng | null>(null);
   const [pickupText, setPickupText] = useState("");
@@ -75,6 +71,11 @@ export function BookingCard() {
   const [childSeatAges, setChildSeatAges] = useState<number[]>([]);
   const [bikeCount, setBikeCount] = useState(0);
   const [couponCode, setCouponCode] = useState("");
+  const [couponStatus, setCouponStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+  const [couponDiscount, setCouponDiscount] = useState<{ discount_type: "PERCENT" | "FIXED"; value: number } | null>(
+    null,
+  );
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [phone, setPhone] = useState("+48");
@@ -86,6 +87,75 @@ export function BookingCard() {
   const [availability, setAvailability] = useState<"checking" | "available" | "unavailable">("checking");
   const [attemptedSubmit, setAttemptedSubmit] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [formHydrated, setFormHydrated] = useState(false);
+
+  const dropoffInputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
+
+  function markTouched(field: string) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  }
+
+  function armMapField(field: "pickup" | "dropoff") {
+    setActiveField(field);
+    mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Restores whatever the customer had already typed if they navigate away
+  // (e.g. to check /flota) and come back — sessionStorage rather than
+  // localStorage since this is a working draft, not something that should
+  // outlive the tab. Only ever read once, right after mount.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const raw = sessionStorage.getItem(FORM_STORAGE_KEY);
+        if (raw) {
+          const saved = JSON.parse(raw);
+          if (saved.pickup) setPickup(saved.pickup);
+          if (saved.pickupText) setPickupText(saved.pickupText);
+          if (saved.dropoff) setDropoff(saved.dropoff);
+          if (saved.dropoffText) setDropoffText(saved.dropoffText);
+          if (saved.date) setDateTime((prev) => ({ ...prev, date: saved.date }));
+          if (saved.time) setDateTime((prev) => ({ ...prev, time: saved.time }));
+          if (saved.passengers) setPassengers(saved.passengers);
+          if (saved.childSeatAges) setChildSeatAges(saved.childSeatAges);
+          if (saved.bikeCount != null) setBikeCount(saved.bikeCount);
+          if (saved.couponCode) setCouponCode(saved.couponCode);
+          if (saved.customerName) setCustomerName(saved.customerName);
+          if (saved.customerEmail) setCustomerEmail(saved.customerEmail);
+          if (saved.phone) setPhone(saved.phone);
+        }
+      } catch {
+        // Corrupt or blocked storage — just start from a blank form.
+      }
+      setFormHydrated(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Waits for the restore above to finish (formHydrated) so this doesn't
+  // immediately overwrite a just-restored draft with the pre-restore blank
+  // values from that same first render.
+  useEffect(() => {
+    if (!formHydrated) return;
+    try {
+      sessionStorage.setItem(
+        FORM_STORAGE_KEY,
+        JSON.stringify({
+          pickup, pickupText, dropoff, dropoffText, date, time,
+          passengers, childSeatAges, bikeCount, couponCode,
+          customerName, customerEmail, phone,
+        }),
+      );
+    } catch {
+      // Storage full/blocked (private browsing) — losing the draft on
+      // navigation is an acceptable degradation, not worth surfacing.
+    }
+  }, [
+    formHydrated, pickup, pickupText, dropoff, dropoffText, date, time,
+    passengers, childSeatAges, bikeCount, couponCode, customerName, customerEmail, phone,
+  ]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -134,16 +204,23 @@ export function BookingCard() {
     };
   }, []);
 
-  const scheduledSoon =
-    !date || new Date(`${date}T${time || "00:00"}:00`).getTime() - Date.now() <= DRIVER_ETA_MAX_HOURS_AHEAD * 3600_000;
   const maxPassengers = vehicles[0]?.seats ?? DEFAULT_MAX_PASSENGERS;
   const previewVehicle = vehicles[0] ?? null;
   const previewVehiclePhoto = previewVehicle?.cover_photo ?? previewVehicle?.photos[0]?.thumbnail ?? previewVehicle?.photos[0]?.image;
+  const discountedPrice =
+    estimate?.price != null && couponDiscount
+      ? Math.max(
+          couponDiscount.discount_type === "PERCENT"
+            ? estimate.price * (1 - couponDiscount.value / 100)
+            : estimate.price - couponDiscount.value,
+          0,
+        )
+      : null;
 
   useEffect(() => {
-    if (!pickup || !scheduledSoon) {
-      setDriverEta(null);
-      return;
+    if (!pickup) {
+      const timer = setTimeout(() => setDriverEta(null), 0);
+      return () => clearTimeout(timer);
     }
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -157,9 +234,13 @@ export function BookingCard() {
           signal: controller.signal,
           headers: withSiteHeader(),
         });
-        if (res.ok) setDriverEta(await res.json());
-      } catch {
-        // ignore — stale/aborted request or transient network hiccup
+        if (res.ok) {
+          setDriverEta(await res.json());
+        } else {
+          pushToast("error", t("etaFetchError"));
+        }
+      } catch (err) {
+        if ((err as Error)?.name !== "AbortError") pushToast("error", t("etaFetchError"));
       } finally {
         setEtaLoading(false);
       }
@@ -168,10 +249,16 @@ export function BookingCard() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [pickup, scheduledSoon]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickup]);
 
   useEffect(() => {
-    if (!pickup || !dropoff || !date) return;
+    if (!pickup || !dropoff || !date) {
+      // Clears the stale route line/price/summary card instead of leaving
+      // them stuck on-screen after the customer clears an address field.
+      const timer = setTimeout(() => setEstimate(null), 0);
+      return () => clearTimeout(timer);
+    }
     const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -188,9 +275,13 @@ export function BookingCard() {
           signal: controller.signal,
           headers: withSiteHeader(),
         });
-        if (res.ok) setEstimate(await res.json());
-      } catch {
-        // ignore — stale/aborted request or transient network hiccup
+        if (res.ok) {
+          setEstimate(await res.json());
+        } else {
+          pushToast("error", t("estimateFetchError"));
+        }
+      } catch (err) {
+        if ((err as Error)?.name !== "AbortError") pushToast("error", t("estimateFetchError"));
       } finally {
         setEstimating(false);
       }
@@ -199,6 +290,7 @@ export function BookingCard() {
       clearTimeout(timer);
       controller.abort();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickup, dropoff, date, time]);
 
   async function handleUseMyLocation() {
@@ -208,7 +300,10 @@ export function BookingCard() {
       async (pos) => {
         const coords = { lat: roundCoord(pos.coords.latitude), lng: roundCoord(pos.coords.longitude) };
         setPickup(coords);
-        setActiveField("pickup");
+        markTouched("pickup");
+        // Next step is picking the destination — either by typing or by
+        // tapping the map, so just arm it rather than forcing keyboard focus.
+        setActiveField("dropoff");
         const address = await reverseGeocode(coords.lat, coords.lng);
         if (address) setPickupText(address);
         setLocating(false);
@@ -223,19 +318,59 @@ export function BookingCard() {
     if (field === "pickup") {
       setPickup(coords);
       setPickupText(s.label);
+      markTouched("pickup");
+      // Picked by typing — the customer is already in "keyboard mode", so
+      // carry that momentum straight into the next field instead of making
+      // them reach for it themselves.
+      setActiveField("dropoff");
+      dropoffInputRef.current?.focus();
     } else {
       setDropoff(coords);
       setDropoffText(s.label);
+      markTouched("dropoff");
+      dateInputRef.current?.focus();
     }
   }
 
   async function handleMapChange(field: "pickup" | "dropoff", pos: LatLng) {
-    if (field === "pickup") setPickup(pos);
-    else setDropoff(pos);
+    if (field === "pickup") {
+      setPickup(pos);
+      markTouched("pickup");
+      // Guide the next tap straight to the destination — placing two pins
+      // is meant to feel like consecutive steps on the same map, not a
+      // detour back to the keyboard.
+      setActiveField("dropoff");
+    } else {
+      setDropoff(pos);
+      markTouched("dropoff");
+    }
     const address = await reverseGeocode(pos.lat, pos.lng);
     if (address) {
       if (field === "pickup") setPickupText(address);
       else setDropoffText(address);
+    }
+  }
+
+  async function handleApplyCoupon() {
+    if (!couponCode) return;
+    setCouponStatus("checking");
+    try {
+      const res = await fetch(
+        `${publicApiBaseUrl()}/api/coupons/validate/?code=${encodeURIComponent(couponCode)}`,
+        { headers: withSiteHeader() },
+      );
+      const data = await res.json();
+      if (data.valid) {
+        setCouponDiscount({ discount_type: data.discount_type, value: Number(data.value) });
+        setCouponStatus("valid");
+      } else {
+        setCouponDiscount(null);
+        setCouponStatus("invalid");
+      }
+    } catch {
+      setCouponDiscount(null);
+      setCouponStatus("invalid");
+      pushToast("error", t("couponFetchError"));
     }
   }
 
@@ -288,9 +423,18 @@ export function BookingCard() {
         return false;
       }
       setStatus(res.ok ? "success" : "error");
+      pushToast(res.ok ? "success" : "error", res.ok ? t("submitSuccessToast") : t("submitErrorToast"));
+      if (res.ok) {
+        try {
+          sessionStorage.removeItem(FORM_STORAGE_KEY);
+        } catch {
+          // Nothing to clean up if storage was blocked in the first place.
+        }
+      }
       return res.ok;
     } catch {
       setStatus("error");
+      pushToast("error", t("submitErrorToast"));
       return false;
     }
   }
@@ -315,6 +459,61 @@ export function BookingCard() {
     );
   }
 
+  // Rendered twice: once right under the trip summary (so the price is
+  // visible without scrolling all the way to the submit button) and once
+  // in its original spot further down, right where the customer expects it
+  // just before booking.
+  const priceBox = (
+    <div className="rounded-[10px] border border-line bg-panel-2 px-4 py-3.5">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-label text-xs font-semibold tracking-[0.1em] text-muted uppercase">
+            {t("priceLabel")}
+          </div>
+          <div className="mt-0.5 text-[11.5px] text-muted">{t("priceSub")}</div>
+        </div>
+        {!pickup || !dropoff ? (
+          <div className="font-heading text-lg font-semibold text-muted">{t("customQuote")}</div>
+        ) : estimating ? (
+          <div className="text-[13px] text-muted">{t("estimating")}</div>
+        ) : estimate?.price != null ? (
+          <div>
+            {discountedPrice != null ? (
+              <>
+                <div className="text-right font-heading text-[15px] font-semibold text-muted line-through">
+                  {estimate.price} zł
+                </div>
+                <PriceMeter target={discountedPrice} />
+              </>
+            ) : (
+              <PriceMeter target={estimate.price} />
+            )}
+            <div className="mt-0.5 text-right text-[11px] text-muted">{t("vatNote")}</div>
+          </div>
+        ) : (
+          <CustomQuoteCta className="text-right" />
+        )}
+      </div>
+      {pickup && dropoff && estimate && estimate.price != null && (
+        <div className="mt-2 flex flex-col gap-1 border-t border-line pt-2 text-[11.5px] text-muted">
+          <span>
+            {estimate.pricing_mode === "local"
+              ? t("localFare")
+              : estimate.is_reserved
+                ? tTiers("reserved")
+                : tTiers("onDemand")}
+          </span>
+          <span>
+            {t("negotiateHint")}{" "}
+            <a href="tel:+48506029980" className="font-semibold text-amber hover:underline">
+              +48 506 029 980
+            </a>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="rounded-[14px] border border-line bg-panel p-[22px] lg:p-7">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[400px_1fr] lg:gap-8">
@@ -327,37 +526,62 @@ export function BookingCard() {
                 value={pickupText}
                 onTextChange={setPickupText}
                 onFocus={() => setActiveField("pickup")}
+                onBlur={() => markTouched("pickup")}
                 onSelect={(s) => handleSelectSuggestion("pickup", s)}
                 onClear={() => setPickup(null)}
                 required
-                error={attemptedSubmit && !pickup}
+                error={(touched.pickup || attemptedSubmit) && !pickup}
+                valid={!!pickup}
+              />
+              <div className="flex flex-wrap gap-x-4 gap-y-1">
+                <button
+                  type="button"
+                  onClick={handleUseMyLocation}
+                  disabled={locating}
+                  className="text-left text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80 disabled:opacity-50"
+                >
+                  📍 {locating ? t("locating") : t("useMyLocation")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => armMapField("pickup")}
+                  className="text-left text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80"
+                >
+                  🗺️ {t("pickOnMapFrom")}
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <AddressSearchField
+                ref={dropoffInputRef}
+                label={t("to")}
+                placeholder={t("toPlaceholder")}
+                value={dropoffText}
+                onTextChange={setDropoffText}
+                onFocus={() => setActiveField("dropoff")}
+                onBlur={() => markTouched("dropoff")}
+                onSelect={(s) => handleSelectSuggestion("dropoff", s)}
+                onClear={() => setDropoff(null)}
+                required
+                error={(touched.dropoff || attemptedSubmit) && !dropoff}
+                valid={!!dropoff}
               />
               <button
                 type="button"
-                onClick={handleUseMyLocation}
-                disabled={locating}
-                className="text-left text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80 disabled:opacity-50"
+                onClick={() => armMapField("dropoff")}
+                className="text-left text-[12.5px] font-semibold text-amber transition-opacity hover:opacity-80"
               >
-                📍 {locating ? t("locating") : t("useMyLocation")}
+                🗺️ {t("pickOnMapTo")}
               </button>
             </div>
-            <AddressSearchField
-              label={t("to")}
-              placeholder={t("toPlaceholder")}
-              value={dropoffText}
-              onTextChange={setDropoffText}
-              onFocus={() => setActiveField("dropoff")}
-              onSelect={(s) => handleSelectSuggestion("dropoff", s)}
-              onClear={() => setDropoff(null)}
-              required
-              error={attemptedSubmit && !dropoff}
-            />
           </div>
         </div>
 
-        <div className="flex flex-col lg:row-span-2 lg:h-full">
-          <p className="mb-1.5 text-[11.5px] text-muted">{t("mapCaption")}</p>
-          <div className="flex-1 overflow-hidden rounded-lg border border-line">
+        <div ref={mapSectionRef} className="flex flex-col lg:sticky lg:top-6 lg:row-span-2 lg:self-start">
+          <p className="mb-1.5 text-[11.5px] font-semibold text-amber">
+            {activeField === "pickup" ? t("mapCaptionPickup") : t("mapCaptionDropoff")}
+          </p>
+          <div className="h-[240px] overflow-hidden rounded-lg border border-line md:h-[340px] lg:h-[min(480px,calc(100vh-140px))]">
             <BookingMap
               pickup={pickup}
               dropoff={dropoff}
@@ -371,16 +595,40 @@ export function BookingCard() {
 
         <div className="flex flex-col gap-3">
           {pickup && dropoff && estimate && (
-            <div className="my-0.5 flex items-center gap-2">
-              <span className="h-[7px] w-[7px] rounded-full bg-muted" />
-              <span className="h-px flex-1 bg-[repeating-linear-gradient(90deg,var(--color-muted)_0_4px,transparent_4px_8px)] opacity-50" />
-              <span className="font-label text-xs tracking-[0.05em] text-muted whitespace-nowrap">
-                {estimate.distance_km} {t("km")} · {Math.round(estimate.duration_min)} {t("min")}
-              </span>
-              <span className="h-px flex-1 bg-[repeating-linear-gradient(90deg,var(--color-muted)_0_4px,transparent_4px_8px)] opacity-50" />
-              <span className="h-[7px] w-[7px] rounded-full bg-amber" />
+            <div className="rounded-[10px] border border-line bg-panel-2 p-4">
+              <div className="font-label mb-2.5 text-xs font-semibold tracking-[0.1em] text-muted uppercase">
+                {t("summaryTitle")}
+              </div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-3 text-[13px]">
+                <div className="col-span-2 sm:col-span-1">
+                  <div className="text-[11px] tracking-wide text-muted uppercase">{t("summaryFrom")}</div>
+                  <div className="mt-0.5 truncate font-semibold text-text" title={pickupText}>
+                    {pickupText}
+                  </div>
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <div className="text-[11px] tracking-wide text-muted uppercase">{t("summaryTo")}</div>
+                  <div className="mt-0.5 truncate font-semibold text-text" title={dropoffText}>
+                    {dropoffText}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] tracking-wide text-muted uppercase">{t("summaryDistance")}</div>
+                  <div className="font-heading mt-0.5 text-[19px] font-bold text-text">
+                    {estimate.distance_km} {t("km")}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] tracking-wide text-muted uppercase">{t("summaryDuration")}</div>
+                  <div className="font-heading mt-0.5 text-[19px] font-bold text-text">
+                    {Math.round(estimate.duration_min)} {t("min")}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
+
+          {pickup && dropoff && estimate && priceBox}
 
           {pickup && (etaLoading || driverEta) && (
             <div className="rounded-[10px] border border-line bg-panel-2 px-4 py-3">
@@ -391,8 +639,15 @@ export function BookingCard() {
                 <div className="mt-1 text-[13px] text-muted">{tEta("estimating")}</div>
               ) : driverEta?.available && driverEta.eta_minutes != null ? (
                 <>
-                  <div className="mt-1 font-heading text-[16px] font-bold text-green">
-                    {tEta("eta", { min: driverEta.eta_minutes })}
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+                    <span className="font-heading text-[16px] font-bold text-green">
+                      {tEta("eta", { min: driverEta.eta_minutes })}
+                    </span>
+                    {driverEta.legs && driverEta.legs.length > 0 && (
+                      <span className="text-[12.5px] font-semibold text-muted">
+                        · {driverEta.legs.reduce((sum, leg) => sum + leg.distance_km, 0).toFixed(1)} {t("km")}
+                      </span>
+                    )}
                   </div>
                   {driverEta.legs && driverEta.legs.length > 1 && (
                     <ul className="mt-1.5 flex flex-col gap-0.5 text-[12px] text-muted">
@@ -402,6 +657,9 @@ export function BookingCard() {
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {driverEta.basis === "base" && (
+                    <p className="mt-1 text-[11.5px] text-muted">{tEta("fromBase")}</p>
                   )}
                 </>
               ) : (
@@ -416,11 +674,13 @@ export function BookingCard() {
                 {t("date")} <span className="text-red">*</span>
               </label>
               <input
+                ref={dateInputRef}
                 type="date"
                 value={date}
                 onChange={(e) => setDateTime((prev) => ({ ...prev, date: e.target.value }))}
+                onBlur={() => markTouched("date")}
                 className={`rounded-lg border bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber ${
-                  attemptedSubmit && !date ? "border-red" : "border-line"
+                  (touched.date || attemptedSubmit) && !date ? "border-red" : date ? "border-green" : "border-line"
                 }`}
               />
             </div>
@@ -468,39 +728,26 @@ export function BookingCard() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
-                {t("passengers")}
-              </label>
-              <select
-                value={passengers}
-                onChange={(e) => {
-                  const nextPassengers = Number(e.target.value);
-                  setPassengers(nextPassengers);
-                  setChildSeatAges((ages) => ages.slice(0, nextPassengers));
-                }}
-                className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
-              >
-                {Array.from({ length: maxPassengers }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[11.5px] text-muted">{t("passengersHint", { count: maxPassengers })}</p>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
-                {t("couponCode")}
-              </label>
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
-              />
-            </div>
+          <div className="flex max-w-[220px] flex-col gap-1.5">
+            <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
+              {t("passengers")}
+            </label>
+            <select
+              value={passengers}
+              onChange={(e) => {
+                const nextPassengers = Number(e.target.value);
+                setPassengers(nextPassengers);
+                setChildSeatAges((ages) => ages.slice(0, nextPassengers));
+              }}
+              className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
+            >
+              {Array.from({ length: maxPassengers }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11.5px] text-muted">{t("passengersHint", { count: maxPassengers })}</p>
           </div>
 
           <div className="rounded-[10px] border border-line bg-panel-2 p-4">
@@ -595,9 +842,14 @@ export function BookingCard() {
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
+                onBlur={() => markTouched("name")}
                 placeholder={t("namePlaceholder")}
                 className={`rounded-lg border bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber ${
-                  attemptedSubmit && !customerName ? "border-red" : "border-line"
+                  (touched.name || attemptedSubmit) && !customerName
+                    ? "border-red"
+                    : customerName
+                      ? "border-green"
+                      : "border-line"
                 }`}
               />
             </div>
@@ -615,47 +867,59 @@ export function BookingCard() {
             </div>
           </div>
 
-          <div className="rounded-[10px] border border-line bg-panel-2 px-4 py-3.5">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-label text-xs font-semibold tracking-[0.1em] text-muted uppercase">
-                  {t("priceLabel")}
-                </div>
-                <div className="mt-0.5 text-[11.5px] text-muted">{t("priceSub")}</div>
-              </div>
-              {!pickup || !dropoff ? (
-                <div className="font-heading text-lg font-semibold text-muted">{t("customQuote")}</div>
-              ) : estimating ? (
-                <div className="text-[13px] text-muted">{t("estimating")}</div>
-              ) : estimate?.price != null ? (
-                <div>
-                  <PriceMeter target={estimate.price} />
-                  <div className="mt-0.5 text-right text-[11px] text-muted">{t("vatNote")}</div>
-                </div>
-              ) : (
-                <CustomQuoteCta className="text-right" />
-              )}
+          {priceBox}
+
+          <div className="rounded-[10px] border border-line bg-panel-2 p-4">
+            <label className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
+              {t("couponCode")}
+            </label>
+            <div className="mt-1.5 flex gap-2">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  setCouponStatus("idle");
+                  setCouponDiscount(null);
+                }}
+                placeholder={t("couponPlaceholder")}
+                className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
+              />
+              <button
+                type="button"
+                onClick={handleApplyCoupon}
+                disabled={!couponCode || couponStatus === "checking"}
+                className="shrink-0 rounded-lg border border-amber px-4 py-[11px] text-[13.5px] font-semibold text-amber transition-colors hover:bg-amber/10 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {couponStatus === "checking" ? t("couponChecking") : t("couponApply")}
+              </button>
             </div>
-            {pickup && dropoff && estimate && estimate.price != null && (
-              <div className="mt-2 border-t border-line pt-2 text-[11.5px] text-muted">
-                {estimate.pricing_mode === "local"
-                  ? t("localFare")
-                  : estimate.is_reserved
-                    ? tTiers("reserved")
-                    : tTiers("onDemand")}
-              </div>
+            {couponStatus === "valid" && couponDiscount && (
+              <p className="mt-1.5 text-[12.5px] font-semibold text-green">
+                {couponDiscount.discount_type === "PERCENT"
+                  ? t("couponValidPercent", { value: couponDiscount.value })
+                  : t("couponValidFixed", { value: couponDiscount.value })}
+              </p>
+            )}
+            {couponStatus === "invalid" && (
+              <p className="mt-1.5 text-[12.5px] font-semibold text-red">{t("couponInvalid")}</p>
             )}
           </div>
 
           {status !== "unauthenticated" && (
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={status === "submitting" || !date || !pickup || !dropoff || !customerName}
-              className="w-full rounded-[9px] bg-amber py-[15px] text-[15.5px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:opacity-60"
-            >
-              {t("submit")}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={status === "submitting"}
+                className="w-full rounded-[9px] bg-amber py-[15px] text-[15.5px] font-bold text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_6px_22px_rgba(245,166,35,0.3)] disabled:opacity-60"
+              >
+                {t("submit")}
+              </button>
+              {attemptedSubmit && (!pickup || !dropoff || !date || !customerName) && (
+                <p className="text-center text-[12.5px] font-semibold text-red">{t("missingFields")}</p>
+              )}
+            </>
           )}
 
           {status === "success" && (
@@ -682,6 +946,7 @@ export function BookingCard() {
           <div className="text-center text-xs text-muted">{t("footnote")}</div>
         </div>
       </div>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

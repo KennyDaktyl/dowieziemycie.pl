@@ -11,6 +11,7 @@ export function MobileNav({
   navLinks,
   loginHref,
   loginLabel,
+  callLabel,
   trackByCodeLabel,
   bookNowLabel,
   speaksEnglishLabel,
@@ -20,6 +21,7 @@ export function MobileNav({
   navLinks: { href: string; label: string }[];
   loginHref: string;
   loginLabel: string;
+  callLabel: string;
   trackByCodeLabel: string;
   bookNowLabel: string;
   speaksEnglishLabel: string;
@@ -90,10 +92,17 @@ export function MobileNav({
                 className="rounded-md px-2 py-3 text-left text-muted transition-colors hover:bg-panel"
               />
             )}
+            <a
+              href="tel:+48506029980"
+              onClick={() => setOpen(false)}
+              className="mt-2 rounded-md bg-amber px-2 py-3 text-center font-semibold text-[#1a1305] transition-colors"
+            >
+              {callLabel}
+            </a>
             <Link
               href="/sledz"
               onClick={() => setOpen(false)}
-              className="mt-2 rounded-md border border-amber px-2 py-3 text-center font-semibold text-amber transition-colors hover:bg-amber/10"
+              className="rounded-md border border-amber px-2 py-3 text-center font-semibold text-amber transition-colors hover:bg-amber/10"
             >
               {trackByCodeLabel}
             </Link>

@@ -116,6 +116,7 @@ export async function SiteHeader() {
               navLinks={mobileNavLinks}
               loginHref={customer ? "/moje-kursy" : "/logowanie"}
               loginLabel={customer ? t("myTrips") : t("login")}
+              callLabel={t("call")}
               trackByCodeLabel={tNav("trackByCode")}
               bookNowLabel={tNav("bookNow")}
               speaksEnglishLabel={t("speaksEnglish")}

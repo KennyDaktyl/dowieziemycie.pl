@@ -65,6 +65,7 @@ export interface DriverEtaLeg {
 export interface DriverEta {
   available: boolean;
   driver_status?: "OFFLINE" | "DOSTEPNY" | "JADACY_PO_KLIENTA" | "W_KURSIE" | "WRACA_DO_BAZY";
+  basis?: "live" | "base";
   eta_minutes?: number;
   legs?: DriverEtaLeg[];
 }

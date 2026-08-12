@@ -108,7 +108,7 @@ export function BookingMap({
         center={pickup ?? dropoff ?? KRAKOW_CENTER}
         zoom={points.length ? 12 : 9}
         scrollWheelZoom={false}
-        className="h-[240px] w-full rounded-lg md:h-[380px] lg:h-full lg:min-h-[420px]"
+        className="h-full w-full rounded-lg"
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
