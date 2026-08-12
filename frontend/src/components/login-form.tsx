@@ -48,7 +48,6 @@ export function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone, code, auth_mode: mode, intent: "customer" }),
       });
-      const data = await res.json();
       if (!res.ok) throw new Error();
 
       clearDriverSession();

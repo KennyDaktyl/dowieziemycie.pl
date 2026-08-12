@@ -11,7 +11,7 @@ import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 import { PaymentBadge } from "@/components/payment-badge";
 import { netFromGross } from "@/lib/format";
@@ -49,7 +49,7 @@ export function DepositPaymentForm({
   const [phase, setPhase] = useState<Phase>("idle");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const stripePromiseRef = useRef<Promise<Stripe | null> | null>(null);
+  const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
 
   async function startPayment() {
     setPhase("loading");
@@ -66,7 +66,7 @@ export function DepositPaymentForm({
         setPhase("idle");
         return;
       }
-      stripePromiseRef.current = loadStripe(data.publishable_key);
+      setStripePromise(loadStripe(data.publishable_key));
       setClientSecret(data.client_secret);
       setPhase("form");
     } catch {
@@ -84,10 +84,10 @@ export function DepositPaymentForm({
     );
   }
 
-  if (phase === "form" && clientSecret && stripePromiseRef.current) {
+  if (phase === "form" && clientSecret && stripePromise) {
     return (
       <div className="w-full min-w-0">
-        <Elements stripe={stripePromiseRef.current} options={{ clientSecret }}>
+        <Elements stripe={stripePromise} options={{ clientSecret }}>
           <PaymentElementForm
             bookingId={bookingId}
             amount={amount}

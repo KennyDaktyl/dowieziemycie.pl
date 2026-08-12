@@ -47,8 +47,8 @@ function useRoadRoute(pickup: LatLng, dropoff: LatLng): LatLng[] | null {
 
   useEffect(() => {
     const controller = new AbortController();
-    setGeometry(null);
-    (async () => {
+    const timer = setTimeout(async () => {
+      setGeometry(null);
       try {
         const params = new URLSearchParams({
           pickup_lat: String(pickup.lat),
@@ -68,8 +68,11 @@ function useRoadRoute(pickup: LatLng, dropoff: LatLng): LatLng[] | null {
       } catch {
         // ignore — falls back to the straight line below
       }
-    })();
-    return () => controller.abort();
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [pickup.lat, pickup.lng, dropoff.lat, dropoff.lng]);
 
   return geometry;

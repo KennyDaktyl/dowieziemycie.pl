@@ -19,11 +19,28 @@ const nextConfig: NextConfig = {
       "wieczor-kawalerski": "bus-na-wieczor-kawalerski",
       "wieczor-panienski": "bus-na-wieczor-panienski",
     };
-    return Object.entries(renames).map(([oldSlug, newSlug]) => ({
-      source: `/:locale(pl|en)/imprezy/${oldSlug}`,
-      destination: `/:locale/imprezy/${newSlug}`,
-      permanent: true,
-    }));
+    return [
+      { source: "/", destination: "/pl", permanent: true },
+      { source: "/na-zywo", destination: "/pl/na-zywo", permanent: true },
+      { source: "/kierunki", destination: "/pl/kierunki", permanent: true },
+      { source: "/cennik", destination: "/pl/cennik", permanent: true },
+      { source: "/flota", destination: "/pl/flota", permanent: true },
+      { source: "/blog", destination: "/pl/blog", permanent: true },
+      { source: "/blog/:slug", destination: "/pl/blog/:slug", permanent: true },
+      { source: "/trasa/:slug", destination: "/pl/trasa/:slug", permanent: true },
+      { source: "/imprezy", destination: "/pl/imprezy", permanent: true },
+      { source: "/imprezy/:slug", destination: "/pl/imprezy/:slug", permanent: true },
+      {
+        source: "/wynajem-busa-z-kierowca",
+        destination: "/pl/wynajem-busa-z-kierowca",
+        permanent: true,
+      },
+      ...Object.entries(renames).map(([oldSlug, newSlug]) => ({
+        source: `/:locale(pl|en)/imprezy/${oldSlug}`,
+        destination: `/:locale/imprezy/${newSlug}`,
+        permanent: true,
+      })),
+    ];
   },
 };
 

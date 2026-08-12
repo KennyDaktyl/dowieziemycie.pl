@@ -48,20 +48,26 @@ function useMyPosition(): { position: LatLng | null; status: GeoStatus; retry: (
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if (!("geolocation" in navigator)) {
-      setStatus("unsupported");
-      return;
-    }
-    setStatus("requesting");
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        setStatus("granted");
-        setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      },
-      () => setStatus("denied"),
-      { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 },
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
+    let watchId: number | null = null;
+    const timer = setTimeout(() => {
+      if (!("geolocation" in navigator)) {
+        setStatus("unsupported");
+        return;
+      }
+      setStatus("requesting");
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          setStatus("granted");
+          setPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        },
+        () => setStatus("denied"),
+        { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 },
+      );
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    };
   }, [attempt]);
 
   return { position, status, retry: () => setAttempt((a) => a + 1) };

@@ -3,11 +3,16 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 
 import { Link } from "@/i18n/navigation";
+import type { AppLocale } from "@/i18n/routing";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CustomQuoteCta } from "@/components/custom-quote-cta";
+import { FaqJsonLd } from "@/components/faq-jsonld";
+import { MarkdownContent } from "@/components/markdown-content";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { apiFetch } from "@/lib/api";
+import { extractFaqPairs } from "@/lib/faq";
+import { buildAlternates } from "@/lib/seo";
 import type { LocalRoute } from "@/lib/types";
 
 async function getRoute(slug: string): Promise<LocalRoute | null> {
@@ -35,6 +40,7 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const route = await getRoute(slug);
   if (!route) return {};
+  const appLocale = locale as AppLocale;
 
   const seoTitle = locale === "en" ? route.seo_title_en : route.seo_title_pl;
   const seoDescription = locale === "en" ? route.seo_description_en : route.seo_description_pl;
@@ -44,6 +50,7 @@ export async function generateMetadata({
   return {
     title: seoTitle || title,
     description: seoDescription || description,
+    alternates: buildAlternates(`/trasa/${slug}`, appLocale),
   };
 }
 
@@ -67,10 +74,12 @@ export default async function RoutePage({
   const title = locale === "en" ? route.title_en : route.title_pl;
   const lead = locale === "en" ? route.lead_en : route.lead_pl;
   const body = locale === "en" ? route.body_en : route.body_pl;
+  const faqs = extractFaqPairs(body);
   const otherRoutes = allRoutes.filter((r) => r.slug !== route.slug);
 
   return (
     <>
+      <FaqJsonLd faqs={faqs} />
       <SiteHeader />
       <main className="mx-auto max-w-[1360px] px-6 py-16">
         <Breadcrumbs
@@ -115,10 +124,8 @@ export default async function RoutePage({
         </div>
 
         {body && (
-          <div className="mb-10 flex flex-col gap-4 text-[15.5px] leading-relaxed text-muted">
-            {body.split("\n").filter(Boolean).map((paragraph, i) => (
-              <p key={i}>{paragraph}</p>
-            ))}
+          <div className="mb-10 max-w-[900px]">
+            <MarkdownContent markdown={body} />
           </div>
         )}
 

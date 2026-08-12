@@ -76,9 +76,12 @@ function useCountdown(deadline: string | null): string | null {
 
   useEffect(() => {
     if (!deadline) return;
-    setNow(Date.now());
+    const initial = setTimeout(() => setNow(Date.now()), 0);
     const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(interval);
+    };
   }, [deadline]);
 
   if (!deadline || now === null) return null;

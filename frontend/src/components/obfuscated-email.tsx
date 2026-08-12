@@ -11,7 +11,8 @@ export function ObfuscatedEmail({ user, domain, className }: { user: string; dom
   const [email, setEmail] = useState("");
 
   useEffect(() => {
-    setEmail(`${user}@${domain}`);
+    const timer = setTimeout(() => setEmail(`${user}@${domain}`), 0);
+    return () => clearTimeout(timer);
   }, [user, domain]);
 
   if (!email) {

@@ -25,10 +25,11 @@ export function useDriverEta(bookingId: number, enabled: boolean): RouteEstimate
 
   useEffect(() => {
     if (!enabled) {
-      setEstimate(null);
-      return;
+      const timer = setTimeout(() => setEstimate(null), 0);
+      return () => clearTimeout(timer);
     }
     let cancelled = false;
+    const initial = setTimeout(tick, 0);
 
     async function tick() {
       try {
@@ -66,10 +67,10 @@ export function useDriverEta(bookingId: number, enabled: boolean): RouteEstimate
       }
     }
 
-    tick();
     const interval = setInterval(tick, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
+      clearTimeout(initial);
       clearInterval(interval);
     };
   }, [bookingId, enabled]);
