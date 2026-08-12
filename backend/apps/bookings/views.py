@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Booking, LocalFarePolicy, Payment, PricingTier
+from .models import Booking, Coupon, LocalFarePolicy, Payment, PricingTier
 from .notifications import notify_dispatcher_of_customer_cancellation
 from .payments import PaymentError, create_payment_intent
 from .pricing import estimate_price
@@ -49,6 +49,27 @@ class LocalFarePolicyView(APIView):
         if not policy:
             return Response(None)
         return Response(LocalFarePolicySerializer(policy).data)
+
+
+class ValidateCouponView(APIView):
+    """GET /api/coupons/validate/?code=XXX — lets the booking form preview a
+    discount (e.g. "-10%") against the current estimate before the customer
+    actually submits, without exposing anything beyond what's needed to
+    compute that (no used_count/max_uses)."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        code = request.query_params.get("code", "").strip()
+        if not code:
+            return Response({"valid": False})
+        try:
+            coupon = Coupon.objects.get(code__iexact=code)
+        except Coupon.DoesNotExist:
+            return Response({"valid": False})
+        if not coupon.is_valid():
+            return Response({"valid": False})
+        return Response({"valid": True, "discount_type": coupon.discount_type, "value": coupon.value})
 
 
 class RouteEstimateView(APIView):

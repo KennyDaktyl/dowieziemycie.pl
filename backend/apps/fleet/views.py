@@ -131,6 +131,16 @@ class DriverEtaView(APIView):
                 best = candidate
 
         if best is None:
+            # Nobody's on shift right now — most bookings are made for another
+            # day anyway, so a driver dispatching from their home base (Rybna)
+            # is still a meaningful distance/time estimate, not a reason to
+            # show nothing at all.
+            for driver in Driver.objects.all():
+                candidate = self._eta_from_base(driver, pickup_lat, pickup_lng)
+                if best is None or candidate["eta_minutes"] < best["eta_minutes"]:
+                    best = candidate
+
+        if best is None:
             return Response({"available": False})
         return Response({"available": True, **best})
 
@@ -141,6 +151,7 @@ class DriverEtaView(APIView):
             leg2 = get_route_details(ref_lat, ref_lng, pickup_lat, pickup_lng)
             return {
                 "driver_status": driver.status,
+                "basis": "live",
                 "eta_minutes": round(leg1.duration_min + leg2.duration_min),
                 "legs": [
                     {
@@ -159,6 +170,18 @@ class DriverEtaView(APIView):
         leg = get_route_details(driver.current_lat, driver.current_lng, pickup_lat, pickup_lng)
         return {
             "driver_status": driver.status,
+            "basis": "live",
+            "eta_minutes": round(leg.duration_min),
+            "legs": [
+                {"leg_type": "direct_to_pickup", "distance_km": leg.distance_km, "duration_min": round(leg.duration_min)},
+            ],
+        }
+
+    def _eta_from_base(self, driver, pickup_lat, pickup_lng):
+        leg = get_route_details(driver.base_lat, driver.base_lng, pickup_lat, pickup_lng)
+        return {
+            "driver_status": Driver.Status.OFFLINE,
+            "basis": "base",
             "eta_minutes": round(leg.duration_min),
             "legs": [
                 {"leg_type": "direct_to_pickup", "distance_km": leg.distance_km, "duration_min": round(leg.duration_min)},
