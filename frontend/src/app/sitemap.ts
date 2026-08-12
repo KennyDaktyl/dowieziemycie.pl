@@ -6,6 +6,9 @@ import type { BlogPost, EventOfferListItem, LocalRoute } from "@/lib/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dowieziemycie.pl";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 function localizedEntry(path: string, priority: number, changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]) {
   return routing.locales.map((locale) => ({
     url: `${SITE_URL}/${locale}${path}`,
@@ -22,19 +25,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let blogSlugs: string[] = [];
   let eventSlugs: string[] = [];
   try {
-    const routes = await apiFetch<LocalRoute[]>("/api/routes/");
+    const routes = await apiFetch<LocalRoute[]>("/api/routes/", { cache: "no-store" });
     routeSlugs = routes.map((r) => r.slug);
   } catch {
     routeSlugs = [];
   }
   try {
-    const posts = await apiFetch<BlogPost[]>("/api/blog/");
+    const posts = await apiFetch<BlogPost[]>("/api/blog/", { cache: "no-store" });
     blogSlugs = posts.map((p) => p.slug);
   } catch {
     blogSlugs = [];
   }
   try {
-    const events = await apiFetch<EventOfferListItem[]>("/api/events/");
+    const events = await apiFetch<EventOfferListItem[]>("/api/events/", { cache: "no-store" });
     eventSlugs = events.map((e) => e.slug);
   } catch {
     eventSlugs = [];
