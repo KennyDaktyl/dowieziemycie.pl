@@ -705,7 +705,7 @@ export function BookingCard() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={absoluteImageUrl(previewVehiclePhoto)}
-                      alt={previewVehicle.name}
+                      alt={`${previewVehicle.name} ${previewVehicle.model}`}
                       className="h-full w-full object-cover"
                     />
                   ) : null}
@@ -714,7 +714,9 @@ export function BookingCard() {
                   <div className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase">
                     {t("vehiclePreviewTitle")}
                   </div>
-                  <div className="mt-1 font-heading text-[16px] font-semibold text-text">{previewVehicle.name}</div>
+                  <div className="mt-1 font-heading text-[16px] font-semibold text-text">
+                    {previewVehicle.name} {previewVehicle.model}
+                  </div>
                   <div className="mt-1 text-[12.5px] text-muted">
                     {t("vehiclePreviewSeats", { count: previewVehicle.seats })}
                   </div>

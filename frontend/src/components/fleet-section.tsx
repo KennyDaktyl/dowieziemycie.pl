@@ -58,7 +58,9 @@ export async function FleetSection() {
           </div>
           {leadVehicle && (
             <div className="mt-6 rounded-[12px] border border-line bg-panel p-4">
-              <div className="font-heading text-[18px] font-semibold">{leadVehicle.name}</div>
+              <div className="font-heading text-[18px] font-semibold">
+                {leadVehicle.name} {leadVehicle.model}
+              </div>
               <p className="mt-1 text-[13.5px] text-muted">{t("customerSeats", { count: leadVehicle.seats })}</p>
             </div>
           )}
@@ -75,7 +77,7 @@ export async function FleetSection() {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={absoluteImageUrl(leadPhoto)}
-                alt={leadVehicle.name}
+                alt={`${leadVehicle.name} ${leadVehicle.model}`}
                 className="h-full w-full object-cover"
               />
             ) : (
