@@ -4,9 +4,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BlogPost, ContentPage, EventOffer, FixedRoute, HomeContent, LocalRoute, Tour
+from .models import BlogPost, ContactInfo, ContentPage, EventOffer, FixedRoute, HomeContent, LocalRoute, Tour
 from .serializers import (
     BlogPostSerializer,
+    ContactInfoSerializer,
     ContentPageSerializer,
     EventOfferDetailSerializer,
     EventOfferListSerializer,
@@ -23,6 +24,14 @@ class HomeContentView(APIView):
     def get(self, request):
         content = get_object_or_404(HomeContent, site=request.site_code)
         return Response(HomeContentSerializer(content).data)
+
+
+class ContactInfoView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        info = get_object_or_404(ContactInfo, site=request.site_code)
+        return Response(ContactInfoSerializer(info).data)
 
 
 TOUR_PREFETCH = ("photos", "vehicle_prices__vehicle")

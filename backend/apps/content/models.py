@@ -46,6 +46,39 @@ class HomeContent(models.Model):
         return f"Treść strony głównej ({self.get_site_display()})"
 
 
+class ContactInfo(models.Model):
+    """Phone/email/company details shown in the header, footer, WhatsApp
+    button and JSON-LD of a given site — one row per site (both frontends
+    used to hardcode these directly in components, so a phone number change
+    meant hunting down every `tel:` link by hand instead of editing one
+    place). `phone` drives every tel:/WhatsApp link and must be E.164
+    (+countrycode, digits only) since the frontend also strips it to build
+    wa.me links; `phone_display` is the human-readable form shown as text.
+    legal_name/nip/address are typically identical across sites (same sole
+    proprietorship running both brands) but kept per-site in case that ever
+    changes."""
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, unique=True, default=DEFAULT_SITE)
+    phone = models.CharField(max_length=20, help_text="Format E.164, np. +48515020770 (używany w linkach tel: i WhatsApp).")
+    phone_display = models.CharField(max_length=30, help_text="Wersja do wyświetlenia, np. +48 515 020 770.")
+    email = models.EmailField()
+    legal_name = models.CharField(
+        max_length=160, blank=True, help_text='Pełna nazwa firmy w stopce/JSON-LD, np. "Michał Pielak MIKTEL".',
+    )
+    nip = models.CharField(max_length=20, blank=True)
+    address_street = models.CharField(max_length=160, blank=True)
+    address_postal_code = models.CharField(max_length=10, blank=True)
+    address_city = models.CharField(max_length=100, blank=True)
+    address_country = models.CharField(max_length=2, default="PL")
+
+    class Meta:
+        verbose_name = "Dane kontaktowe"
+        verbose_name_plural = "Dane kontaktowe"
+
+    def __str__(self):
+        return f"Dane kontaktowe ({self.get_site_display()})"
+
+
 class Tour(models.Model):
     """A guided day-trip offer with a waiting driver (Auschwitz, Wieliczka,
     Zakopane, ...) — as opposed to FixedRoute, which is a point-to-point

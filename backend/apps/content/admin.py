@@ -4,6 +4,7 @@ from .models import (
     BlogPost,
     BlogPostLink,
     BlogPostPhoto,
+    ContactInfo,
     ContentPage,
     EventOffer,
     EventOfferPhoto,
@@ -38,6 +39,24 @@ class HomeContentAdmin(admin.ModelAdmin):
         (
             "Deutsch",
             {"fields": ("eyebrow_de", "headline_de", "headline_highlight_de", "lead_de", "footnote_de", "about_de")},
+        ),
+    )
+
+
+@admin.register(ContactInfo)
+class ContactInfoAdmin(admin.ModelAdmin):
+    """One row per site — `site` has a unique constraint, so the admin form
+    itself blocks a second row for the same site. Edit this instead of
+    hunting for hardcoded phone numbers/emails in frontend code — the
+    header, footer, WhatsApp button and JSON-LD on both sites all read from
+    here."""
+
+    list_display = ("site", "phone_display", "email")
+    fieldsets = (
+        (None, {"fields": ("site", "phone", "phone_display", "email")}),
+        (
+            "Firma (stopka, JSON-LD)",
+            {"fields": ("legal_name", "nip", "address_street", "address_postal_code", "address_city", "address_country")},
         ),
     )
 

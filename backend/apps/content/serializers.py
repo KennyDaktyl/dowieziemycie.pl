@@ -4,6 +4,7 @@ from .models import (
     BlogPost,
     BlogPostLink,
     BlogPostPhoto,
+    ContactInfo,
     ContentPage,
     EventOffer,
     EventOfferPhoto,
@@ -28,6 +29,15 @@ class HomeContentSerializer(serializers.ModelSerializer):
             "lead_pl", "lead_en", "lead_de",
             "footnote_pl", "footnote_en", "footnote_de",
             "about_pl", "about_en", "about_de",
+        ]
+
+
+class ContactInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactInfo
+        fields = [
+            "phone", "phone_display", "email", "legal_name", "nip",
+            "address_street", "address_postal_code", "address_city", "address_country",
         ]
 
 
