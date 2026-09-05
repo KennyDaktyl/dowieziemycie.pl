@@ -13,7 +13,7 @@ import { SiteHeader } from "@/components/site-header";
 import { apiFetch } from "@/lib/api";
 import { extractFaqPairs } from "@/lib/faq";
 import { buildAlternates } from "@/lib/seo";
-import type { LocalRoute } from "@/lib/types";
+import type { ContactInfo, LocalRoute } from "@/lib/types";
 
 async function getRoute(slug: string): Promise<LocalRoute | null> {
   try {
@@ -62,11 +62,12 @@ export default async function RoutePage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const [t, tCrumbs, allRoutes, route] = await Promise.all([
+  const [t, tCrumbs, allRoutes, route, contact] = await Promise.all([
     getTranslations("RoutePage"),
     getTranslations("Breadcrumbs"),
     apiFetch<LocalRoute[]>("/api/routes/", { next: { revalidate: 60 } }),
     getRoute(slug),
+    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
   ]);
 
   if (!route) notFound();
@@ -115,7 +116,12 @@ export default async function RoutePage({
                 <div className="text-xs text-muted">{t("vatNote")}</div>
               </>
             ) : (
-              <CustomQuoteCta className="text-right" />
+              <CustomQuoteCta
+                phone={contact.phone}
+                phoneDisplay={contact.phone_display}
+                email={contact.email}
+                className="text-right"
+              />
             )}
             <div className="font-label mt-0.5 text-xs text-muted">
               {t("exampleDistance", { km: route.example_distance_km })}

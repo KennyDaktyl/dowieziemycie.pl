@@ -14,7 +14,7 @@ import { apiFetch } from "@/lib/api";
 import { extractFaqPairs } from "@/lib/faq";
 import { localize } from "@/lib/localize";
 import { buildAlternates } from "@/lib/seo";
-import type { ContentPage } from "@/lib/types";
+import type { ContactInfo, ContentPage } from "@/lib/types";
 
 const SLUG = "wynajem-busa-z-kierowca";
 
@@ -40,11 +40,12 @@ export default async function WynajemBusaPage({ params }: { params: Promise<{ lo
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, tCrumbs, appLocale, page] = await Promise.all([
+  const [t, tCrumbs, appLocale, page, contact] = await Promise.all([
     getTranslations("WynajemBusa"),
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
     getPage(),
+    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
   ]);
 
   if (!page) notFound();
@@ -64,13 +65,13 @@ export default async function WynajemBusaPage({ params }: { params: Promise<{ lo
         <h1 className="font-heading mt-3 mb-4 text-[32px] font-semibold md:text-[40px]">{title}</h1>
         <div className="mb-8 flex flex-wrap gap-3">
           <a
-            href="tel:+48506029980"
+            href={`tel:${contact.phone}`}
             className="rounded-md bg-amber px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)]"
           >
             {t("callCta")}
           </a>
           <a
-            href="https://wa.me/48506029980"
+            href={`https://wa.me/${contact.phone.replace(/\D/g, "")}`}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-md border border-amber px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-amber transition-colors hover:bg-amber/10"

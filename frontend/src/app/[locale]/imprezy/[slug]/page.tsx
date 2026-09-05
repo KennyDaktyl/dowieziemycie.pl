@@ -16,7 +16,7 @@ import { extractFaqPairs } from "@/lib/faq";
 import { absoluteImageUrl } from "@/lib/images";
 import { localize } from "@/lib/localize";
 import { buildAlternates } from "@/lib/seo";
-import type { EventOffer, EventOfferListItem } from "@/lib/types";
+import type { ContactInfo, EventOffer, EventOfferListItem } from "@/lib/types";
 
 async function getOffers(): Promise<EventOfferListItem[]> {
   return apiFetch<EventOfferListItem[]>("/api/events/", { next: { revalidate: 60 } }).catch(() => []);
@@ -53,11 +53,12 @@ export default async function EventOfferPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const [t, tCrumbs, appLocale, offer] = await Promise.all([
+  const [t, tCrumbs, appLocale, offer, contact] = await Promise.all([
     getTranslations("Imprezy"),
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
     getOffer(slug),
+    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
   ]);
 
   if (!offer) notFound();
@@ -105,13 +106,13 @@ export default async function EventOfferPage({
 
         <div className="mb-8 flex flex-wrap gap-3">
           <a
-            href="tel:+48506029980"
+            href={`tel:${contact.phone}`}
             className="rounded-md bg-amber px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)]"
           >
             {t("callCta")}
           </a>
           <a
-            href="https://wa.me/48506029980"
+            href={`https://wa.me/${contact.phone.replace(/\D/g, "")}`}
             target="_blank"
             rel="noopener noreferrer"
             className="rounded-md border border-amber px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-amber transition-colors hover:bg-amber/10"

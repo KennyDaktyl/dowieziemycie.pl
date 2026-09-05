@@ -1,7 +1,9 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
+import { apiFetch } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import type { ContactInfo } from "@/lib/types";
 
 import { CustomerMenu } from "./customer-menu";
 import { InformationMenu } from "./information-menu";
@@ -9,10 +11,11 @@ import { LocaleSwitcher } from "./locale-switcher";
 import { MobileNav } from "./mobile-nav";
 
 export async function SiteHeader() {
-  const [t, tNav, locale, { customer }] = await Promise.all([
+  const [t, tNav, locale, contact, { customer }] = await Promise.all([
     getTranslations("Header"),
     getTranslations("Nav"),
     getLocale(),
+    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
     getSession(),
   ]);
 
@@ -107,7 +110,7 @@ export async function SiteHeader() {
               {tNav("trackByCode")}
             </Link>
             <a
-              href="tel:+48506029980"
+              href={`tel:${contact.phone}`}
               className="hidden rounded-md bg-amber px-[18px] py-[9px] text-sm font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)] sm:inline-block"
             >
               {t("call")}
@@ -117,6 +120,7 @@ export async function SiteHeader() {
               loginHref={customer ? "/moje-kursy" : "/logowanie"}
               loginLabel={customer ? t("myTrips") : t("login")}
               callLabel={t("call")}
+              phone={contact.phone}
               trackByCodeLabel={tNav("trackByCode")}
               bookNowLabel={tNav("bookNow")}
               speaksEnglishLabel={t("speaksEnglish")}

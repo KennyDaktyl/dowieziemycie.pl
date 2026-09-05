@@ -6,7 +6,9 @@ import { BookingCard } from "@/components/booking-card";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import type { AppLocale } from "@/i18n/routing";
+import { apiFetch } from "@/lib/api";
 import { buildAlternates } from "@/lib/seo";
+import type { ContactInfo } from "@/lib/types";
 
 export async function generateMetadata({
   params,
@@ -26,9 +28,10 @@ export default async function RezerwacjaPage({ params }: { params: Promise<{ loc
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, tCrumbs] = await Promise.all([
+  const [t, tCrumbs, contact] = await Promise.all([
     getTranslations("Rezerwacja"),
     getTranslations("Breadcrumbs"),
+    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
   ]);
 
   return (
@@ -39,7 +42,7 @@ export default async function RezerwacjaPage({ params }: { params: Promise<{ loc
           <Breadcrumbs items={[{ label: tCrumbs("home"), href: "/" }, { label: tCrumbs("booking") }]} />
           <h1 className="font-heading mt-3 mb-3 text-[32px] font-semibold md:text-[40px]">{t("title")}</h1>
           <p className="mb-10 max-w-[560px] text-[15.5px] leading-relaxed text-muted">{t("lead")}</p>
-          <BookingCard />
+          <BookingCard contact={contact} />
         </div>
       </main>
       <SiteFooter />

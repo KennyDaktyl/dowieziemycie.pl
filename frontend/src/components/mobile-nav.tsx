@@ -12,6 +12,7 @@ export function MobileNav({
   loginHref,
   loginLabel,
   callLabel,
+  phone,
   trackByCodeLabel,
   bookNowLabel,
   speaksEnglishLabel,
@@ -22,6 +23,7 @@ export function MobileNav({
   loginHref: string;
   loginLabel: string;
   callLabel: string;
+  phone: string;
   trackByCodeLabel: string;
   bookNowLabel: string;
   speaksEnglishLabel: string;
@@ -93,7 +95,7 @@ export function MobileNav({
               />
             )}
             <a
-              href="tel:+48506029980"
+              href={`tel:${phone}`}
               onClick={() => setOpen(false)}
               className="mt-2 rounded-md bg-amber px-2 py-3 text-center font-semibold text-[#1a1305] transition-colors"
             >

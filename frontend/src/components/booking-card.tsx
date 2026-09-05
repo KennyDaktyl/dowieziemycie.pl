@@ -12,7 +12,7 @@ import { publicApiBaseUrl, withSiteHeader } from "@/lib/api";
 import type { AddressSuggestion } from "@/lib/geocode";
 import { reverseGeocode } from "@/lib/geocode";
 import { absoluteImageUrl } from "@/lib/images";
-import type { DriverEta, RouteEstimate, Vehicle } from "@/lib/types";
+import type { ContactInfo, DriverEta, RouteEstimate, Vehicle } from "@/lib/types";
 import { useToasts } from "@/lib/use-toasts";
 
 import { AddressSearchField } from "./address-search-field";
@@ -53,7 +53,7 @@ function defaultDateTime() {
   };
 }
 
-export function BookingCard() {
+export function BookingCard({ contact }: { contact: ContactInfo }) {
   const t = useTranslations("BookingForm");
   const tTiers = useTranslations("PricingTiers");
   const tEta = useTranslations("DriverEta");
@@ -491,7 +491,12 @@ export function BookingCard() {
             <div className="mt-0.5 text-right text-[11px] text-muted">{t("vatNote")}</div>
           </div>
         ) : (
-          <CustomQuoteCta className="text-right" />
+          <CustomQuoteCta
+            phone={contact.phone}
+            phoneDisplay={contact.phone_display}
+            email={contact.email}
+            className="text-right"
+          />
         )}
       </div>
       {pickup && dropoff && estimate && estimate.price != null && (
@@ -505,8 +510,8 @@ export function BookingCard() {
           </span>
           <span>
             {t("negotiateHint")}{" "}
-            <a href="tel:+48506029980" className="font-semibold text-amber hover:underline">
-              +48 506 029 980
+            <a href={`tel:${contact.phone}`} className="font-semibold text-amber hover:underline">
+              {contact.phone_display}
             </a>
           </span>
         </div>

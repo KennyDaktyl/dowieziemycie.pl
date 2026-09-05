@@ -1,13 +1,18 @@
 import { getTranslations } from "next-intl/server";
 
-const WHATSAPP_NUMBER = "48506029980";
+import { apiFetch } from "@/lib/api";
+import type { ContactInfo } from "@/lib/types";
 
 export async function WhatsAppButton() {
-  const t = await getTranslations("Header");
+  const [t, contact] = await Promise.all([
+    getTranslations("Header"),
+    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+  ]);
+  const whatsappNumber = contact.phone.replace(/\D/g, "");
 
   return (
     <a
-      href={`https://wa.me/${WHATSAPP_NUMBER}`}
+      href={`https://wa.me/${whatsappNumber}`}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={t("whatsapp")}

@@ -3,10 +3,17 @@ import { getTranslations } from "next-intl/server";
 import { ObfuscatedEmail } from "@/components/obfuscated-email";
 import { PaymentBadge } from "@/components/payment-badge";
 import { Link } from "@/i18n/navigation";
-import { apiBaseUrl } from "@/lib/api";
+import { apiBaseUrl, apiFetch } from "@/lib/api";
+import type { ContactInfo } from "@/lib/types";
 
 export async function SiteFooter() {
-  const [t, tPayment] = await Promise.all([getTranslations("Footer"), getTranslations("BookingPayment")]);
+  const [t, tPayment, contact] = await Promise.all([
+    getTranslations("Footer"),
+    getTranslations("BookingPayment"),
+    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+  ]);
+  const [emailUser, emailDomain] = contact.email.split("@");
+  const address = `${contact.address_street}, ${contact.address_postal_code} ${contact.address_city}`;
 
   return (
     <footer className="border-t border-line px-6 pt-11 pb-[30px]">
@@ -25,9 +32,9 @@ export async function SiteFooter() {
           </div>
           <div>
             <p className="text-[13.5px] leading-[1.7] text-muted">
-              <a href="tel:+48506029980">+48 506 029 980</a>
+              <a href={`tel:${contact.phone}`}>{contact.phone_display}</a>
               <br />
-              <ObfuscatedEmail user="kontakt" domain="dowieziemycie.pl" />
+              <ObfuscatedEmail user={emailUser} domain={emailDomain} />
             </p>
             <Link href="/regulamin" className="mt-2.5 inline-block text-[13.5px] text-muted hover:text-text">
               {t("terms")}
@@ -37,7 +44,8 @@ export async function SiteFooter() {
         </div>
         <div className="mt-[30px] flex flex-wrap justify-between gap-2.5 border-t border-line pt-5 text-[12.5px] text-muted">
           <span>
-            Michał Pielak MIKTEL · NIP 6782805234 · ul. Wspólna 2, 32-061 Rybna · {t("rights", { year: new Date().getFullYear() })}
+            {contact.legal_name} · NIP {contact.nip} · {address} ·{" "}
+            {t("rights", { year: new Date().getFullYear() })}
           </span>
           <a href={`${apiBaseUrl()}/admin/`} className="opacity-60 transition-opacity hover:opacity-100">
             {t("adminPanel")}

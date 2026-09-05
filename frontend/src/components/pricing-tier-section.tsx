@@ -2,12 +2,13 @@ import { getTranslations } from "next-intl/server";
 
 import { CustomQuoteCta } from "@/components/custom-quote-cta";
 import { apiFetch } from "@/lib/api";
-import type { PricingTier } from "@/lib/types";
+import type { ContactInfo, PricingTier } from "@/lib/types";
 
 export async function PricingTierSection() {
-  const [t, tiers] = await Promise.all([
+  const [t, tiers, contact] = await Promise.all([
     getTranslations("PricingTiers"),
     apiFetch<PricingTier[]>("/api/pricing-tiers/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
   ]);
 
   const maxKm = tiers.length > 0 ? Math.max(...tiers.map((tier) => tier.max_distance_km)) : null;
@@ -40,7 +41,12 @@ export async function PricingTierSection() {
         {maxKm !== null && (
           <div className="mt-5">
             <p className="text-[13px] text-muted">{t("beyond", { km: maxKm })}</p>
-            <CustomQuoteCta className="mt-1.5" />
+            <CustomQuoteCta
+              phone={contact.phone}
+              phoneDisplay={contact.phone_display}
+              email={contact.email}
+              className="mt-1.5"
+            />
           </div>
         )}
         <p className="mt-1.5 text-[12px] text-muted">{t("vatNote")}</p>
