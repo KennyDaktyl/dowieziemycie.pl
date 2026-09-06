@@ -1,7 +1,19 @@
+from django.core.validators import URLValidator
 from django.db import models
 
 from common.imaging import process_cover_image, process_gallery_photo
 from config.sites import DEFAULT_SITE, SITE_CHOICES
+
+
+def validate_url_or_path(value):
+    """BlogPostLink.url accepts either a full external URL (museum site,
+    ticket sales page) or a site-relative internal path starting with "/"
+    (e.g. "/" for the homepage, "/sledz" to track a driver) — plain
+    URLField rejected the latter outright ("Wprowadź poprawny adres URL"),
+    blocking editors from adding perfectly reasonable internal CTAs."""
+    if value.startswith("/"):
+        return
+    URLValidator()(value)
 
 
 class HomeContent(models.Model):
@@ -393,17 +405,23 @@ class BlogPostPhoto(models.Model):
 
 
 class BlogPostLink(models.Model):
-    """An external link worth surfacing next to the article itself — museum
-    homepage, official ticket sales page, a related attraction's site. Kept
-    as its own small model (not just Markdown links in the body) so the
-    frontend can render them as a distinct, scannable "przydatne linki"
-    block rather than something buried mid-paragraph."""
+    """A link worth surfacing next to the article itself — an external
+    reference (museum homepage, official ticket sales page) or an internal
+    CTA (book on the homepage, track your driver). Kept as its own small
+    model (not just Markdown links in the body) so the frontend can render
+    them as a distinct, scannable "przydatne linki" block rather than
+    something buried mid-paragraph."""
 
     post = models.ForeignKey(BlogPost, related_name="links", on_delete=models.CASCADE)
     label_pl = models.CharField(max_length=120, help_text="Np. „Kup bilety online”, „Strona muzeum”.")
     label_en = models.CharField(max_length=120, blank=True)
     label_de = models.CharField(max_length=120, blank=True)
-    url = models.URLField()
+    url = models.CharField(
+        max_length=200,
+        validators=[validate_url_or_path],
+        help_text='Pełny adres (https://...) dla linku zewnętrznego, albo ścieżka zaczynająca się od "/" '
+        'dla linku wewnętrznego (np. "/" dla strony głównej, "/sledz" dla śledzenia kierowcy).',
+    )
     order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
