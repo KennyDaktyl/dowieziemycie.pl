@@ -98,18 +98,29 @@ export default async function BlogPostPage({ params }: { params: Promise<{ local
                   {t("usefulLinksHeading")}
                 </h2>
                 <ul className="mt-3 flex flex-col gap-2.5">
-                  {sortedLinks.map((link) => (
-                    <li key={link.url}>
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[13.5px] font-medium text-amber underline underline-offset-2"
-                      >
-                        {localize(link, "label", appLocale)}
-                      </a>
-                    </li>
-                  ))}
+                  {sortedLinks.map((link) =>
+                    link.url.startsWith("/") ? (
+                      <li key={link.url}>
+                        <Link
+                          href={link.url}
+                          className="text-[13.5px] font-medium text-amber underline underline-offset-2"
+                        >
+                          {localize(link, "label", appLocale)}
+                        </Link>
+                      </li>
+                    ) : (
+                      <li key={link.url}>
+                        <a
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[13.5px] font-medium text-amber underline underline-offset-2"
+                        >
+                          {localize(link, "label", appLocale)}
+                        </a>
+                      </li>
+                    ),
+                  )}
                 </ul>
               </aside>
             ) : null}
