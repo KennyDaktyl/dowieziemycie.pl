@@ -13,6 +13,7 @@ from .models import (
     FixedRouteVehiclePrice,
     HomeContent,
     LocalRoute,
+    SiteShowcasePhoto,
     Tour,
     TourPhoto,
     TourVehiclePrice,
@@ -39,6 +40,12 @@ class ContactInfoSerializer(serializers.ModelSerializer):
             "phone", "phone_display", "email", "legal_name", "nip",
             "address_street", "address_postal_code", "address_city", "address_country",
         ]
+
+
+class SiteShowcasePhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SiteShowcasePhoto
+        fields = ["category", "image", "thumbnail", "caption_pl", "caption_en", "caption_de", "order"]
 
 
 class TourPhotoSerializer(serializers.ModelSerializer):

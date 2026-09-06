@@ -13,6 +13,7 @@ from .models import (
     FixedRouteVehiclePrice,
     HomeContent,
     LocalRoute,
+    SiteShowcasePhoto,
     Tour,
     TourPhoto,
     TourVehiclePrice,
@@ -59,6 +60,29 @@ class ContactInfoAdmin(admin.ModelAdmin):
             {"fields": ("legal_name", "nip", "address_street", "address_postal_code", "address_city", "address_country")},
         ),
     )
+
+
+@admin.register(SiteShowcasePhoto)
+class SiteShowcasePhotoAdmin(admin.ModelAdmin):
+    """Homepage photos per site and category — Kierowca (zwykle jedno
+    zdjęcie), Samochód (dowolna liczba), Z wycieczek / Aktualności (rosnący
+    z czasem feed). Upload jest automatycznie kompresowany do WebP i
+    skalowany (patrz common/imaging.py) — nie trzeba samodzielnie
+    optymalizować zdjęć przed wgraniem."""
+
+    list_display = ("site", "category", "order", "is_published", "thumb_preview", "created_at")
+    list_filter = ("site", "category", "is_published")
+    ordering = ("site", "category", "order", "-created_at")
+    fields = ("site", "category", "image", "thumb_preview", "caption_pl", "caption_en", "caption_de", "order", "is_published")
+    readonly_fields = ("thumb_preview",)
+
+    @admin.display(description="Podgląd")
+    def thumb_preview(self, obj):
+        if not obj.thumbnail:
+            return "—"
+        from django.utils.html import format_html
+
+        return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.thumbnail.url)
 
 
 class TourVehiclePriceInline(admin.TabularInline):

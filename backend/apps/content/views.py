@@ -4,7 +4,17 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import BlogPost, ContactInfo, ContentPage, EventOffer, FixedRoute, HomeContent, LocalRoute, Tour
+from .models import (
+    BlogPost,
+    ContactInfo,
+    ContentPage,
+    EventOffer,
+    FixedRoute,
+    HomeContent,
+    LocalRoute,
+    SiteShowcasePhoto,
+    Tour,
+)
 from .serializers import (
     BlogPostSerializer,
     ContactInfoSerializer,
@@ -14,6 +24,7 @@ from .serializers import (
     FixedRouteSerializer,
     HomeContentSerializer,
     LocalRouteSerializer,
+    SiteShowcasePhotoSerializer,
     TourSerializer,
 )
 
@@ -32,6 +43,22 @@ class ContactInfoView(APIView):
     def get(self, request):
         info = get_object_or_404(ContactInfo, site=request.site_code)
         return Response(ContactInfoSerializer(info).data)
+
+
+class SiteShowcasePhotoListView(generics.ListAPIView):
+    """GET /api/showcase-photos/ — homepage photos (driver, vehicle, trips,
+    aktualności), site-scoped. Pass ?category=DRIVER|VEHICLE|TRIP|NEWS to
+    filter to one category."""
+
+    permission_classes = [AllowAny]
+    serializer_class = SiteShowcasePhotoSerializer
+
+    def get_queryset(self):
+        qs = SiteShowcasePhoto.objects.filter(is_published=True, site=self.request.site_code)
+        category = self.request.query_params.get("category")
+        if category:
+            qs = qs.filter(category=category.upper())
+        return qs
 
 
 TOUR_PREFETCH = ("photos", "vehicle_prices__vehicle")

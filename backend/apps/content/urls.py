@@ -12,6 +12,7 @@ from .views import (
     HomeContentView,
     LocalRouteDetailView,
     LocalRouteListView,
+    SiteShowcasePhotoListView,
     TourDetailView,
     TourListView,
 )
@@ -19,6 +20,7 @@ from .views import (
 urlpatterns = [
     path("home-content/", HomeContentView.as_view(), name="home-content"),
     path("contact-info/", ContactInfoView.as_view(), name="contact-info"),
+    path("showcase-photos/", SiteShowcasePhotoListView.as_view(), name="showcase-photo-list"),
     path("tours/", TourListView.as_view(), name="tour-list"),
     path("tours/<slug:slug>/", TourDetailView.as_view(), name="tour-detail"),
     path("routes/", LocalRouteListView.as_view(), name="route-list"),

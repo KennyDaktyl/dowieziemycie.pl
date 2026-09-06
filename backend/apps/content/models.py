@@ -91,6 +91,49 @@ class ContactInfo(models.Model):
         return f"Dane kontaktowe ({self.get_site_display()})"
 
 
+class SiteShowcasePhoto(models.Model):
+    """Curated homepage photos for a site — the driver's face, real shots of
+    the vehicle, and an open-ended feed of completed rides/trips the owner
+    wants to show off ("Aktualności"). Kept separate from
+    apps.fleet.VehiclePhoto (the /flota spec-sheet gallery): this is purely
+    homepage marketing curation, admin-orderable per category, not tied to
+    a specific fleet vehicle record.
+
+    Every upload goes through the same WebP + resize pipeline as the rest
+    of the site (see common.imaging) — full image capped at 1920px, plus a
+    480px thumbnail for grid/badge use — so this stays light on both
+    desktop and mobile regardless of what an admin uploads."""
+
+    class Category(models.TextChoices):
+        DRIVER = "DRIVER", "Kierowca"
+        VEHICLE = "VEHICLE", "Samochód"
+        TRIP = "TRIP", "Z wycieczek"
+        NEWS = "NEWS", "Aktualności"
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
+    category = models.CharField(max_length=10, choices=Category.choices)
+    image = models.ImageField(upload_to="showcase/")
+    thumbnail = models.ImageField(upload_to="showcase/thumbs/", blank=True, editable=False)
+    caption_pl = models.CharField(max_length=160, blank=True)
+    caption_en = models.CharField(max_length=160, blank=True)
+    caption_de = models.CharField(max_length=160, blank=True)
+    order = models.PositiveSmallIntegerField(default=0, help_text="Niższa wartość = wyżej/pierwsza w danej kategorii.")
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["category", "order", "-created_at"]
+        verbose_name = "Zdjęcie na stronę główną"
+        verbose_name_plural = "Zdjęcia na stronę główną"
+
+    def save(self, *args, **kwargs):
+        process_gallery_photo(self, "image", "thumbnail")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.get_category_display()} ({self.get_site_display()}) #{self.pk or '?'}"
+
+
 class Tour(models.Model):
     """A guided day-trip offer with a waiting driver (Auschwitz, Wieliczka,
     Zakopane, ...) — as opposed to FixedRoute, which is a point-to-point
