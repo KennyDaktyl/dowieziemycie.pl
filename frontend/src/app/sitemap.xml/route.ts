@@ -46,7 +46,6 @@ export async function GET() {
 
   const urls = [
     ...localizedUrls(""),
-    ...localizedUrls("/na-zywo"),
     ...localizedUrls("/kierunki"),
     ...localizedUrls("/cennik"),
     ...localizedUrls("/flota"),

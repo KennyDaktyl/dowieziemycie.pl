@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 
 import { BookingTracker } from "@/components/booking-tracker";
@@ -8,6 +9,13 @@ import { redirect } from "@/i18n/navigation";
 import { apiBaseUrl, withSiteHeader } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import type { Booking } from "@/lib/types";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 const TRACKABLE_STATUSES = ["KIEROWCA_W_DRODZE", "W_TRAKCIE"];
 

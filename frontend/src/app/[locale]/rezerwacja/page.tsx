@@ -21,6 +21,10 @@ export async function generateMetadata({
     title: t("seoTitle"),
     description: t("seoDescription"),
     alternates: buildAlternates("/rezerwacja", locale as AppLocale),
+    robots: {
+      index: false,
+      follow: false,
+    },
   };
 }
 
