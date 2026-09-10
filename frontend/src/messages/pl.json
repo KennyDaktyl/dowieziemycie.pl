@@ -41,7 +41,8 @@
     "imprezy": "Imprezy",
     "transport": "Przewóz",
     "wynajemBusa": "Wynajem / długie trasy",
-    "bookNow": "Zarezerwuj kurs"
+    "bookNow": "Zarezerwuj kurs",
+    "nocnyTransfer": "Nocny transfer"
   },
   "Breadcrumbs": {
     "home": "Strona główna",
@@ -53,7 +54,8 @@
     "wynajemBusa": "Wynajem busa z kierowcą",
     "pricing": "Cennik",
     "booking": "Rezerwacja",
-    "fleet": "Flota"
+    "fleet": "Flota",
+    "nocnyTransfer": "Nocny transfer"
   },
   "Blog": {
     "heading": "Blog o lokalnym transporcie pod Krakowem",
@@ -231,6 +233,10 @@
   "WynajemBusa": {
     "callCta": "Zadzwoń po wycenę",
     "whatsappCta": "Napisz na WhatsApp"
+  },
+  "NocnyTransfer": {
+    "bookCta": "Zarezerwuj kurs",
+    "callCta": "Zadzwoń"
   },
   "Rezerwacja": {
     "title": "Zarezerwuj kurs",

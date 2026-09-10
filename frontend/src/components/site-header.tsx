@@ -25,6 +25,7 @@ export async function SiteHeader() {
     { href: "/rezerwacja", label: tNav("booking") },
     { href: `/${locale}#coverage`, label: tNav("coverage") },
     { href: `/${locale}#routes`, label: tNav("routes") },
+    { href: "/nocny-transfer-krakow", label: tNav("nocnyTransfer") },
     { href: "/imprezy", label: tNav("imprezy") },
     { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
   ];
@@ -41,6 +42,7 @@ export async function SiteHeader() {
     { href: `/${locale}#coverage`, label: tNav("coverage") },
     { href: `/${locale}#how-it-works`, label: tNav("howItWorks") },
     { href: `/${locale}#routes`, label: tNav("routes") },
+    { href: "/nocny-transfer-krakow", label: tNav("nocnyTransfer") },
     { href: "/imprezy", label: tNav("imprezy") },
     { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
     { href: "/flota", label: tNav("fleet") },

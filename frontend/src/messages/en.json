@@ -41,7 +41,8 @@
     "imprezy": "Events",
     "transport": "Transport",
     "wynajemBusa": "Van hire / long routes",
-    "bookNow": "Book a ride"
+    "bookNow": "Book a ride",
+    "nocnyTransfer": "Night transfer"
   },
   "Breadcrumbs": {
     "home": "Home",
@@ -53,7 +54,8 @@
     "wynajemBusa": "Van hire with a driver",
     "pricing": "Pricing",
     "booking": "Booking",
-    "fleet": "Fleet"
+    "fleet": "Fleet",
+    "nocnyTransfer": "Night transfer"
   },
   "Blog": {
     "heading": "Local transport blog around Kraków",
@@ -231,6 +233,10 @@
   "WynajemBusa": {
     "callCta": "Call for a quote",
     "whatsappCta": "Message on WhatsApp"
+  },
+  "NocnyTransfer": {
+    "bookCta": "Book a ride",
+    "callCta": "Call us"
   },
   "Rezerwacja": {
     "title": "Book a ride",

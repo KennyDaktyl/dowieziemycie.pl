@@ -51,6 +51,7 @@ export async function GET() {
     ...localizedUrls("/flota"),
     ...localizedUrls("/imprezy"),
     ...localizedUrls("/wynajem-busa-z-kierowca"),
+    ...localizedUrls("/nocny-transfer-krakow"),
     ...localizedUrls("/blog"),
     ...routeSlugs.flatMap((slug) => localizedUrls(`/trasa/${slug}`)),
     ...eventSlugs.flatMap((slug) => localizedUrls(`/imprezy/${slug}`)),
