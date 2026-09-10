@@ -1,8 +1,8 @@
 import { getTranslations } from "next-intl/server";
 
+import { FleetPreviewGallery } from "@/components/fleet-preview-gallery";
 import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
-import { absoluteImageUrl } from "@/lib/images";
 import type { Vehicle } from "@/lib/types";
 
 function VanIcon() {
@@ -24,12 +24,17 @@ export async function FleetSection() {
 
   const totalSeats = vehicles.reduce((sum, v) => sum + v.seats, 0);
   const leadVehicle = [...vehicles].sort((a, b) => b.seats - a.seats)[0];
-  const leadPhoto = leadVehicle?.cover_photo ?? leadVehicle?.photos[0]?.image;
-  const previewPhotos = leadVehicle
+  const galleryImages = leadVehicle
     ? [
-        ...(leadVehicle.cover_photo ? [{ image: leadVehicle.cover_photo, caption: leadVehicle.name }] : []),
-        ...leadVehicle.photos,
-      ].slice(0, 4)
+        ...(leadVehicle.cover_photo
+          ? [{ image: leadVehicle.cover_photo, caption: leadVehicle.name }]
+          : []),
+        ...leadVehicle.photos.map((photo) => ({
+          image: photo.image,
+          thumbnail: photo.thumbnail,
+          caption: photo.caption,
+        })),
+      ]
     : [];
   const specs = [
     { n: totalSeats > 0 ? String(totalSeats) : "—", l: t("seats") },
@@ -71,34 +76,15 @@ export async function FleetSection() {
             {t("seeFleet")}
           </Link>
         </div>
-        <div className="rounded-[14px] border border-line bg-panel p-3">
-          <div className="flex h-[260px] items-center justify-center overflow-hidden rounded-[10px] bg-panel-2">
-            {leadPhoto && leadVehicle ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={absoluteImageUrl(leadPhoto)}
-                alt={`${leadVehicle.name} ${leadVehicle.model}`}
-                className="h-full w-full object-cover"
-              />
-            ) : (
+        {galleryImages.length > 0 && leadVehicle ? (
+          <FleetPreviewGallery images={galleryImages} name={`${leadVehicle.name} ${leadVehicle.model}`} />
+        ) : (
+          <div className="rounded-[14px] border border-line bg-panel p-3">
+            <div className="flex h-[260px] items-center justify-center overflow-hidden rounded-[10px] bg-panel-2">
               <VanIcon />
-            )}
-          </div>
-          {previewPhotos.length > 1 && (
-            <div className="mt-3 grid grid-cols-4 gap-2">
-              {previewPhotos.map((photo, index) => (
-                <div key={`${photo.image}-${index}`} className="aspect-[4/3] overflow-hidden rounded-[7px] bg-panel-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={absoluteImageUrl("thumbnail" in photo && photo.thumbnail ? photo.thumbnail : photo.image)}
-                    alt={photo.caption || leadVehicle?.name || t("title")}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {vehicles.length === 0 && <p className="mt-4 text-[13px] text-muted">{t("empty")}</p>}
     </section>

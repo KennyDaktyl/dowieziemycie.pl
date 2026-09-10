@@ -276,6 +276,17 @@
     "nextPhoto": "Następne zdjęcie",
     "openPhoto": "Powiększ zdjęcie"
   },
+  "DriverPayment": {
+    "driverEyebrow": "Twój kierowca",
+    "driverHeading": "Poznasz mnie od razu",
+    "driverBody": "To ja odbieram Cię i prowadzę na stałych trasach — bez podwykonawców i przypadkowych kierowców. Ten sam człowiek, ten sam bus, za każdym razem.",
+    "driverAlt": "Kierowca dowieziemycie.pl",
+    "paymentEyebrow": "Płatność",
+    "paymentHeading": "Zapłacisz kartą u kierowcy",
+    "paymentBody": "W aucie jest terminal płatniczy — zapłacisz kartą, telefonem (BLIK, zbliżeniowo) albo gotówką. Fakturę wystawiamy na życzenie.",
+    "paymentContactless": "Zbliżeniowo",
+    "paymentCash": "Gotówka"
+  },
   "LiveMap": {
     "caption": "Nasz kierowca na żywo",
     "pageDescription": "Zanim zamówisz kurs, zobacz gdzie aktualnie jest nasze auto.",

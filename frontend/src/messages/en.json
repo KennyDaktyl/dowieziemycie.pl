@@ -276,6 +276,17 @@
     "nextPhoto": "Next photo",
     "openPhoto": "Open photo"
   },
+  "DriverPayment": {
+    "driverEyebrow": "Your driver",
+    "driverHeading": "You'll know me right away",
+    "driverBody": "I'm the one who picks you up and drives the fixed routes — no subcontractors, no random drivers. The same person, the same van, every time.",
+    "driverAlt": "dowieziemycie.pl driver",
+    "paymentEyebrow": "Payment",
+    "paymentHeading": "Pay by card with the driver",
+    "paymentBody": "There's a card terminal in the car — pay by card, phone (BLIK, contactless) or cash. We issue an invoice on request.",
+    "paymentContactless": "Contactless",
+    "paymentCash": "Cash"
+  },
   "LiveMap": {
     "caption": "Our driver, live",
     "pageDescription": "Before you book, see where our car is right now.",

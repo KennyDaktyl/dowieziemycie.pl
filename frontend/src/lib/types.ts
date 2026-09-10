@@ -32,6 +32,18 @@ export interface VehiclePhotoItem {
   order: number;
 }
 
+export type ShowcaseCategory = "DRIVER" | "VEHICLE" | "TRIP" | "NEWS";
+
+export interface ShowcasePhoto {
+  category: ShowcaseCategory;
+  image: string;
+  thumbnail: string;
+  caption_pl: string;
+  caption_en: string;
+  caption_de: string;
+  order: number;
+}
+
 export interface Vehicle {
   id: number;
   name: string;
