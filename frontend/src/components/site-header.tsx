@@ -21,19 +21,21 @@ export async function SiteHeader() {
 
   // Anchor ids are language-neutral on purpose (same on /pl and /en) — prefixed
   // with the current locale's home path so nav works from any page, not just "/".
+  // Keep the top bar to four items — everything else lives in the "Informacje"
+  // dropdown so the row never collides with the language switcher / CTAs.
   const primaryLinks = [
     { href: "/rezerwacja", label: tNav("booking") },
-    { href: `/${locale}#coverage`, label: tNav("coverage") },
     { href: `/${locale}#routes`, label: tNav("routes") },
     { href: "/nocny-transfer-krakow", label: tNav("nocnyTransfer") },
     { href: "/imprezy", label: tNav("imprezy") },
-    { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
   ];
   const informationLinks = [
+    { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
+    { href: `/${locale}#coverage`, label: tNav("coverage") },
+    { href: "/cennik", label: tNav("pricing") },
     { href: "/flota", label: tNav("fleet") },
     { href: `/${locale}#how-it-works`, label: tNav("howItWorks") },
     { href: "/na-zywo", label: tNav("tracking") },
-    { href: "/cennik", label: tNav("pricing") },
     { href: "/blog", label: tNav("blog") },
     { href: "/regulamin", label: tNav("terms") },
   ];
@@ -70,7 +72,7 @@ export async function SiteHeader() {
             </div>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center gap-4 text-[14.5px] whitespace-nowrap text-muted xl:flex">
+          <nav className="hidden min-w-0 flex-1 items-center gap-5 text-[14.5px] whitespace-nowrap text-muted xl:flex 2xl:gap-6">
             {primaryLinks.map((link) =>
               link.href.includes("#") ? (
                 <a key={link.href} href={link.href} className="transition-colors hover:text-text">
