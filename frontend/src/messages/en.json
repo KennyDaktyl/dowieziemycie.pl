@@ -135,7 +135,7 @@
     "vatNote": "Price includes VAT (23%).",
     "nameLabel": "Name",
     "namePlaceholder": "Jane Smith",
-    "emailLabel": "Email (optional)",
+    "emailLabel": "Email",
     "emailPlaceholder": "jane@example.com",
     "verifyStepTitle": "Step 2: confirm your phone",
     "submitVerifyPhone": "Enter your phone number to attach this booking to My trips. After you enter the SMS code, the ride will be saved and shown in your panel."

@@ -135,7 +135,7 @@
     "vatNote": "Cena zawiera VAT (23%).",
     "nameLabel": "Imię",
     "namePlaceholder": "Jan Kowalski",
-    "emailLabel": "E-mail (opcjonalnie)",
+    "emailLabel": "E-mail",
     "emailPlaceholder": "jan@przyklad.pl",
     "verifyStepTitle": "Krok 2: potwierdź telefon",
     "submitVerifyPhone": "Podaj numer telefonu, żeby przypisać rezerwację do konta Moje kursy. Po wpisaniu kodu SMS kurs zostanie zapisany i zobaczysz go w panelu."
