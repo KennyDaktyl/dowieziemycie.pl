@@ -298,12 +298,15 @@ class FixedRoute(models.Model):
 
     class Category(models.TextChoices):
         LOTNISKO = "LOTNISKO", "Transfer lotniskowy"
-        DWORZEC_PKP = "DWORZEC_PKP", "Transfer z dworca PKP"
+        TRANSFER = "TRANSFER", "Transfer"
 
     site = models.CharField(max_length=20, choices=SITE_CHOICES, default="transfer247")
     category = models.CharField(
         max_length=20, choices=Category.choices, default=Category.LOTNISKO,
-        help_text="Decyduje w którym dziale menu (i sekcji na /transfery) trasa się pojawia.",
+        help_text=(
+            "Decyduje pod jakim adresem trasa się pojawia: LOTNISKO -> /transfery-lotniskowe, "
+            "TRANSFER -> /transfery (osobne strony, osobne adresy — celowo rozdzielone pod SEO)."
+        ),
     )
     slug = models.SlugField(max_length=140, unique=True)
     name_pl = models.CharField(max_length=160, help_text="Krótka nazwa — używana w menu, na kartach, w stopce.")
