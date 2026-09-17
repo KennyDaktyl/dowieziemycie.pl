@@ -80,7 +80,7 @@ export default async function WynajemBusaPage({ params }: { params: Promise<{ lo
           </a>
         </div>
         <div className="max-w-[900px]">
-          <MarkdownContent markdown={body} />
+          <MarkdownContent markdown={body} locale={appLocale} />
         </div>
       </main>
       <SiteFooter />

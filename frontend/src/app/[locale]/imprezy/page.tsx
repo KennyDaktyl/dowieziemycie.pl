@@ -81,7 +81,7 @@ export default async function ImprezyPage({ params }: { params: Promise<{ locale
           </a>
         </div>
         <div className="max-w-[720px]">
-          <MarkdownContent markdown={body} />
+          <MarkdownContent markdown={body} locale={appLocale} />
         </div>
 
         {offers.length > 0 && (

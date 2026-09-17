@@ -4,6 +4,7 @@ import { setRequestLocale } from "next-intl/server";
 import { MarkdownContent } from "@/components/markdown-content";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import type { AppLocale } from "@/i18n/routing";
 import { apiFetch } from "@/lib/api";
 import type { ContentPage } from "@/lib/types";
 
@@ -47,7 +48,7 @@ export default async function RegulaminPage({ params }: { params: Promise<{ loca
         <h1 className="font-heading mb-8 text-2xl font-semibold">{title}</h1>
         {body && (
           <div className="max-w-[900px]">
-            <MarkdownContent markdown={body} />
+            <MarkdownContent markdown={body} locale={locale as AppLocale} />
           </div>
         )}
       </main>

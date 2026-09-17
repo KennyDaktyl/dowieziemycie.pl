@@ -90,7 +90,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ local
           ) : null}
 
           <div className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_280px]">
-            <MarkdownContent markdown={body} />
+            <MarkdownContent markdown={body} locale={appLocale} />
 
             {sortedLinks.length > 0 ? (
               <aside className="h-fit rounded-[14px] border border-line bg-panel p-5">

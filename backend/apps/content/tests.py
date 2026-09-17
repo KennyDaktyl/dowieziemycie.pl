@@ -1,4 +1,5 @@
 import io
+import re
 import tempfile
 
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -8,7 +9,15 @@ from rest_framework.test import APIClient, APITestCase
 
 from apps.fleet.models import Vehicle
 
-from .models import FixedRoute, FixedRoutePhoto, FixedRouteVehiclePrice
+from .models import (
+    BlogPost,
+    BlogPostLink,
+    ContentPage,
+    FixedRoute,
+    FixedRoutePhoto,
+    FixedRouteVehiclePrice,
+    Tour,
+)
 
 
 def _make_test_image_upload(name="photo.png", size=(800, 600), color=(200, 50, 50)) -> SimpleUploadedFile:
@@ -98,7 +107,7 @@ class SiteScopingTests(APITestCase):
 
         res_transfer247 = self.client.get("/api/fixed-routes/", HTTP_X_SITE="transfer247")
         self.assertEqual(res_transfer247.status_code, 200)
-        self.assertEqual(len(res_transfer247.data), 6)
+        self.assertEqual(len(res_transfer247.data), 7)
 
     def test_tours_are_scoped_per_site(self):
         res_default = self.client.get("/api/tours/")
@@ -120,3 +129,92 @@ class SiteScopingTests(APITestCase):
         transfer_slugs = {p["slug"] for p in res_transfer247.data}
         self.assertIn("krakow-airport-transfer-to-hotel-guide", transfer_slugs)
         self.assertNotIn("transport-z-imprezy-do-domu-krakow", transfer_slugs)
+
+
+class InternalCmsLinkIntegrityTests(TestCase):
+    """Catches the class of bug behind migration 0063: a CMS markdown link
+    (route/tour/blog/page body, or a BlogPostLink) pointing at an internal
+    page that was since renamed, re-categorized (the /transfery <->
+    /transfery-lotniskowe split), or deleted — the exact 404/redirect churn
+    GSC's coverage report keeps flagging. Runs against whatever the
+    migrations have actually seeded, computed live from the DB (not a
+    hardcoded slug list), so it fails the moment ANY future migration or
+    Admin edit introduces a dead internal link, without waiting for a GSC
+    report or a live crawl to notice.
+
+    This only covers slug-addressable content (/transfery/<slug>,
+    /wycieczki/<slug>, /blog/<slug>, ...) that this backend actually knows
+    about. Static single-segment pages (/kontakt, /flota, ...) and
+    everything else server-rendered are covered instead by
+    scripts/check-internal-links.mjs in the frontend repo, which crawls the
+    real deployed site."""
+
+    LINK_RE = re.compile(r"\]\((/[a-z0-9/_-]+)\)")
+
+    TEXT_FIELDS = {
+        FixedRoute: ["body_pl", "body_en", "body_de"],
+        Tour: ["body_pl", "body_en", "body_de"],
+        BlogPost: ["body_pl", "body_en", "body_de"],
+        ContentPage: ["body_pl", "body_en"],
+    }
+
+    SECTION_RE = re.compile(r"^/(transfery-lotniskowe|transfery|wycieczki|blog)/([a-z0-9-]+)$")
+
+    def _all_internal_links(self):
+        """Yields (source_label, path) for every markdown link found."""
+        for model, fields in self.TEXT_FIELDS.items():
+            for obj in model.objects.all():
+                for field in fields:
+                    text = getattr(obj, field, None) or ""
+                    for match in self.LINK_RE.finditer(text):
+                        yield f"{model.__name__}:{obj.site}:{obj.slug}:{field}", match.group(1)
+        for link in BlogPostLink.objects.select_related("post").all():
+            if link.url.startswith("/"):
+                yield f"BlogPostLink:{link.post.site}:{link.post.slug}", link.url
+
+    def test_no_locale_prefixed_markdown_links(self):
+        """Bodies are authored locale-agnostic — MarkdownContent adds the
+        /pl /en /de prefix at render time (see frontend commit d45f46e). A
+        link that already hardcodes one would get double-prefixed
+        (/pl/pl/...) instead."""
+        offenders = [
+            (src, path) for src, path in self._all_internal_links() if re.match(r"^/(pl|en|de)(/|$)", path)
+        ]
+        self.assertEqual(offenders, [], f"CMS links must not hardcode a locale prefix: {offenders}")
+
+    def test_internal_links_resolve_to_a_real_page(self):
+        routes_by_site: dict[str, dict[str, str]] = {}
+        tours_by_site: dict[str, set[str]] = {}
+        posts_by_site: dict[str, set[str]] = {}
+
+        for r in FixedRoute.objects.all():
+            routes_by_site.setdefault(r.site, {})[r.slug] = r.category
+        for t in Tour.objects.all():
+            tours_by_site.setdefault(t.site, set()).add(t.slug)
+        for p in BlogPost.objects.all():
+            posts_by_site.setdefault(p.site, set()).add(p.slug)
+
+        offenders = []
+        for source, path in self._all_internal_links():
+            site = source.split(":", 2)[1]
+            match = self.SECTION_RE.match(path)
+            if not match:
+                continue  # static page, out of scope for this DB-level check
+            section, slug = match.groups()
+            if section == "transfery-lotniskowe":
+                ok = routes_by_site.get(site, {}).get(slug) == FixedRoute.Category.LOTNISKO
+            elif section == "transfery":
+                ok = routes_by_site.get(site, {}).get(slug) == FixedRoute.Category.TRANSFER
+            elif section == "wycieczki":
+                ok = slug in tours_by_site.get(site, set())
+            else:
+                ok = slug in posts_by_site.get(site, set())
+            if not ok:
+                offenders.append((source, path))
+
+        self.assertEqual(
+            offenders,
+            [],
+            f"CMS content links to a page that doesn't exist under that exact URL "
+            f"(deleted, renamed, or filed under the wrong category): {offenders}",
+        )

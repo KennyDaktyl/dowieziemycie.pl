@@ -57,7 +57,7 @@ export default async function CennikPage({ params }: { params: Promise<{ locale:
         <Breadcrumbs items={breadcrumbItems} />
         <h1 className="font-heading mt-3 mb-4 text-[32px] font-semibold md:text-[40px]">{title}</h1>
         <div className="max-w-[900px]">
-          <MarkdownContent markdown={body} />
+          <MarkdownContent markdown={body} locale={appLocale} />
         </div>
       </main>
       <LocalFareRulesSection />

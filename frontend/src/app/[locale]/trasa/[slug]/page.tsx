@@ -131,7 +131,7 @@ export default async function RoutePage({
 
         {body && (
           <div className="mb-10 max-w-[900px]">
-            <MarkdownContent markdown={body} />
+            <MarkdownContent markdown={body} locale={locale as AppLocale} />
           </div>
         )}
 

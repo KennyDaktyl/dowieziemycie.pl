@@ -79,7 +79,7 @@ export default async function NocnyTransferPage({ params }: { params: Promise<{ 
           </a>
         </div>
         <div className="max-w-[900px]">
-          <MarkdownContent markdown={body} />
+          <MarkdownContent markdown={body} locale={appLocale} />
         </div>
       </main>
       <SiteFooter />

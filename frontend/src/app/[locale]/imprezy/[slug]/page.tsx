@@ -122,7 +122,7 @@ export default async function EventOfferPage({
         </div>
 
         <div className="max-w-[900px]">
-          <MarkdownContent markdown={body} />
+          <MarkdownContent markdown={body} locale={appLocale} />
         </div>
 
         {photos.length > 0 && (

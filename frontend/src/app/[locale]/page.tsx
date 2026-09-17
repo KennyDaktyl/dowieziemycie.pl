@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 
 import { AboutSection } from "@/components/about-section";
@@ -13,6 +14,17 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { StatusLegendSection } from "@/components/status-legend-section";
 import { TopicTilesSection } from "@/components/topic-tiles-section";
+import type { AppLocale } from "@/i18n/routing";
+import { buildAlternates } from "@/lib/seo";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return { alternates: buildAlternates("", locale as AppLocale) };
+}
 
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

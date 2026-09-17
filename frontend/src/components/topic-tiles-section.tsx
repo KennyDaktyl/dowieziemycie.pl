@@ -56,17 +56,29 @@ export async function TopicTilesSection() {
               )}
             </Link>
           ))}
-          {staticTiles.map((tile) => (
-            <a
-              key={tile.title}
-              href={tile.href}
-              className="rounded-lg border border-line bg-panel p-5 transition-colors hover:border-amber"
-            >
-              <span className="text-[22px]">{tile.icon}</span>
-              <h3 className="mt-2.5 text-[15.5px] font-semibold">{tile.title}</h3>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{tile.body}</p>
-            </a>
-          ))}
+          {staticTiles.map((tile) =>
+            tile.href.startsWith("#") ? (
+              <a
+                key={tile.title}
+                href={tile.href}
+                className="rounded-lg border border-line bg-panel p-5 transition-colors hover:border-amber"
+              >
+                <span className="text-[22px]">{tile.icon}</span>
+                <h3 className="mt-2.5 text-[15.5px] font-semibold">{tile.title}</h3>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{tile.body}</p>
+              </a>
+            ) : (
+              <Link
+                key={tile.title}
+                href={tile.href}
+                className="rounded-lg border border-line bg-panel p-5 transition-colors hover:border-amber"
+              >
+                <span className="text-[22px]">{tile.icon}</span>
+                <h3 className="mt-2.5 text-[15.5px] font-semibold">{tile.title}</h3>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{tile.body}</p>
+              </Link>
+            ),
+          )}
         </div>
       </div>
     </section>
