@@ -265,7 +265,7 @@
   "Fleet": {
     "eyebrow": "Fleet",
     "title": "Our fleet",
-    "description": "We show the real vehicles used for rides. The current active car has 4 customer seats, and the fleet is planned to grow with a comfortable 8-passenger van with a spacious interior.",
+    "description": "We show the real vehicles used for rides — seat count and comfort are shown for each vehicle.",
     "seats": "Seats",
     "customerSeats": "{count} customer seats",
     "availability": "Availability",

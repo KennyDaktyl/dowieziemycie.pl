@@ -265,7 +265,7 @@
   "Fleet": {
     "eyebrow": "Flota",
     "title": "Nasza flota",
-    "description": "Pokazujemy realne auta, które obsługują kursy. Teraz dostępne auto ma 4 miejsca dla klientów, a docelowo do floty dojdzie komfortowy 8-osobowy bus z przestronnym wnętrzem.",
+    "description": "Pokazujemy realne auta, które obsługują kursy — liczbę miejsc i wygodę zobaczysz przy każdym pojeździe.",
     "seats": "Miejsc",
     "customerSeats": "{count} miejsca dla klientów",
     "availability": "Dostępność",
