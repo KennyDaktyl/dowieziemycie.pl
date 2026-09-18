@@ -291,7 +291,10 @@
     "paymentHeading": "Pay by card with the driver",
     "paymentBody": "There's a card terminal in the car — pay by card, phone (BLIK, contactless) or cash. We issue an invoice on request.",
     "paymentContactless": "Contactless",
-    "paymentCash": "Cash"
+    "paymentCash": "Cash",
+    "licenseEyebrow": "License",
+    "licenseHeading": "Fully licensed",
+    "licenseBody": "Licensed carrier no. 5/2026, fully insured."
   },
   "LiveMap": {
     "caption": "Our driver, live",

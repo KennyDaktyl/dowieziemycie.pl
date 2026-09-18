@@ -79,6 +79,33 @@ export async function DriverPaymentSection() {
             </div>
           </div>
         </div>
+
+        <div className="flex items-start gap-5 rounded-[14px] border border-line bg-panel p-6 md:col-span-2">
+          <span className="flex h-[60px] w-[60px] shrink-0 items-center justify-center rounded-[14px] bg-amber/10 text-amber">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 3l7 3v5c0 4.8-3 8.9-7 10-4-1.1-7-5.2-7-10V6l7-3Z"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M9 12.3l2.1 2.1L15.5 10"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          <div>
+            <span className="font-label text-[13px] font-semibold tracking-[0.16em] text-amber uppercase">
+              {t("licenseEyebrow")}
+            </span>
+            <h3 className="font-heading mt-1 text-[20px] font-semibold">{t("licenseHeading")}</h3>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-muted">{t("licenseBody")}</p>
+          </div>
+        </div>
       </div>
     </section>
   );

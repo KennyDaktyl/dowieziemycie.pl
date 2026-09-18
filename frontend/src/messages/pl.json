@@ -291,7 +291,10 @@
     "paymentHeading": "Zapłacisz kartą u kierowcy",
     "paymentBody": "W aucie jest terminal płatniczy — zapłacisz kartą, telefonem (BLIK, zbliżeniowo) albo gotówką. Fakturę wystawiamy na życzenie.",
     "paymentContactless": "Zbliżeniowo",
-    "paymentCash": "Gotówka"
+    "paymentCash": "Gotówka",
+    "licenseEyebrow": "Licencja",
+    "licenseHeading": "Działamy legalnie",
+    "licenseBody": "Licencjonowany przewoźnik nr 5/2026, w pełni ubezpieczony."
   },
   "LiveMap": {
     "caption": "Nasz kierowca na żywo",
