@@ -42,7 +42,8 @@
     "transport": "Transport",
     "wynajemBusa": "Van hire / long routes",
     "bookNow": "Book a ride",
-    "nocnyTransfer": "Night transfer"
+    "nocnyTransfer": "Night transfer",
+    "localTransport": "Local transport"
   },
   "Breadcrumbs": {
     "home": "Home",
@@ -55,7 +56,8 @@
     "pricing": "Pricing",
     "booking": "Booking",
     "fleet": "Fleet",
-    "nocnyTransfer": "Night transfer"
+    "nocnyTransfer": "Night transfer",
+    "lokalnyPrzewoz": "Local passenger transport"
   },
   "Blog": {
     "heading": "Local transport blog around Kraków",
@@ -234,6 +236,10 @@
     "callCta": "Call for a quote",
     "whatsappCta": "Message on WhatsApp"
   },
+  "LokalnyPrzewoz": {
+    "bookCta": "Book a ride",
+    "callCta": "Call us"
+  },
   "NocnyTransfer": {
     "bookCta": "Book a ride",
     "callCta": "Call us"
@@ -272,6 +278,7 @@
     "fixedRange": "Flat rate",
     "empty": "The fleet will show up here as soon as a vehicle is added in the admin panel.",
     "seeFleet": "See fleet",
+    "seeFleetWithVehicle": "See the fleet — {name} for {seats} passengers",
     "bookRide": "Book a ride",
     "gallery": "Photo gallery",
     "plannedTitle": "Planned: comfortable 8-passenger van",

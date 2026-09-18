@@ -21,10 +21,12 @@ export async function TopicTilesSection() {
   ]);
 
   // Two evergreen tiles not tied to a specific EventOffer — night-transport
-  // messaging (points back at the homepage's own routes section) and the
-  // business/long-route offer page.
+  // messaging and the business/long-route offer page — both link to their
+  // own dedicated page now (the night-transfer tile used to point at "#routes"
+  // on this same page, a wasted, contextually-mismatched link now that
+  // /nocny-transfer-krakow exists).
   const staticTiles = [
-    { icon: "🌙", title: t("nightTitle"), body: t("nightBody"), href: "#routes" },
+    { icon: "🌙", title: t("nightTitle"), body: t("nightBody"), href: "/nocny-transfer-krakow" },
     { icon: "🏢", title: t("businessTitle"), body: t("businessBody"), href: "/wynajem-busa-z-kierowca" },
   ];
 

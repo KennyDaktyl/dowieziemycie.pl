@@ -26,8 +26,8 @@ export async function PillarsSection() {
               {t("eventsCta")} →
             </span>
           </Link>
-          <a
-            href="#routes"
+          <Link
+            href="/lokalny-przewoz-osob"
             className="group rounded-xl border border-line bg-panel p-8 transition-colors hover:border-amber"
           >
             <span className="text-[34px]">🚐</span>
@@ -36,7 +36,7 @@ export async function PillarsSection() {
             <span className="mt-5 inline-block text-[14px] font-semibold text-amber group-hover:underline">
               {t("localCta")} →
             </span>
-          </a>
+          </Link>
         </div>
       </div>
     </section>

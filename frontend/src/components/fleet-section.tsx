@@ -73,7 +73,9 @@ export async function FleetSection() {
             href="/flota"
             className="mt-6 inline-flex rounded-md border border-amber px-5 py-3 text-[14px] font-semibold text-amber transition-colors hover:bg-amber/10"
           >
-            {t("seeFleet")}
+            {leadVehicle
+              ? t("seeFleetWithVehicle", { name: `${leadVehicle.name} ${leadVehicle.model}`, seats: leadVehicle.seats })
+              : t("seeFleet")}
           </Link>
         </div>
         {galleryImages.length > 0 && leadVehicle ? (

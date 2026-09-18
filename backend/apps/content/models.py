@@ -485,6 +485,7 @@ class ContentPage(models.Model):
     class PageType(models.TextChoices):
         TRANSFER_LOTNISKO = "TRANSFER_LOTNISKO", "Transfer lotniskowy"
         NOCNY_TRANSFER = "NOCNY_TRANSFER", "Nocny transfer"
+        LOKALNY_PRZEWOZ = "LOKALNY_PRZEWOZ", "Lokalny przewóz osób"
         IMPREZY = "IMPREZY", "Imprezy okolicznościowe"
         WYNAJEM_DLUGIE_TRASY = "WYNAJEM_DLUGIE_TRASY", "Wynajem busa / długie trasy"
         CENNIK = "CENNIK", "Cennik"

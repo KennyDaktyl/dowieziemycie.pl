@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { ObfuscatedEmail } from "@/components/obfuscated-email";
 import { PaymentBadge } from "@/components/payment-badge";
 import { Link } from "@/i18n/navigation";
-import { apiBaseUrl, apiFetch } from "@/lib/api";
+import { apiFetch, publicApiBaseUrl } from "@/lib/api";
 import type { ContactInfo } from "@/lib/types";
 
 export async function SiteFooter() {
@@ -47,7 +47,10 @@ export async function SiteFooter() {
             {contact.legal_name} · NIP {contact.nip} · {address} ·{" "}
             {t("rights", { year: new Date().getFullYear() })}
           </span>
-          <a href={`${apiBaseUrl()}/admin/`} className="opacity-60 transition-opacity hover:opacity-100">
+          {/* apiBaseUrl() is the server-internal address (loopback, used for
+              SSR fetches) — a real visitor's browser can't reach it.
+              publicApiBaseUrl() is the one meant for browser-facing links. */}
+          <a href={`${publicApiBaseUrl()}/admin/`} className="opacity-60 transition-opacity hover:opacity-100">
             {t("adminPanel")}
           </a>
         </div>

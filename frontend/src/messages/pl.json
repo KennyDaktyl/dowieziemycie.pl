@@ -42,7 +42,8 @@
     "transport": "Przewóz",
     "wynajemBusa": "Wynajem / długie trasy",
     "bookNow": "Zarezerwuj kurs",
-    "nocnyTransfer": "Nocny transfer"
+    "nocnyTransfer": "Nocny transfer",
+    "localTransport": "Lokalny przewóz"
   },
   "Breadcrumbs": {
     "home": "Strona główna",
@@ -55,7 +56,8 @@
     "pricing": "Cennik",
     "booking": "Rezerwacja",
     "fleet": "Flota",
-    "nocnyTransfer": "Nocny transfer"
+    "nocnyTransfer": "Nocny transfer",
+    "lokalnyPrzewoz": "Lokalny przewóz osób"
   },
   "Blog": {
     "heading": "Blog o lokalnym transporcie pod Krakowem",
@@ -234,6 +236,10 @@
     "callCta": "Zadzwoń po wycenę",
     "whatsappCta": "Napisz na WhatsApp"
   },
+  "LokalnyPrzewoz": {
+    "bookCta": "Zarezerwuj kurs",
+    "callCta": "Zadzwoń"
+  },
   "NocnyTransfer": {
     "bookCta": "Zarezerwuj kurs",
     "callCta": "Zadzwoń"
@@ -272,6 +278,7 @@
     "fixedRange": "Stała cena",
     "empty": "Flota będzie widoczna tutaj, gdy tylko dodamy auto w panelu admina.",
     "seeFleet": "Zobacz flotę",
+    "seeFleetWithVehicle": "Zobacz flotę — {name} dla {seats} osób",
     "bookRide": "Zarezerwuj kurs",
     "gallery": "Galeria zdjęć",
     "plannedTitle": "W planie: komfortowy 8-osobowy bus",

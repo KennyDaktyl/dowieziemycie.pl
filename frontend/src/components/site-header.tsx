@@ -30,6 +30,7 @@ export async function SiteHeader() {
     { href: "/imprezy", label: tNav("imprezy") },
   ];
   const informationLinks = [
+    { href: "/lokalny-przewoz-osob", label: tNav("localTransport") },
     { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
     { href: `/${locale}#coverage`, label: tNav("coverage") },
     { href: "/cennik", label: tNav("pricing") },
@@ -46,6 +47,7 @@ export async function SiteHeader() {
     { href: `/${locale}#routes`, label: tNav("routes") },
     { href: "/nocny-transfer-krakow", label: tNav("nocnyTransfer") },
     { href: "/imprezy", label: tNav("imprezy") },
+    { href: "/lokalny-przewoz-osob", label: tNav("localTransport") },
     { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
     { href: "/flota", label: tNav("fleet") },
     { href: "/na-zywo", label: tNav("tracking") },
