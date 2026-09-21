@@ -175,7 +175,26 @@ def resolve_payment_link(booking: Booking) -> dict:
 
     payment.stripe_checkout_session_id = session.id
     payment.save(update_fields=["stripe_checkout_session_id"])
+
+    # The amount (or currency) changed since an earlier link was opened — e.g.
+    # the dispatcher filled in the EUR deposit. Close those older open sessions
+    # so only the current amount can be paid.
+    _close_stale_sessions(booking, kind, keep_payment_id=payment.id)
     return {"url": session.url, "kind": kind, "amount": amount, "currency": currency}
+
+
+def _close_stale_sessions(booking: Booking, kind: str, keep_payment_id: int) -> None:
+    stale = (
+        booking.payments.filter(kind=kind, status=Payment.Status.PENDING)
+        .exclude(stripe_checkout_session_id="").exclude(id=keep_payment_id)
+    )
+    for old in stale:
+        try:
+            stripe.checkout.Session.expire(old.stripe_checkout_session_id)
+        except stripe.StripeError:
+            pass  # already expired/completed — nothing to close
+        old.status = Payment.Status.FAILED
+        old.save(update_fields=["status"])
 
 
 def expire_open_checkout_sessions(booking: Booking) -> None:

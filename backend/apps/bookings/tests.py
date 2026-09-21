@@ -1190,6 +1190,27 @@ class PaymentLinkTests(TestCase):
         self.assertEqual(res.data["url"], "https://checkout.stripe.com/c/pay/cs_test_1")
         self.assertEqual(booking.payments.count(), 1)
 
+    def test_a_changed_amount_closes_the_older_open_session(self):
+        """The dispatcher fills in the EUR deposit after a link was already
+        opened at the default amount — only the new amount may stay payable."""
+        import stripe
+
+        booking = self._booking(language="de", price_eur=40)
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session("cs_old")):
+            self._open(booking)
+        booking.deposit_amount_eur = 12
+        booking.save(update_fields=["deposit_amount_eur"])
+
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session("cs_new", "https://x/new")), \
+                patch.object(stripe.checkout.Session, "retrieve", return_value=self._session("cs_old")), \
+                patch.object(stripe.checkout.Session, "expire") as expire:
+            res = self._open(booking)
+
+        self.assertEqual((res.data["url"], res.data["amount"]), ("https://x/new", "12.00"))
+        expire.assert_called_once_with("cs_old")
+        statuses = dict(booking.payments.values_list("stripe_checkout_session_id", "status"))
+        self.assertEqual(statuses, {"cs_old": "FAILED", "cs_new": "PENDING"})
+
     # --- what is refused ---------------------------------------------------
     def test_after_the_payment_window_the_link_is_expired(self):
         booking = self._booking()
