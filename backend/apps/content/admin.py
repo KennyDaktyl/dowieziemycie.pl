@@ -215,7 +215,10 @@ ROUTE_PINS_MAP_HTML = r"""
 
     var map = L.map("rp-map").setView([50.06, 19.94], 9);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19, attribution: "&copy; OpenStreetMap"
+      maxZoom: 19, attribution: "&copy; OpenStreetMap",
+      // Django's default Referrer-Policy is same-origin, so no Referer would reach
+      // OSM — and tile.openstreetmap.org answers 403 "Access blocked" without one.
+      referrerPolicy: "strict-origin-when-cross-origin"
     }).addTo(map);
 
     function icon(kind) {
