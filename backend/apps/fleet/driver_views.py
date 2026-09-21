@@ -4,6 +4,7 @@ DriverJWTAuthentication (a driver's token, not a customer's or Django User's).""
 
 import random
 from datetime import timedelta
+from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
@@ -15,6 +16,7 @@ from rest_framework.views import APIView
 
 from apps.bookings.models import Booking
 from apps.bookings.notifications import (
+    issue_payment_link,
     notify_customer_driver_en_route,
     notify_customer_of_cancellation,
     notify_customer_of_price_change,
@@ -23,7 +25,8 @@ from apps.bookings.notifications import (
     notify_customer_ride_started,
 )
 from apps.bookings.serializers import DriverBookingSerializer
-from apps.bookings.services import BookingConfirmError, confirm_booking
+from apps.bookings.payment_links import PaymentLinkError
+from apps.bookings.services import BookingConfirmError, confirm_booking, extend_payment_deadline
 from apps.tracking.services import broadcast_driver_update, update_driver_position
 
 from .authentication import DriverJWTAuthentication
@@ -92,6 +95,7 @@ class PendingConfirmationListView(generics.ListAPIView):
 class ConfirmBookingRequestSerializer(serializers.Serializer):
     price = serializers.DecimalField(max_digits=7, decimal_places=2, required=False)
     deposit_amount = serializers.DecimalField(max_digits=7, decimal_places=2, required=False)
+    deposit_amount_eur = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
 
 
 class ConfirmBookingView(APIView):
@@ -124,6 +128,7 @@ class ConfirmBookingView(APIView):
                 booking,
                 price=serializer.validated_data.get("price"),
                 deposit_amount=serializer.validated_data.get("deposit_amount"),
+                deposit_amount_eur=serializer.validated_data.get("deposit_amount_eur"),
             )
         except BookingConfirmError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
@@ -158,6 +163,8 @@ class BookingUpdateSerializer(serializers.Serializer):
     assigned_driver_id = serializers.IntegerField(required=False, allow_null=True)
     price = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
     deposit_amount = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
+    deposit_amount_eur = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
+    price_eur = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
 
 
 class UpdateBookingView(APIView):
@@ -195,9 +202,15 @@ class UpdateBookingView(APIView):
         data = serializer.validated_data
 
         old_scheduled_at = booking.scheduled_at
-        price_changed = ("price" in data or "deposit_amount" in data) and booking.paid_at is not None
+        price_changed = (
+            any(f in data for f in ("price", "deposit_amount", "price_eur", "deposit_amount_eur"))
+            and booking.paid_at is not None
+        )
         update_fields = []
-        for field in ("pickup_address", "dropoff_address", "scheduled_at", "passenger_count", "price", "deposit_amount"):
+        for field in (
+            "pickup_address", "dropoff_address", "scheduled_at", "passenger_count", "price", "deposit_amount",
+            "price_eur", "deposit_amount_eur",
+        ):
             if field in data:
                 setattr(booking, field, data[field])
                 update_fields.append(field)
@@ -495,3 +508,137 @@ class RegisterPushTokenView(APIView):
         driver.expo_push_token = serializer.validated_data["expo_push_token"]
         driver.save(update_fields=["expo_push_token"])
         return Response({"detail": "Token zapisany."})
+
+
+def _dispatcher_only(request):
+    if not request.user.is_dispatcher:
+        return Response(
+            {"detail": "Tylko dyspozytor może zarządzać płatnościami."}, status=status.HTTP_403_FORBIDDEN,
+        )
+    return None
+
+
+class DepositLinkRequestSerializer(serializers.Serializer):
+    deposit_amount = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
+    deposit_amount_eur = serializers.DecimalField(max_digits=7, decimal_places=2, required=False, min_value=0)
+    payment_currency = serializers.ChoiceField(choices=["pln", "eur"], required=False)
+    # Minutes from now the customer gets to pay. Omit to keep the current
+    # deadline — or, for a booking whose window already ran out (or that was
+    # cancelled for it), to open a fresh one of the site's default length.
+    minutes = serializers.IntegerField(min_value=5, max_value=60 * 24 * 14, required=False)
+    send_sms = serializers.BooleanField(required=False, default=True)
+
+
+class DepositLinkView(APIView):
+    """POST /api/fleet/driver/bookings/<id>/deposit-link/ — dispatcher-only.
+
+    The app's "waiting for the deposit" tool, the same power as the admin:
+    set the deposit amount (PLN and/or EUR) and the currency, give the
+    customer time to pay (a booking cancelled for a missed deadline is
+    revived — if its slot is still free), then generate the payment link and
+    optionally text it. Returns the refreshed booking plus the link, so the
+    app can also share it by hand when the SMS gateway refuses links."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        denied = _dispatcher_only(request)
+        if denied:
+            return denied
+        booking = Booking.objects.select_related("customer").filter(id=booking_id).first()
+        if not booking:
+            return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = DepositLinkRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        if booking.status == Booking.Status.NOWA:
+            return Response(
+                {"detail": "Najpierw potwierdź kurs — dopiero potwierdzony kurs czeka na zaliczkę."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if booking.paid_at is not None:
+            return Response(
+                {"detail": "Zaliczka jest już wpłacona — użyj linku do dopłaty reszty."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        deadline_missing = booking.payment_deadline is None or booking.payment_deadline < timezone.now()
+        try:
+            # Revives an expired/cancelled booking too (slot re-checked there).
+            if "minutes" in data or booking.status == Booking.Status.ANULOWANA or deadline_missing:
+                booking = extend_payment_deadline(booking, data.get("minutes"))
+        except BookingConfirmError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+
+        changed = []
+        for field in ("deposit_amount", "deposit_amount_eur", "payment_currency"):
+            if field in data:
+                setattr(booking, field, data[field])
+                changed.append(field)
+        if changed:
+            booking.save(update_fields=changed)
+
+        try:
+            link = issue_payment_link(booking, send_sms=data["send_sms"])
+        except PaymentLinkError as exc:
+            return Response({"detail": exc.detail}, status=status.HTTP_409_CONFLICT)
+        return Response({"booking": DriverBookingSerializer(booking).data, "link": link})
+
+
+class RemainderLinkRequestSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=7, decimal_places=2, min_value=Decimal("0.01"))
+    currency = serializers.ChoiceField(choices=["pln", "eur"], required=False)
+    send_sms = serializers.BooleanField(required=False, default=True)
+
+
+class RemainderLinkView(APIView):
+    """POST /api/fleet/driver/bookings/<id>/remainder-link/ — dispatcher-only.
+
+    Fixes the amount still owed after the deposit — in PLN or EUR, whichever
+    the customer will pay in (haggled down, or the ride got longer) — and
+    generates the payment link for exactly that, optionally texting it.
+    The amount is stored on the booking (remainder_amount / _eur), so it also
+    shows in the customer's panel and the admin."""
+
+    authentication_classes = [DriverJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, booking_id):
+        denied = _dispatcher_only(request)
+        if denied:
+            return denied
+        booking = Booking.objects.select_related("customer").filter(id=booking_id).first()
+        if not booking:
+            return Response({"detail": "Nie znaleziono rezerwacji."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = RemainderLinkRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        if booking.status not in (
+            Booking.Status.OPLACONA, Booking.Status.KIEROWCA_W_DRODZE,
+            Booking.Status.W_TRAKCIE, Booking.Status.ZAKONCZONA,
+        ):
+            return Response(
+                {"detail": "Dopłatę można zlecić dopiero po wpłacie zaliczki (kurs opłacony)."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        if booking.remainder_paid_at is not None:
+            return Response({"detail": "Ten kurs jest już opłacony w całości."}, status=status.HTTP_409_CONFLICT)
+
+        currency = data.get("currency") or booking.payment_currency
+        booking.payment_currency = currency
+        # Only the chosen currency's amount stays — a leftover figure in the
+        # other one would just be a stale number nobody asked for.
+        booking.remainder_amount = data["amount"] if currency == "pln" else None
+        booking.remainder_amount_eur = data["amount"] if currency == "eur" else None
+        booking.save(update_fields=["payment_currency", "remainder_amount", "remainder_amount_eur"])
+
+        try:
+            link = issue_payment_link(booking, send_sms=data["send_sms"])
+        except PaymentLinkError as exc:
+            return Response({"detail": exc.detail}, status=status.HTTP_409_CONFLICT)
+        return Response({"booking": DriverBookingSerializer(booking).data, "link": link})

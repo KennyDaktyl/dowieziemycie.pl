@@ -356,6 +356,17 @@ class Booking(models.Model):
             "(np. 25 EUR, nie więcej niż 50% ceny w EUR, do pełnych euro)."
         ),
     )
+    remainder_amount = models.DecimalField(
+        "Do zapłaty na koniec — PLN", max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text=(
+            "Kwota ustalona ręcznie do zapłaty po zaliczce (np. po targach albo gdy cena wzrosła w trakcie kursu). "
+            "Puste = cena kursu minus zaliczka. Używana przez link do dopłaty."
+        ),
+    )
+    remainder_amount_eur = models.DecimalField(
+        "Do zapłaty na koniec — EUR", max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text="To samo w euro (klient płacący w EUR). Puste = cena w EUR minus zaliczka w EUR.",
+    )
     paid_at = models.DateTimeField(null=True, blank=True, help_text="Kiedy zaliczka (lub pełna kwota) wpłynęła.")
     remainder_paid_at = models.DateTimeField(
         null=True, blank=True,

@@ -82,11 +82,29 @@ def deposit_in_currency(booking: Booking, currency: str) -> Decimal | None:
 
 
 def remainder_in_currency(booking: Booking, currency: str) -> Decimal | None:
-    """Ride price minus the deposit, in `currency` — never negative."""
+    """What is left to pay after the deposit, in `currency`: the amount the
+    dispatcher fixed by hand (Booking.remainder_amount / remainder_amount_eur —
+    haggling, a longer ride) or, when none, ride price minus deposit. Never
+    negative."""
+    override = booking.remainder_amount if currency == "pln" else booking.remainder_amount_eur
+    if override is not None:
+        return _d(override).quantize(_CENT)
     total, deposit = total_in_currency(booking, currency), deposit_in_currency(booking, currency)
     if total is None or deposit is None:
         return None
     return max(total - deposit, Decimal("0.00"))
+
+
+def outstanding_in_currency(booking: Booking, currency: str) -> Decimal | None:
+    """The still-unpaid balance for display (customer panel, driver app):
+    None once fully paid, when nothing is known yet, or when it is zero."""
+    if booking.remainder_paid_at is not None:
+        return None
+    has_override = (booking.remainder_amount if currency == "pln" else booking.remainder_amount_eur) is not None
+    if not has_override and (booking.price is None or booking.deposit_amount is None):
+        return None
+    amount = remainder_in_currency(booking, currency)
+    return amount if amount and amount > 0 else None
 
 
 def create_payment_intent(booking: Booking, kind: str, amount: Decimal, currency: str = "pln") -> dict:

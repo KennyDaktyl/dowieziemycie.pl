@@ -35,7 +35,7 @@ def _lock_site_bookings(site: str) -> None:
         cursor.execute("SELECT pg_advisory_xact_lock(hashtext(%s)::bigint)", [site])
 
 
-def confirm_booking(booking: Booking, price=None, deposit_amount=None) -> Booking:
+def confirm_booking(booking: Booking, price=None, deposit_amount=None, deposit_amount_eur=None) -> Booking:
     """Dispatcher review step — NOWA -> POTWIERDZONA. `price` lets the
     dispatcher override the algorithm-computed price before locking it in;
     `deposit_amount` likewise overrides the deposit (the app's own UI suggests
@@ -72,7 +72,9 @@ def confirm_booking(booking: Booking, price=None, deposit_amount=None) -> Bookin
             booking.deposit_amount = deposit_amount
         elif booking.deposit_amount is None:
             booking.deposit_amount = default_deposit(booking, "pln")
-        if booking.deposit_amount_eur is None:
+        if deposit_amount_eur is not None:
+            booking.deposit_amount_eur = deposit_amount_eur
+        elif booking.deposit_amount_eur is None:
             booking.deposit_amount_eur = default_deposit(booking, "eur")
         booking.save(update_fields=[
             "price", "status", "confirmed_at", "payment_deadline", "deposit_amount", "deposit_amount_eur",
@@ -160,6 +162,13 @@ def resolve_payable_amount(booking: Booking, kind: str) -> tuple:
         raise BookingPaymentError("Ta rezerwacja nie jest jeszcze opłacona zaliczką.")
     if booking.remainder_paid_at is not None:
         raise BookingPaymentError("Ten kurs jest już opłacony w całości.")
+    # An amount the dispatcher fixed by hand (either currency) stands on its
+    # own — it doesn't need a price/deposit pair to be derived from.
+    override = booking.remainder_amount if booking.remainder_amount is not None else booking.remainder_amount_eur
+    if override is not None:
+        if override <= 0:
+            raise BookingPaymentError("Nie ma już nic do dopłaty.")
+        return booking.remainder_amount if booking.remainder_amount is not None else override, Payment.Kind.REMAINDER
     if booking.price is None or booking.deposit_amount is None:
         raise BookingPaymentError("Brak ustalonej ceny lub zaliczki dla tego kursu.")
     remaining = booking.price - booking.deposit_amount

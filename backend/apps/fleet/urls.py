@@ -6,6 +6,7 @@ from .driver_views import (
     AllBookingsListView,
     CancelBookingView,
     ConfirmBookingView,
+    DepositLinkView,
     DriverBookingHistoryView,
     DriverMeView,
     FinishBookingView,
@@ -14,6 +15,7 @@ from .driver_views import (
     OpenBookingsListView,
     PendingConfirmationListView,
     RegisterPushTokenView,
+    RemainderLinkView,
     StartBookingView,
     UpdateBookingView,
     UpdatePositionView,
@@ -54,6 +56,14 @@ urlpatterns = [
     path("driver/bookings/<int:booking_id>/start/", StartBookingView.as_view(), name="driver-booking-start"),
     path("driver/bookings/<int:booking_id>/finish/", FinishBookingView.as_view(), name="driver-booking-finish"),
     path("driver/bookings/<int:booking_id>/cancel/", CancelBookingView.as_view(), name="driver-booking-cancel"),
+    path(
+        "driver/bookings/<int:booking_id>/deposit-link/", DepositLinkView.as_view(), name="driver-booking-deposit-link",
+    ),
+    path(
+        "driver/bookings/<int:booking_id>/remainder-link/",
+        RemainderLinkView.as_view(),
+        name="driver-booking-remainder-link",
+    ),
     path("driver/push-token/", RegisterPushTokenView.as_view(), name="driver-push-token"),
     path("driver/position/", UpdatePositionView.as_view(), name="driver-position"),
 ]

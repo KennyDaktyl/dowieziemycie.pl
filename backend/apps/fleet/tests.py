@@ -1,7 +1,9 @@
+from unittest.mock import patch
+
 from datetime import timedelta
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
@@ -596,3 +598,175 @@ class VehicleListViewTests(TestCase):
         self.assertEqual(res.status_code, 200)
         names = {v["name"] for v in res.data}
         self.assertNotIn("Retired Van", names)
+
+
+@override_settings(STRIPE_SECRET_KEY="sk_test_dummy", STRIPE_PUBLISHABLE_KEY="pk_test_dummy")
+class DriverAppPaymentLinkTests(TestCase):
+    """The dispatcher's payment tools in the driver app: set the deposit
+    (amount + time), revive a cancelled booking, fix the amount due at the
+    end of the ride, and generate/text the payment link."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.customer = Customer.objects.create(phone="+48500111222", name="Klient Testowy")
+        self.dispatcher = Driver.objects.create(
+            user=User.objects.create_user(username="dispatcher"), name="Dyspozytor", is_dispatcher=True,
+        )
+        self.plain = Driver.objects.create(user=User.objects.create_user(username="plain"), name="Kierowca")
+
+    def _booking(self, **extra):
+        defaults = dict(
+            site="transfer247", language="en", payment_currency="eur", price=599, price_eur=139,
+            deposit_amount=50, status=Booking.Status.POTWIERDZONA,
+            payment_deadline=timezone.now() + timedelta(minutes=20),
+        )
+        booking = _make_booking(self.customer, **{**defaults, **extra})
+        return booking
+
+    def _post(self, booking, action, body=None, who=None):
+        return self.client.post(
+            f"/api/fleet/driver/bookings/{booking.id}/{action}/", body or {}, format="json",
+            **_driver_auth_header(who or self.dispatcher),
+        )
+
+    def _session_mock(self, url="https://checkout.stripe.com/c/pay/cs_x"):
+        from unittest.mock import MagicMock
+
+        session = MagicMock()
+        session.id, session.url, session.status = "cs_x", url, "open"
+        return session
+
+    # --- access ---------------------------------------------------------
+    def test_both_tools_are_dispatcher_only(self):
+        booking = self._booking()
+        for action in ("deposit-link", "remainder-link"):
+            res = self._post(booking, action, {"amount": "10"}, who=self.plain)
+            self.assertEqual(res.status_code, 403, action)
+
+    # --- deposit --------------------------------------------------------
+    def test_set_eur_deposit_and_time_then_text_the_link(self):
+        booking = self._booking()
+        with patch("apps.bookings.notifications._send_sms", return_value=True), \
+                patch("apps.accounts.sms.get_sms_backend") as backend:
+            res = self._post(booking, "deposit-link", {"deposit_amount_eur": "40", "minutes": 120})
+        self.assertEqual(res.status_code, 200, res.data)
+        booking.refresh_from_db()
+        self.assertEqual(str(booking.deposit_amount_eur), "40.00")
+        self.assertAlmostEqual((booking.payment_deadline - timezone.now()).total_seconds(), 7200, delta=10)
+        link = res.data["link"]
+        self.assertEqual((link["kind"], link["amount"], link["currency"], link["sms_sent"]), ("DEPOSIT", "40.00", "eur", True))
+        self.assertIn("/pay/", link["url"])
+        message = backend.return_value.send_message.call_args.args[1]
+        self.assertIn("DEPOSIT of 40 EUR", message)
+        self.assertEqual(str(res.data["booking"]["deposit_amount_eur"]), "40.00")
+
+    def test_a_cancelled_booking_is_reopened_for_the_deposit_from_the_app(self):
+        booking = self._booking(status=Booking.Status.ANULOWANA, payment_deadline=timezone.now() - timedelta(hours=2))
+        with patch("apps.accounts.sms.get_sms_backend"):
+            res = self._post(booking, "deposit-link", {"deposit_amount": "75", "payment_currency": "pln", "minutes": 60})
+        self.assertEqual(res.status_code, 200, res.data)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.POTWIERDZONA)
+        self.assertEqual((str(booking.deposit_amount), booking.payment_currency), ("75.00", "pln"))
+        self.assertEqual(res.data["link"]["amount"], "75.00")
+
+    def test_reopening_is_refused_when_the_slot_was_taken(self):
+        booking = self._booking(status=Booking.Status.ANULOWANA)
+        # The pool has two drivers, so two committed rides at that time fill it.
+        for _ in range(2):
+            _make_booking(self.customer, status=Booking.Status.OPLACONA, scheduled_at=booking.scheduled_at)
+        res = self._post(booking, "deposit-link", {"send_sms": False})
+        self.assertEqual(res.status_code, 409)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, Booking.Status.ANULOWANA)
+
+    def test_deposit_link_needs_a_confirmed_unpaid_booking(self):
+        new = self._booking(status=Booking.Status.NOWA)
+        self.assertEqual(self._post(new, "deposit-link").status_code, 409)
+        paid = self._booking(status=Booking.Status.OPLACONA, paid_at=timezone.now(),
+                             scheduled_at=timezone.now() + timedelta(days=7))
+        self.assertEqual(self._post(paid, "deposit-link").status_code, 409)
+
+    def test_the_link_is_returned_even_when_the_sms_gateway_refuses_it(self):
+        booking = self._booking()
+
+        class Gateway:
+            def send_message(self, phone, message, site=None):
+                raise RuntimeError("SMSAPI.pl error 94: Not allowed to send messages with link")
+
+        with patch("apps.accounts.sms.get_sms_backend", return_value=Gateway()):
+            res = self._post(booking, "deposit-link", {})
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.data["link"]["sms_sent"])
+        self.assertIn("error 94", res.data["link"]["sms_error"])
+        self.assertIn("/pay/", res.data["link"]["url"])
+
+    def test_generate_without_texting(self):
+        booking = self._booking()
+        with patch("apps.accounts.sms.get_sms_backend") as backend:
+            res = self._post(booking, "deposit-link", {"send_sms": False})
+        backend.return_value.send_message.assert_not_called()
+        self.assertEqual(res.status_code, 200)
+
+    # --- remainder ------------------------------------------------------
+    def test_set_the_amount_due_at_the_end_of_the_ride_in_the_chosen_currency(self):
+        booking = self._booking(status=Booking.Status.ZAKONCZONA, paid_at=timezone.now())
+        with patch("apps.accounts.sms.get_sms_backend") as backend:
+            res = self._post(booking, "remainder-link", {"amount": "120", "currency": "eur"})
+        self.assertEqual(res.status_code, 200, res.data)
+        booking.refresh_from_db()
+        self.assertEqual((str(booking.remainder_amount_eur), booking.remainder_amount, booking.payment_currency),
+                         ("120.00", None, "eur"))
+        link = res.data["link"]
+        self.assertEqual((link["kind"], link["amount"], link["currency"]), ("REMAINDER", "120.00", "eur"))
+        self.assertIn("120 EUR", backend.return_value.send_message.call_args.args[1])
+        self.assertEqual(str(res.data["booking"]["remaining_amount_eur"]), "120.00")
+
+    def test_switching_the_currency_to_pln_replaces_the_amount(self):
+        booking = self._booking(status=Booking.Status.ZAKONCZONA, paid_at=timezone.now(), remainder_amount_eur=120)
+        with patch("apps.accounts.sms.get_sms_backend"):
+            res = self._post(booking, "remainder-link", {"amount": "500", "currency": "pln", "send_sms": False})
+        booking.refresh_from_db()
+        self.assertEqual((str(booking.remainder_amount), booking.remainder_amount_eur, booking.payment_currency),
+                         ("500.00", None, "pln"))
+        self.assertEqual((res.data["link"]["amount"], res.data["link"]["currency"]), ("500.00", "pln"))
+
+    def test_the_link_charges_exactly_the_amount_that_was_set(self):
+        import stripe
+        from django.test import Client
+
+        booking = self._booking(status=Booking.Status.ZAKONCZONA, paid_at=timezone.now())
+        with patch("apps.accounts.sms.get_sms_backend"):
+            res = self._post(booking, "remainder-link", {"amount": "50", "currency": "eur", "send_sms": False})
+        token = res.data["link"]["url"].rsplit("/", 1)[1]
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session_mock()) as create:
+            paid = Client().get(f"/api/pay/{token}/")
+        self.assertEqual(paid.status_code, 200)
+        item = create.call_args.kwargs["line_items"][0]["price_data"]
+        self.assertEqual((item["currency"], item["unit_amount"]), ("eur", 5000))
+
+    def test_remainder_refused_before_the_deposit_and_after_full_payment(self):
+        early = self._booking(status=Booking.Status.POTWIERDZONA)
+        self.assertEqual(self._post(early, "remainder-link", {"amount": "50"}).status_code, 409)
+        done = self._booking(status=Booking.Status.ZAKONCZONA, paid_at=timezone.now(), remainder_paid_at=timezone.now(),
+                             scheduled_at=timezone.now() + timedelta(days=8))
+        self.assertEqual(self._post(done, "remainder-link", {"amount": "50"}).status_code, 409)
+
+    def test_amount_must_be_positive(self):
+        booking = self._booking(status=Booking.Status.ZAKONCZONA, paid_at=timezone.now())
+        self.assertEqual(self._post(booking, "remainder-link", {"amount": "0"}).status_code, 400)
+
+    # --- confirm / update carry the EUR deposit --------------------------
+    def test_confirm_and_update_accept_the_eur_deposit(self):
+        booking = self._booking(status=Booking.Status.NOWA, deposit_amount=None, payment_deadline=None)
+        res = self._post(booking, "confirm", {"price": "599", "deposit_amount": "100", "deposit_amount_eur": "30"})
+        self.assertEqual(res.status_code, 200, res.data)
+        booking.refresh_from_db()
+        self.assertEqual((str(booking.deposit_amount), str(booking.deposit_amount_eur)), ("100.00", "30.00"))
+        res = self.client.patch(
+            f"/api/fleet/driver/bookings/{booking.id}/update/", {"deposit_amount_eur": "35"}, format="json",
+            **_driver_auth_header(self.dispatcher),
+        )
+        self.assertEqual(res.status_code, 200, res.data)
+        booking.refresh_from_db()
+        self.assertEqual(str(booking.deposit_amount_eur), "35.00")

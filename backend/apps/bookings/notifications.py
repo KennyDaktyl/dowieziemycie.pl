@@ -275,6 +275,31 @@ def send_payment_link_sms(booking) -> str:
     return kind
 
 
+def issue_payment_link(booking, *, send_sms: bool = True) -> dict:
+    """The link for whatever the booking owes right now, optionally texted to
+    the customer — used by the driver app's "generate link" buttons. The link
+    is returned even when the SMS gateway refuses it (SMSAPI blocks links
+    until the domain is allow-listed), so the dispatcher can send it by hand.
+    Raises PaymentLinkError when nothing is payable."""
+    kind, amount = amount_due(booking)
+    result = {
+        "url": payment_link_url(booking),
+        "kind": kind,
+        "amount": str(amount),
+        "currency": booking.payment_currency,
+        "deadline": booking.payment_deadline.isoformat() if kind == "DEPOSIT" and booking.payment_deadline else None,
+        "sms_sent": False,
+        "sms_error": None,
+    }
+    if send_sms:
+        try:
+            send_payment_link_sms(booking)
+            result["sms_sent"] = True
+        except Exception as exc:  # gateway refusal must not lose the link
+            result["sms_error"] = str(exc) or "Bramka SMS nie przyjęła wiadomości."
+    return result
+
+
 def notify_customer_of_payment_received(booking, payment) -> None:
     """Payment made through the SMS link — the customer never sees a
     confirmation on our site, so text one."""

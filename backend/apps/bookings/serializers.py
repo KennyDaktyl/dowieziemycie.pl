@@ -5,7 +5,7 @@ from config.sites import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 
 from .availability import assert_bookings_open, has_conflicting_booking
 from .models import Booking, Coupon, LocalFarePolicy, PricingTier
-from .payments import currency_for_language, deposit_in_currency, remainder_in_currency
+from .payments import currency_for_language, deposit_in_currency, outstanding_in_currency
 from .pricing import estimate_price
 from .routing import get_route_distance_km
 
@@ -129,10 +129,7 @@ class BookingSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_remaining_amount(self, obj):
-        if obj.price is None or obj.deposit_amount is None or obj.remainder_paid_at is not None:
-            return None
-        remaining = obj.price - obj.deposit_amount
-        return remaining if remaining > 0 else None
+        return outstanding_in_currency(obj, "pln")
 
     def get_deposit_amount_eur(self, obj):
         if obj.deposit_amount is None:  # not confirmed yet — no deposit to show
@@ -140,10 +137,7 @@ class BookingSerializer(serializers.ModelSerializer):
         return deposit_in_currency(obj, "eur")
 
     def get_remaining_amount_eur(self, obj):
-        if obj.price is None or obj.deposit_amount is None or obj.remainder_paid_at is not None:
-            return None
-        remaining = remainder_in_currency(obj, "eur")
-        return remaining if remaining and remaining > 0 else None
+        return outstanding_in_currency(obj, "eur")
 
 
 class DriverBookingSerializer(serializers.ModelSerializer):
@@ -157,6 +151,10 @@ class DriverBookingSerializer(serializers.ModelSerializer):
     fixed_route_name = serializers.CharField(source="fixed_route.name_pl", read_only=True, default=None)
     tour_name = serializers.CharField(source="tour.title_pl", read_only=True, default=None)
     actual_distance_km = serializers.SerializerMethodField()
+    # Payment figures the driver app edits: both currencies side by side.
+    deposit_amount_eur = serializers.SerializerMethodField()
+    remaining_amount = serializers.SerializerMethodField()
+    remaining_amount_eur = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -171,8 +169,22 @@ class DriverBookingSerializer(serializers.ModelSerializer):
             "started_at", "completed_at",
             "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
             "assigned_driver_id", "assigned_driver_name", "fixed_route_name", "tour_name",
+            "language", "payment_currency", "price_eur", "deposit_amount_eur", "remainder_amount",
+            "remainder_amount_eur", "remaining_amount", "remaining_amount_eur", "payment_link_sent_at",
         ]
         read_only_fields = fields
+
+    def get_deposit_amount_eur(self, obj):
+        # The EUR deposit is shown (and editable in the app) from confirmation on.
+        if obj.status in ("NOWA",) and obj.deposit_amount is None and obj.deposit_amount_eur is None:
+            return None
+        return deposit_in_currency(obj, "eur")
+
+    def get_remaining_amount(self, obj):
+        return outstanding_in_currency(obj, "pln")
+
+    def get_remaining_amount_eur(self, obj):
+        return outstanding_in_currency(obj, "eur")
 
     def get_actual_distance_km(self, obj):
         from apps.tracking.services import booking_actual_distance_km
