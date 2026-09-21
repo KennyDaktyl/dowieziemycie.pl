@@ -218,3 +218,49 @@ class InternalCmsLinkIntegrityTests(TestCase):
             f"CMS content links to a page that doesn't exist under that exact URL "
             f"(deleted, renamed, or filed under the wrong category): {offenders}",
         )
+
+
+class FixedRouteDefaultPinsTests(APITestCase):
+    """Admin-pinned start/end for a fixed route — pre-fills the booking form
+    (the customer can still change either). All optional."""
+
+    def setUp(self):
+        self.route = FixedRoute.objects.create(
+            site="transfer247", slug="pins-route", name_pl="Pins", name_en="Pins",
+        )
+
+    def test_api_returns_null_when_no_pins_are_set(self):
+        res = self.client.get("/api/fixed-routes/pins-route/", HTTP_X_SITE="transfer247")
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNone(res.data["default_pickup"])
+        self.assertIsNone(res.data["default_dropoff"])
+
+    def test_api_returns_label_and_numeric_coordinates(self):
+        self.route.default_pickup_label = "Lotnisko Katowice"
+        self.route.default_pickup_lat = "50.474311"
+        self.route.default_pickup_lng = "19.080156"
+        self.route.save()
+        res = self.client.get("/api/fixed-routes/pins-route/", HTTP_X_SITE="transfer247")
+        self.assertEqual(
+            res.data["default_pickup"], {"label": "Lotnisko Katowice", "lat": 50.474311, "lng": 19.080156},
+        )
+        self.assertIsNone(res.data["default_dropoff"])  # one pin can be set without the other
+
+    def test_half_a_coordinate_pair_is_rejected(self):
+        from django.core.exceptions import ValidationError
+
+        self.route.default_dropoff_lat = "50.05"
+        with self.assertRaises(ValidationError) as ctx:
+            self.route.full_clean()
+        self.assertIn("default_dropoff_lat", ctx.exception.message_dict)
+
+    def test_admin_change_page_renders_the_pin_map(self):
+        from django.contrib.auth.models import User
+
+        User.objects.create_superuser("pin-admin", "a@b.pl", "pw")
+        self.client.login(username="pin-admin", password="pw")
+        res = self.client.get(f"/admin/content/fixedroute/{self.route.id}/change/")
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode()
+        for needle in ("id=\"rp-map\"", "id_default_pickup_lat", "id_default_dropoff_lng", "Ustaw START"):
+            self.assertIn(needle, html)

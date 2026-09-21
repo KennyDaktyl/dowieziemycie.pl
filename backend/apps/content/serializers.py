@@ -164,6 +164,10 @@ class FixedRouteSerializer(serializers.ModelSerializer):
     vehicle_prices = FixedRouteVehiclePriceSerializer(many=True, read_only=True)
     price_from = serializers.SerializerMethodField()
     price_from_eur = serializers.SerializerMethodField()
+    # {label, lat, lng} or null — the admin-pinned start/end the booking form
+    # pre-fills (the customer can still change either).
+    default_pickup = serializers.ReadOnlyField()
+    default_dropoff = serializers.ReadOnlyField()
 
     class Meta:
         model = FixedRoute
@@ -174,7 +178,7 @@ class FixedRouteSerializer(serializers.ModelSerializer):
             "body_pl", "body_en", "body_de",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
-            "photos", "order",
+            "photos", "order", "default_pickup", "default_dropoff",
         ]
 
     def get_price_from(self, obj):

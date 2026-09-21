@@ -328,6 +328,26 @@ class FixedRoute(models.Model):
             "wrócił. Puste = używany jest domyślny bufor z Ustawień rezerwacji."
         ),
     )
+    default_pickup_label = models.CharField(
+        "Domyślny start — adres", max_length=200, blank=True,
+        help_text="Tekst pokazywany klientowi w polu „Skąd”. Puste = zostanie pobrany automatycznie ze znacznika.",
+    )
+    default_pickup_lat = models.DecimalField(
+        "Domyślny start — szerokość", max_digits=9, decimal_places=6, null=True, blank=True,
+    )
+    default_pickup_lng = models.DecimalField(
+        "Domyślny start — długość", max_digits=9, decimal_places=6, null=True, blank=True,
+    )
+    default_dropoff_label = models.CharField(
+        "Domyślny cel — adres", max_length=200, blank=True,
+        help_text="Tekst pokazywany klientowi w polu „Dokąd”. Puste = zostanie pobrany automatycznie ze znacznika.",
+    )
+    default_dropoff_lat = models.DecimalField(
+        "Domyślny cel — szerokość", max_digits=9, decimal_places=6, null=True, blank=True,
+    )
+    default_dropoff_lng = models.DecimalField(
+        "Domyślny cel — długość", max_digits=9, decimal_places=6, null=True, blank=True,
+    )
     body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown) — wstęp, sekcje, FAQ.")
     body_en = models.TextField(blank=True)
     body_de = models.TextField(blank=True)
@@ -347,6 +367,32 @@ class FixedRoute(models.Model):
 
     def __str__(self):
         return self.name_pl
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        errors = {}
+        for point in ("pickup", "dropoff"):
+            lat = getattr(self, f"default_{point}_lat")
+            lng = getattr(self, f"default_{point}_lng")
+            if (lat is None) != (lng is None):
+                errors[f"default_{point}_lat"] = "Ustaw obie współrzędne (szerokość i długość) albo żadnej."
+        if errors:
+            raise ValidationError(errors)
+
+    @staticmethod
+    def _point(label, lat, lng):
+        if lat is None or lng is None:
+            return None
+        return {"label": label, "lat": float(lat), "lng": float(lng)}
+
+    @property
+    def default_pickup(self):
+        return self._point(self.default_pickup_label, self.default_pickup_lat, self.default_pickup_lng)
+
+    @property
+    def default_dropoff(self):
+        return self._point(self.default_dropoff_label, self.default_dropoff_lat, self.default_dropoff_lng)
 
 
 class FixedRouteVehiclePrice(models.Model):
