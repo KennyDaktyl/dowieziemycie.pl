@@ -44,6 +44,23 @@ class BookingAvailabilityGateTests(TestCase):
         self.assertEqual(self.customer.name, "Anna Nowak")
         self.assertEqual(self.customer.email, "anna@example.com")
 
+    def test_long_geocoder_address_is_shortened_not_rejected(self):
+        # Same Nominatim over-length label that 400'd transfer247.pl's catalog
+        # flow — the geo-priced flow shares the 200-char column.
+        long_label = "Międzynarodowy Port Lotniczy Katowice im. Wojciecha Korfantego w Pyrzowicach, " + (
+            "Autostrada Bursztynowa, Kolonia Niwy, Ożarowice, gmina Ożarowice, powiat tarnogórski, "
+            "Górnośląsko-Zagłębiowska Metropolia, województwo śląskie, 42-625, Polska"
+        )
+        self.assertGreater(len(long_label), 200)
+        body = {
+            **VALID_BOOKING,
+            "scheduled_at": (timezone.now() + timedelta(hours=3)).isoformat(),
+            "pickup_address": long_label,
+        }
+        res = self.client.post("/api/bookings/", body, format="json")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertLessEqual(len(res.data["pickup_address"]), 200)
+
     def test_allows_booking_with_no_drivers_at_all(self):
         # A booking can be made weeks before whichever driver ends up
         # assigned is even on shift — driver status was never the right
@@ -799,6 +816,26 @@ class CatalogBookingCreateViewTests(TestCase):
         self.assertEqual(str(booking.price_eur), "40.00")  # snapshotted from FixedRouteVehiclePrice
         self.assertEqual(booking.child_seat_ages, [2, 7])
         self.assertEqual(booking.bike_count, 3)
+
+    # Verbatim Nominatim display_name for the top hit on "Międzynarodowy Port
+    # Lotniczy Katowice" — 236 chars. Production returned 400 (81-byte
+    # pickup_details max_length body) for every booking that picked it.
+    KATOWICE_AIRPORT_LABEL = (
+        "Międzynarodowy Port Lotniczy Katowice im. Wojciecha Korfantego w Pyrzowicach, Autostrada Bursztynowa, "
+        "Kolonia Niwy, Ożarowice, gmina Ożarowice, powiat tarnogórski, Górnośląsko-Zagłębiowska Metropolia, "
+        "województwo śląskie, 42-625, Polska"
+    )
+
+    def test_long_geocoder_address_is_shortened_not_rejected(self):
+        self.assertGreater(len(self.KATOWICE_AIRPORT_LABEL), 200)
+        res = self._post(fixed_route_slug=self.route.slug, pickup_details=self.KATOWICE_AIRPORT_LABEL)
+        self.assertEqual(res.status_code, 201, res.data)
+        from .models import Booking
+
+        stored = Booking.objects.get(id=res.data["id"]).pickup_address
+        self.assertLessEqual(len(stored), 200)
+        self.assertTrue(self.KATOWICE_AIRPORT_LABEL.startswith(stored))
+        self.assertTrue(stored.startswith("Międzynarodowy Port Lotniczy Katowice"))
 
     def test_rejects_more_passengers_than_the_vehicle_seats(self):
         res = self._post(fixed_route_slug=self.route.slug, passenger_count=5)  # self.vehicle only has 4 seats

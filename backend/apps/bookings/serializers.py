@@ -7,6 +7,23 @@ from .pricing import estimate_price
 from .routing import get_route_distance_km
 
 
+ADDRESS_MAX_LEN = 200  # Booking.pickup_address / dropoff_address column width
+
+
+def _fit_address(value: str) -> str:
+    """Geocoders (Nominatim) return display names well past the column width —
+    e.g. 236 chars for Katowice Airport — and rejecting a booking over a
+    cosmetic address string turned every airport pickup into a 400. Cut at the
+    last ", " boundary that fits instead, so the address stays readable; the
+    lat/lng carry the real location."""
+    value = (value or "").strip()
+    if len(value) <= ADDRESS_MAX_LEN:
+        return value
+    cut = value[:ADDRESS_MAX_LEN]
+    head, sep, _ = cut.rpartition(", ")
+    return head if sep and len(head) >= ADDRESS_MAX_LEN // 2 else cut.rstrip(", ")
+
+
 def _validate_child_seat_ages(value, passenger_count: int):
     if value in (None, ""):
         return []
@@ -160,6 +177,18 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             "scheduled_at", "passenger_count", "child_seat_ages", "bike_count", "coupon_code",
             "customer_name", "customer_email",
         ]
+        # Widened here, cut back to the column width by validate_*_address —
+        # see _fit_address for why an over-long geocoder label must not 400.
+        extra_kwargs = {
+            "pickup_address": {"max_length": 2000},
+            "dropoff_address": {"max_length": 2000},
+        }
+
+    def validate_pickup_address(self, value):
+        return _fit_address(value)
+
+    def validate_dropoff_address(self, value):
+        return _fit_address(value)
 
     def to_representation(self, instance):
         # Return the full computed booking (price, distance, status) — not
@@ -261,15 +290,21 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
         child=serializers.IntegerField(min_value=0, max_value=12), required=False, allow_empty=True
     )
     bike_count = serializers.IntegerField(min_value=0, max_value=4, required=False, default=0)
-    pickup_details = serializers.CharField(max_length=200)
+    pickup_details = serializers.CharField(max_length=2000)
     pickup_lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     pickup_lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
-    dropoff_details = serializers.CharField(max_length=200)
+    dropoff_details = serializers.CharField(max_length=2000)
     dropoff_lat = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     dropoff_lng = serializers.DecimalField(max_digits=9, decimal_places=6, required=False, allow_null=True)
     flight_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
     customer_name = serializers.CharField(required=False, allow_blank=True)
     customer_email = serializers.EmailField(required=False, allow_blank=True)
+
+    def validate_pickup_details(self, value):
+        return _fit_address(value)
+
+    def validate_dropoff_details(self, value):
+        return _fit_address(value)
 
     def validate(self, attrs):
         from apps.content.models import FixedRoute, Tour
