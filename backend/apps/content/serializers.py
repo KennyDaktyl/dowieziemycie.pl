@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.fleet.serializers import VehiclePhotoSerializer
+
 from .models import (
     BlogPost,
     BlogPostLink,
@@ -64,10 +66,15 @@ class TourVehiclePriceSerializer(serializers.ModelSerializer):
     vehicle_name = serializers.CharField(source="vehicle.name", read_only=True)
     vehicle_seats = serializers.IntegerField(source="vehicle.seats", read_only=True)
     vehicle_cover_image = serializers.ImageField(source="vehicle.cover_photo", read_only=True, default=None)
+    # The vehicle's gallery, for the booking form's photo strip + lightbox.
+    vehicle_photos = VehiclePhotoSerializer(source="vehicle.photos", many=True, read_only=True)
 
     class Meta:
         model = TourVehiclePrice
-        fields = ["vehicle_id", "vehicle_name", "vehicle_seats", "vehicle_cover_image", "price", "price_eur"]
+        fields = [
+            "vehicle_id", "vehicle_name", "vehicle_seats", "vehicle_cover_image", "vehicle_photos",
+            "price", "price_eur",
+        ]
 
 
 class TourSerializer(serializers.ModelSerializer):
@@ -153,10 +160,15 @@ class FixedRouteVehiclePriceSerializer(serializers.ModelSerializer):
     vehicle_name = serializers.CharField(source="vehicle.name", read_only=True)
     vehicle_seats = serializers.IntegerField(source="vehicle.seats", read_only=True)
     vehicle_cover_image = serializers.ImageField(source="vehicle.cover_photo", read_only=True, default=None)
+    # The vehicle's gallery, for the booking form's photo strip + lightbox.
+    vehicle_photos = VehiclePhotoSerializer(source="vehicle.photos", many=True, read_only=True)
 
     class Meta:
         model = FixedRouteVehiclePrice
-        fields = ["vehicle_id", "vehicle_name", "vehicle_seats", "vehicle_cover_image", "price", "price_eur"]
+        fields = [
+            "vehicle_id", "vehicle_name", "vehicle_seats", "vehicle_cover_image", "vehicle_photos",
+            "price", "price_eur",
+        ]
 
 
 class FixedRouteSerializer(serializers.ModelSerializer):

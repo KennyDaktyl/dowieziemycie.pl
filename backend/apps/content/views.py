@@ -61,7 +61,7 @@ class SiteShowcasePhotoListView(generics.ListAPIView):
         return qs
 
 
-TOUR_PREFETCH = ("photos", "vehicle_prices__vehicle")
+TOUR_PREFETCH = ("photos", "vehicle_prices__vehicle__photos")
 
 
 class TourListView(generics.ListAPIView):
@@ -107,7 +107,7 @@ class LocalRouteDetailView(generics.RetrieveAPIView):
     lookup_field = "slug"
 
 
-ROUTE_PREFETCH = ("photos", "vehicle_prices__vehicle")
+ROUTE_PREFETCH = ("photos", "vehicle_prices__vehicle__photos")
 
 
 class FixedRouteListView(generics.ListAPIView):

@@ -17,6 +17,7 @@ from .models import (
     FixedRoutePhoto,
     FixedRouteVehiclePrice,
     Tour,
+    TourVehiclePrice,
 )
 
 
@@ -24,6 +25,35 @@ def _make_test_image_upload(name="photo.png", size=(800, 600), color=(200, 50, 5
     buffer = io.BytesIO()
     Image.new("RGB", size, color).save(buffer, format="PNG")
     return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+
+class VehiclePhotosInPricingTests(APITestCase):
+    """The booking form shows the vehicle's gallery next to its cover photo."""
+
+    @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+    def test_route_and_tour_prices_carry_the_vehicles_gallery_in_order(self):
+        from apps.fleet.models import VehiclePhoto
+
+        vehicle = Vehicle.objects.create(name="Volkswagen", plate="GAL1", seats=6)
+        second = VehiclePhoto.objects.create(vehicle=vehicle, image=_make_test_image_upload("b.png"), order=2)
+        first = VehiclePhoto.objects.create(vehicle=vehicle, image=_make_test_image_upload("a.png"), order=1)
+        route = FixedRoute.objects.create(site="transfer247", slug="gal-route", name_pl="G", name_en="G")
+        FixedRouteVehiclePrice.objects.create(route=route, vehicle=vehicle, price=100)
+        tour = Tour.objects.create(site="transfer247", slug="gal-tour", title_pl="G", title_en="G")
+        TourVehiclePrice.objects.create(tour=tour, vehicle=vehicle, price=100)
+
+        for url in ("/api/fixed-routes/gal-route/", "/api/tours/gal-tour/"):
+            photos = self.client.get(url, HTTP_X_SITE="transfer247").data["vehicle_prices"][0]["vehicle_photos"]
+            self.assertEqual([p["order"] for p in photos], [1, 2], url)
+            self.assertTrue(photos[0]["image"].endswith(".webp") and photos[0]["thumbnail"].endswith(".webp"))
+
+    def test_no_extra_queries_per_vehicle_price(self):
+        vehicles = [Vehicle.objects.create(name=f"V{i}", plate=f"Q{i}") for i in range(3)]
+        route = FixedRoute.objects.create(site="transfer247", slug="q-route", name_pl="Q", name_en="Q")
+        for v in vehicles:
+            FixedRouteVehiclePrice.objects.create(route=route, vehicle=v, price=100)
+        with self.assertNumQueries(5):  # constant — would grow per vehicle without the photos prefetch
+            self.client.get("/api/fixed-routes/q-route/", HTTP_X_SITE="transfer247")
 
 
 class VehiclePricingTests(APITestCase):
