@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { bookingRef } from "@/lib/booking-ref";
 import { bookingStatusInfo } from "@/lib/booking-status";
 import { shortAddress } from "@/lib/format";
+import { amountsIn, formatMoney } from "@/lib/payment";
 import { siteLabel } from "@/lib/site";
 import { colors } from "@/lib/theme";
 import type { DriverBooking } from "@/lib/types";
@@ -54,7 +55,11 @@ export function BookingCard({
         {" · "}
         {booking.passenger_count} os.
       </Text>
-      <Text style={styles.price}>{booking.price ? `${Number(booking.price).toFixed(0)} zł` : "Wycena indywidualna"}</Text>
+      <Text style={styles.price}>
+        {amountsIn(booking).total != null
+          ? formatMoney(amountsIn(booking).total, booking.payment_currency ?? "pln")
+          : "Wycena indywidualna"}
+      </Text>
       {showMap && (
         <View style={styles.mapWrap}>
           <BookingMap

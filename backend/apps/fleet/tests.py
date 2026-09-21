@@ -770,3 +770,37 @@ class DriverAppPaymentLinkTests(TestCase):
         self.assertEqual(res.status_code, 200, res.data)
         booking.refresh_from_db()
         self.assertEqual(str(booking.deposit_amount_eur), "35.00")
+
+
+class DriverTokenRenewalTests(TestCase):
+    """The app renews an expired access token with the refresh token (and,
+    failing that, silently logs in again with the remembered credentials)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username="jankowalski", password="s3cr3t-pass")
+        self.driver = Driver.objects.create(user=self.user, name="Jan Kowalski", is_dispatcher=True)
+
+    def test_refresh_token_yields_an_access_token_that_works_for_the_driver(self):
+        refresh = RefreshToken.for_user(self.driver)
+        res = self.client.post("/api/fleet/driver/token/refresh/", {"refresh": str(refresh)}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("access", res.data)
+        self.assertIn("refresh", res.data)  # rotated — the app stores the new one
+        me = self.client.get("/api/fleet/driver/me/", HTTP_AUTHORIZATION=f"Bearer {res.data['access']}")
+        self.assertEqual((me.status_code, me.data["id"]), (200, self.driver.id))
+
+    def test_an_expired_access_token_is_a_401_the_app_can_react_to(self):
+        token = AccessToken.for_user(self.driver)
+        token.set_exp(lifetime=-timedelta(days=1))
+        res = self.client.get("/api/fleet/driver/me/", HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(res.status_code, 401)
+
+    def test_a_garbage_refresh_token_is_refused_so_the_app_falls_back_to_the_saved_login(self):
+        res = self.client.post("/api/fleet/driver/token/refresh/", {"refresh": "nope"}, format="json")
+        self.assertEqual(res.status_code, 401)
+
+    def test_silent_relogin_with_the_saved_credentials_works(self):
+        res = self.client.post("/api/fleet/driver/login/", {"username": "jankowalski", "password": "s3cr3t-pass"}, format="json")
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.data["driver"]["is_dispatcher"])

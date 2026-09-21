@@ -1,5 +1,5 @@
 import { Redirect } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -14,16 +14,28 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getCredentials } from "@/lib/session";
 import { colors } from "@/lib/theme";
 
 export default function LoginScreen() {
-  const { driver, login } = useAuth();
+  const { driver, login, sessionExpired, dismissSessionExpired } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Remembered login + password (kept in the OS-encrypted store): the form
+  // comes back filled in, so after an expired session it is one tap.
+  useEffect(() => {
+    getCredentials().then((saved) => {
+      if (saved) {
+        setUsername((current) => current || saved.username);
+        setPassword((current) => current || saved.password);
+      }
+    });
+  }, []);
 
   if (driver) {
     return <Redirect href="/(app)/dashboard" />;
@@ -32,6 +44,7 @@ export default function LoginScreen() {
   async function handleSubmit() {
     setLoading(true);
     setError(null);
+    dismissSessionExpired();
     try {
       await login(username.trim(), password, rememberMe);
     } catch (e) {
@@ -57,6 +70,11 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>Panel kierowcy</Text>
 
           <View style={styles.card}>
+            {sessionExpired && (
+              <View style={styles.expiredNotice}>
+                <Text style={styles.expiredText}>Twoja sesja wygasła — zaloguj się ponownie.</Text>
+              </View>
+            )}
             <Text style={styles.label}>LOGIN</Text>
             <TextInput
               value={username}
@@ -150,6 +168,15 @@ const styles = StyleSheet.create({
   checkboxChecked: { backgroundColor: colors.amber, borderColor: colors.amber },
   checkboxMark: { color: "#1A1305", fontSize: 13, fontWeight: "700" },
   rememberText: { color: colors.text, fontSize: 14 },
+  expiredNotice: {
+    backgroundColor: "rgba(245,166,35,0.12)",
+    borderColor: colors.amber,
+    borderWidth: 1,
+    borderRadius: 9,
+    padding: 10,
+    marginBottom: 16,
+  },
+  expiredText: { color: colors.amber, fontSize: 13, fontWeight: "600", textAlign: "center" },
   error: { color: colors.red, fontSize: 13, marginTop: 14, textAlign: "center" },
   button: {
     backgroundColor: colors.amber,

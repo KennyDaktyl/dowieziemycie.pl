@@ -3,6 +3,7 @@ import * as TaskManager from "expo-task-manager";
 
 import { API_BASE_URL } from "./api";
 import { getAccessToken } from "./session";
+import { renewStoredSession } from "./token-refresh";
 
 export const LOCATION_TASK_NAME = "dowieziemycie-driver-location";
 
@@ -25,15 +26,25 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
   const latest = locations?.[locations.length - 1];
   if (!latest) return;
 
-  const token = await getAccessToken();
+  let token = await getAccessToken();
   if (!token) return;
 
-  try {
-    await fetch(`${API_BASE_URL}/api/fleet/driver/position/`, {
+  const body = JSON.stringify({ lat: round6(latest.coords.latitude), lng: round6(latest.coords.longitude) });
+  const send = (bearer: string) =>
+    fetch(`${API_BASE_URL}/api/fleet/driver/position/`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ lat: round6(latest.coords.latitude), lng: round6(latest.coords.longitude) }),
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}` },
+      body,
     });
+
+  try {
+    let res = await send(token);
+    // Same expired-token recovery as the rest of the app — otherwise a driver
+    // mid-ride silently stops appearing on the customer's map.
+    if (res.status === 401) {
+      token = await renewStoredSession();
+      if (token) res = await send(token);
+    }
   } catch {
     // Dropped silently — the next tick (in ~10s) reports a fresher position
     // anyway, no point retrying a stale one.

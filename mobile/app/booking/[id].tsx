@@ -7,6 +7,7 @@ import {
   Linking,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -22,12 +23,44 @@ import { bookingRef } from "@/lib/booking-ref";
 import { bookingStatusInfo } from "@/lib/booking-status";
 import { shortAddress } from "@/lib/format";
 import { openNavigation } from "@/lib/navigation";
-import { formatDateTime, formatDuration, paymentAmounts, paymentStatus } from "@/lib/payment";
+import { amountsIn, formatDateTime, formatDuration, formatMoney, paymentAmounts, paymentStatus } from "@/lib/payment";
 import { siteLabel } from "@/lib/site";
 import { colors } from "@/lib/theme";
-import type { DriverBooking } from "@/lib/types";
+import type { Currency, DriverBooking } from "@/lib/types";
 
 const DEFAULT_DEPOSIT_RATIO = 0.3;
+
+// Statuses in which the deposit is what is owed / already in.
+const DEPOSIT_PHASE_STATUSES = ["POTWIERDZONA", "ANULOWANA"];
+const REMAINDER_PHASE_STATUSES = ["OPLACONA", "KIEROWCA_W_DRODZE", "W_TRAKCIE", "ZAKONCZONA"];
+const TIME_PRESETS: { label: string; minutes: number }[] = [
+  { label: "30 min", minutes: 30 },
+  { label: "1 godz.", minutes: 60 },
+  { label: "3 godz.", minutes: 180 },
+  { label: "24 godz.", minutes: 1440 },
+];
+
+interface PaymentLink {
+  url: string;
+  kind: "DEPOSIT" | "REMAINDER";
+  amount: string;
+  currency: Currency;
+  deadline: string | null;
+  sms_sent: boolean;
+  sms_error: string | null;
+}
+
+function parseAmount(text: string): number | null {
+  const value = parseFloat(text.replace(",", ".").trim());
+  return Number.isFinite(value) ? value : null;
+}
+
+function plainNumber(value: string | null | undefined): string {
+  if (value == null || value === "") return "";
+  const n = Number(value);
+  return Number.isInteger(n) ? String(n) : n.toFixed(2);
+}
+
 const TERMINAL_STATUSES = ["ZAKONCZONA", "ANULOWANA"];
 
 // Where to re-fetch this booking from after an action, or on a manual pull
@@ -112,6 +145,15 @@ export default function BookingDetailScreen() {
   const [detailEdit, setDetailEdit] = useState<{
     pickupAddress: string; dropoffAddress: string; passengerCount: string; dateText: string; timeText: string;
   } | null>(null);
+  const [depositEurText, setDepositEurText] = useState("");
+  const [payCurrency, setPayCurrency] = useState<Currency>("pln");
+  const [payDepositPln, setPayDepositPln] = useState("");
+  const [payDepositEur, setPayDepositEur] = useState("");
+  const [payPreset, setPayPreset] = useState<number | null>(null);
+  const [payCustomMinutes, setPayCustomMinutes] = useState("");
+  const [payAmount, setPayAmount] = useState("");
+  const [linkResult, setLinkResult] = useState<PaymentLink | null>(null);
+  const [linkBusy, setLinkBusy] = useState<"sms" | "link" | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,9 +185,24 @@ export default function BookingDetailScreen() {
         booking.deposit_amount ??
           (booking.price ? String(Math.round(Number(booking.price) * DEFAULT_DEPOSIT_RATIO)) : ""),
       );
+      setDepositEurText(plainNumber(booking.deposit_amount_eur));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [booking?.id, booking?.status]);
+
+  // Payment tools start from what the booking currently says: the currency
+  // the customer pays in, both deposits, and what is still owed.
+  useEffect(() => {
+    if (!booking) return;
+    const currency = booking.payment_currency ?? "pln";
+    setPayCurrency(currency);
+    setPayDepositPln(plainNumber(booking.deposit_amount));
+    setPayDepositEur(plainNumber(booking.deposit_amount_eur));
+    setPayAmount(plainNumber(currency === "pln" ? booking.remaining_amount : booking.remaining_amount_eur));
+    setPayPreset(null);
+    setPayCustomMinutes("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booking?.id, booking?.status, booking?.payment_currency, booking?.deposit_amount, booking?.deposit_amount_eur, booking?.remaining_amount, booking?.remaining_amount_eur]);
 
   if (!booking) {
     return (
@@ -192,6 +249,7 @@ export default function BookingDetailScreen() {
       booking.deposit_amount ??
         (booking.price ? String(Math.round(Number(booking.price) * DEFAULT_DEPOSIT_RATIO)) : ""),
     );
+    setDepositEurText(plainNumber(booking.deposit_amount_eur));
     setDepositManual(false);
     setEditingPrice(true);
   }
@@ -218,7 +276,16 @@ export default function BookingDetailScreen() {
       await apiFetch(
         `/api/fleet/driver/bookings/${booking.id}/${isInitialConfirm ? "confirm" : "update"}/`,
         accessToken,
-        { method: isInitialConfirm ? "POST" : "PATCH", body: JSON.stringify({ price, deposit_amount: deposit }) },
+        {
+          method: isInitialConfirm ? "POST" : "PATCH",
+          // The EUR deposit is optional: left empty, the server applies its
+          // default rule (25 EUR, at most half the price, whole euro).
+          body: JSON.stringify({
+            price,
+            deposit_amount: deposit,
+            ...(parseAmount(depositEurText) != null ? { deposit_amount_eur: parseAmount(depositEurText) } : {}),
+          }),
+        },
       );
       setEditingPrice(false);
       await refetch();
@@ -300,6 +367,80 @@ export default function BookingDetailScreen() {
     }
   }
 
+  function reportLink(link: PaymentLink) {
+    setLinkResult(link);
+    if (link.sms_error) {
+      Alert.alert(
+        "SMS nie został wysłany",
+        `${link.sms_error}\n\nLink jest gotowy — użyj „Udostępnij link”, żeby wysłać go klientowi ręcznie.`,
+      );
+    }
+  }
+
+  async function handleDepositLink(sendSms: boolean) {
+    if (!booking) return;
+    const custom = parseAmount(payCustomMinutes);
+    const minutes = custom != null && custom >= 5 ? Math.round(custom) : payPreset;
+    if (payCustomMinutes.trim() && (custom == null || custom < 5)) {
+      setError("Czas na zapłatę: podaj co najmniej 5 minut.");
+      return;
+    }
+    const pln = parseAmount(payDepositPln);
+    const eur = parseAmount(payDepositEur);
+    setLinkBusy(sendSms ? "sms" : "link");
+    setError(null);
+    try {
+      const res = await apiFetch<{ booking: DriverBooking; link: PaymentLink }>(
+        `/api/fleet/driver/bookings/${booking.id}/deposit-link/`,
+        accessToken,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            payment_currency: payCurrency,
+            ...(pln != null ? { deposit_amount: pln } : {}),
+            ...(eur != null ? { deposit_amount_eur: eur } : {}),
+            ...(minutes != null ? { minutes } : {}),
+            send_sms: sendSms,
+          }),
+        },
+      );
+      setBooking(res.booking);
+      reportLink(res.link);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Nie udało się wygenerować linku.");
+    } finally {
+      setLinkBusy(null);
+    }
+  }
+
+  async function handleRemainderLink(sendSms: boolean) {
+    if (!booking) return;
+    const amount = parseAmount(payAmount);
+    if (amount == null || amount <= 0) {
+      setError("Podaj kwotę do zapłaty (większą od zera).");
+      return;
+    }
+    setLinkBusy(sendSms ? "sms" : "link");
+    setError(null);
+    try {
+      const res = await apiFetch<{ booking: DriverBooking; link: PaymentLink }>(
+        `/api/fleet/driver/bookings/${booking.id}/remainder-link/`,
+        accessToken,
+        { method: "POST", body: JSON.stringify({ amount, currency: payCurrency, send_sms: sendSms }) },
+      );
+      setBooking(res.booking);
+      reportLink(res.link);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Nie udało się wygenerować linku.");
+    } finally {
+      setLinkBusy(null);
+    }
+  }
+
+  function shareLink(link: PaymentLink) {
+    Share.share({ message: link.url }).catch(() => {});
+  }
+
   function handleCancel() {
     if (!booking) return;
     Alert.alert(
@@ -337,16 +478,18 @@ export default function BookingDetailScreen() {
         <View style={[styles.paymentCard, { borderColor: colors.line }]}>
           <View style={styles.paymentTop}>
             <Text style={styles.paymentAmount}>
-              {booking.price ? `${Number(booking.price).toFixed(0)} zł` : "Wycena indywidualna"}
+              {amounts && amountsIn(booking).total != null
+                ? formatMoney(amountsIn(booking).total, amounts.currency)
+                : "Wycena indywidualna"}
             </Text>
             <StatusBadge label={payment.label} tone={payment.tone} />
           </View>
           {amounts && (booking.paid_at || booking.remainder_paid_at) && (
             <View style={styles.paymentBreakdown}>
-              <Text style={styles.paymentBreakdownText}>Zapłacono: {amounts.paid.toFixed(0)} zł</Text>
+              <Text style={styles.paymentBreakdownText}>Zapłacono: {formatMoney(amounts.paid, amounts.currency)}</Text>
               {amounts.remaining > 0 && (
                 <Text style={[styles.paymentBreakdownText, { color: colors.amber }]}>
-                  Pozostało: {amounts.remaining.toFixed(0)} zł
+                  Pozostało: {formatMoney(amounts.remaining, amounts.currency)}
                 </Text>
               )}
             </View>
@@ -427,6 +570,184 @@ export default function BookingDetailScreen() {
           )}
           {driver?.is_dispatcher && <Row label="Kierowca" value={booking.assigned_driver_name || "Nieprzypisany"} />}
         </Section>
+
+        {driver?.is_dispatcher && (
+          (DEPOSIT_PHASE_STATUSES.includes(booking.status) && booking.confirmed_at && !booking.paid_at) ||
+          (REMAINDER_PHASE_STATUSES.includes(booking.status) && !booking.remainder_paid_at)
+        ) && (
+          <Section title="Płatność i link do zapłaty" icon="card">
+            {(() => {
+              const depositPhase = DEPOSIT_PHASE_STATUSES.includes(booking.status);
+              const cur = payCurrency;
+              const remainingHint = amountsIn(booking, cur).remaining;
+              const deadline = booking.payment_deadline ? new Date(booking.payment_deadline) : null;
+              const expired = deadline != null && deadline.getTime() < Date.now();
+              return (
+                <>
+                  <Text style={styles.editLabel}>Klient płaci w</Text>
+                  <View style={styles.editRow}>
+                    {(["pln", "eur"] as Currency[]).map((c) => (
+                      <Pressable
+                        key={c}
+                        onPress={() => {
+                          setPayCurrency(c);
+                          if (!depositPhase) {
+                            const rem = amountsIn(booking, c).remaining;
+                            setPayAmount(rem > 0 ? plainNumber(String(rem)) : "");
+                          }
+                        }}
+                        style={[styles.chip, styles.flex1, cur === c && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, cur === c && styles.chipTextActive]}>
+                          {c === "pln" ? "PLN (zł)" : "EUR (€)"}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  {depositPhase ? (
+                    <>
+                      <Text style={styles.hint}>
+                        {booking.status === "ANULOWANA"
+                          ? "Kurs jest anulowany — wysłanie linku wznowi go jako „oczekuje na zaliczkę” (o ile termin jest wolny)."
+                          : deadline
+                            ? `Czas na zapłatę: do ${formatDateTime(booking.payment_deadline)}${expired ? " (minął)" : ""}.`
+                            : "Brak ustawionego czasu na zapłatę."}
+                      </Text>
+                      <View style={styles.editRow}>
+                        <View style={styles.flex1}>
+                          <Text style={styles.editLabel}>Zaliczka (zł)</Text>
+                          <TextInput
+                            value={payDepositPln}
+                            onChangeText={setPayDepositPln}
+                            keyboardType="numeric"
+                            placeholder="np. 100"
+                            placeholderTextColor={colors.muted}
+                            style={styles.input}
+                          />
+                        </View>
+                        <View style={styles.flex1}>
+                          <Text style={styles.editLabel}>Zaliczka (EUR)</Text>
+                          <TextInput
+                            value={payDepositEur}
+                            onChangeText={setPayDepositEur}
+                            keyboardType="numeric"
+                            placeholder="np. 25"
+                            placeholderTextColor={colors.muted}
+                            style={styles.input}
+                          />
+                        </View>
+                      </View>
+                      <Text style={styles.editLabel}>Czas na zapłatę od teraz</Text>
+                      <View style={styles.chipRow}>
+                        {TIME_PRESETS.map((t) => (
+                          <Pressable
+                            key={t.minutes}
+                            onPress={() => {
+                              setPayPreset(payPreset === t.minutes ? null : t.minutes);
+                              setPayCustomMinutes("");
+                            }}
+                            style={[styles.chip, payPreset === t.minutes && styles.chipActive]}
+                          >
+                            <Text style={[styles.chipText, payPreset === t.minutes && styles.chipTextActive]}>{t.label}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                      <TextInput
+                        value={payCustomMinutes}
+                        onChangeText={(t) => {
+                          setPayCustomMinutes(t);
+                          if (t) setPayPreset(null);
+                        }}
+                        keyboardType="numeric"
+                        placeholder="albo własny czas w minutach (min. 5)"
+                        placeholderTextColor={colors.muted}
+                        style={styles.input}
+                      />
+                      <Text style={styles.hint}>
+                        Bez wyboru czasu zostaje obecny termin (albo domyślne okno z ustawień, jeśli minął).
+                      </Text>
+                    </>
+                  ) : (
+                    <>
+                      {remainingHint > 0 && (
+                        <Text style={styles.hint}>Wg ceny pozostało: {formatMoney(remainingHint, cur)}</Text>
+                      )}
+                      <Text style={styles.editLabel}>Kwota do zapłaty ({cur === "pln" ? "zł" : "EUR"})</Text>
+                      <TextInput
+                        value={payAmount}
+                        onChangeText={setPayAmount}
+                        keyboardType="numeric"
+                        placeholder={cur === "pln" ? "np. 500" : "np. 120"}
+                        placeholderTextColor={colors.muted}
+                        style={styles.input}
+                      />
+                      <Text style={styles.hint}>
+                        To kwota, którą klient zobaczy w linku — możesz ją ustalić po targach albo gdy kurs się wydłużył.
+                      </Text>
+                    </>
+                  )}
+
+                  <View style={styles.editRow}>
+                    <Pressable
+                      onPress={() => (depositPhase ? handleDepositLink(true) : handleRemainderLink(true))}
+                      disabled={linkBusy != null}
+                      style={[styles.smallButton, styles.flex1, linkBusy != null && styles.buttonDisabled]}
+                    >
+                      {linkBusy === "sms" ? (
+                        <ActivityIndicator size="small" color="#1A1305" />
+                      ) : (
+                        <Text style={styles.smallButtonText}>
+                          {depositPhase && booking.status === "ANULOWANA" ? "Wznów i wyślij SMS" : "Wyślij SMS z linkiem"}
+                        </Text>
+                      )}
+                    </Pressable>
+                    <Pressable
+                      onPress={() => (depositPhase ? handleDepositLink(false) : handleRemainderLink(false))}
+                      disabled={linkBusy != null}
+                      style={[styles.smallButtonOutline, styles.flex1, linkBusy != null && styles.buttonDisabled]}
+                    >
+                      {linkBusy === "link" ? (
+                        <ActivityIndicator size="small" color={colors.text} />
+                      ) : (
+                        <Text style={styles.smallButtonOutlineText}>Tylko wygeneruj link</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                  {booking.payment_link_sent_at && (
+                    <Text style={styles.hint}>Ostatni SMS z linkiem: {formatDateTime(booking.payment_link_sent_at)}</Text>
+                  )}
+
+                  {linkResult && (
+                    <View style={styles.linkCard}>
+                      <Text style={styles.linkTitle}>
+                        {linkResult.kind === "DEPOSIT" ? "Link do zaliczki" : "Link do dopłaty"}:{" "}
+                        {formatMoney(linkResult.amount, linkResult.currency)}
+                        {linkResult.deadline ? ` · do ${formatDateTime(linkResult.deadline)}` : ""}
+                      </Text>
+                      <Text selectable style={styles.linkUrl}>{linkResult.url}</Text>
+                      <Text
+                        style={[
+                          styles.hint,
+                          { color: linkResult.sms_sent ? colors.green : linkResult.sms_error ? colors.red : colors.muted },
+                        ]}
+                      >
+                        {linkResult.sms_sent
+                          ? "SMS wysłany do klienta."
+                          : linkResult.sms_error
+                            ? `SMS nie wyszedł: ${linkResult.sms_error}`
+                            : "Link wygenerowany — SMS nie został wysłany."}
+                      </Text>
+                      <Pressable onPress={() => shareLink(linkResult)} style={styles.smallButtonOutline}>
+                        <Text style={styles.smallButtonOutlineText}>Udostępnij link (WhatsApp, SMS…)</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </>
+              );
+            })()}
+          </Section>
+        )}
 
         {driver?.is_dispatcher && (
           <Section title="Narzędzia dyspozytora" icon="construct">
@@ -531,6 +852,15 @@ export default function BookingDetailScreen() {
                   placeholderTextColor={colors.muted}
                   style={styles.input}
                 />
+                <Text style={styles.editLabel}>Zaliczka (EUR) — dla klientów płacących w euro</Text>
+                <TextInput
+                  value={depositEurText}
+                  onChangeText={setDepositEurText}
+                  keyboardType="numeric"
+                  placeholder="puste = domyślnie (25 EUR, max 50% ceny)"
+                  placeholderTextColor={colors.muted}
+                  style={styles.input}
+                />
                 <View style={styles.editRow}>
                   {booking.status !== "NOWA" && (
                     <Pressable onPress={() => setEditingPrice(false)} style={[styles.smallButtonOutline, styles.flex1]}>
@@ -548,7 +878,8 @@ export default function BookingDetailScreen() {
               </View>
             ) : (
               <>
-                <Row label="Zaliczka" value={booking.deposit_amount ? `${Number(booking.deposit_amount).toFixed(0)} zł` : "—"} />
+                <Row label="Zaliczka (PLN)" value={formatMoney(booking.deposit_amount, "pln")} />
+                <Row label="Zaliczka (EUR)" value={formatMoney(booking.deposit_amount_eur, "eur")} />
                 {canEdit && (
                   <Pressable onPress={startEditingPrice} style={styles.smallButtonOutline}>
                     <Text style={styles.smallButtonOutlineText}>Edytuj cenę i zaliczkę</Text>
@@ -687,4 +1018,27 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: { color: colors.red, fontWeight: "700", fontSize: 14 },
   error: { color: colors.red, fontSize: 13, textAlign: "center" },
+  hint: { color: colors.muted, fontSize: 12, lineHeight: 17 },
+  chipRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: "center",
+  },
+  chipActive: { backgroundColor: colors.amber, borderColor: colors.amber },
+  chipText: { color: colors.text, fontWeight: "600", fontSize: 12.5 },
+  chipTextActive: { color: "#1A1305" },
+  linkCard: {
+    backgroundColor: colors.panel2,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 12,
+    gap: 8,
+  },
+  linkTitle: { color: colors.text, fontWeight: "700", fontSize: 13.5 },
+  linkUrl: { color: colors.amber, fontSize: 13 },
 });

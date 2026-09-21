@@ -19,6 +19,18 @@ który explicite wolno trzymać aktywnym w tle, właśnie do lokalizacji.
 - **Logowanie**: `POST /api/fleet/driver/login/` (login+hasło) → JWT,
   zapisywany w `expo-secure-store` (zaszyfrowany magazyn systemowy, nie
   zwykły storage).
+- **Sesja**: token dostępu jest ważny 14 dni, a refresh token 30. Każde
+  zapytanie, które dostanie 401, odświeża token (a gdy to nie zadziała —
+  loguje się po cichu zapamiętanymi danymi z „Zapamiętaj mnie”, trzymanymi
+  w `expo-secure-store`) i powtarza zapytanie. Dopiero gdy serwer odrzuci
+  i to, aplikacja sama się wylogowuje i pokazuje logowanie z komunikatem
+  „Twoja sesja wygasła" i wypełnionym loginem/hasłem. Brak sieci nigdy nie
+  wylogowuje (`src/lib/api.ts`, `token-refresh.ts`, `auth-context.tsx`).
+- **Płatności (dyspozytor)**: na ekranie rezerwacji sekcja „Płatność i link
+  do zapłaty" — zaliczka w PLN i EUR, czas na zapłatę, wznowienie
+  anulowanej rezerwacji, kwota do zapłaty na koniec kursu (PLN lub EUR),
+  wysłanie SMS-em albo udostępnienie linku (`/deposit-link/`,
+  `/remainder-link/`).
 - **Pozycja w tle**: `expo-location` + `expo-task-manager` — zadanie w tle
   co ~10s robi zwykły `POST /api/fleet/driver/position/` (REST, nie
   WebSocket — Androidowy "headless" kontekst wykonania zadań w tle nie
