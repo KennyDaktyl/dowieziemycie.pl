@@ -1026,8 +1026,8 @@ class CustomerNotificationLanguageTests(TestCase):
         self.assertIn("pay the 13.95 EUR deposit", sms)
         self.assertIn("ride price: 41.86 EUR", sms)
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("pl", site="dowieziemycie"))
-        self.assertIn("zapłać zaliczkę 60 zł", sms)
-        self.assertIn("cena kursu: 180 zł", sms)
+        self.assertIn("zaplac zaliczke 60 zl", sms)
+        self.assertIn("cena kursu: 180 zl", sms)
 
     def test_every_customer_message_exists_and_is_translated_in_every_language(self):
         from . import notifications as n
@@ -1061,7 +1061,7 @@ class CustomerNotificationLanguageTests(TestCase):
         booking.language = "fr"
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, booking)
         self.assertIn("potwierdzona", sms)
-        self.assertIn("zaliczkę", sms)
+        self.assertIn("zaliczke", sms)
 
     def test_language_is_stored_from_the_catalog_booking_request(self):
         from rest_framework.test import APIClient
@@ -1266,7 +1266,7 @@ class PaymentLinkTests(TestCase):
         booking.refresh_from_db()
         self.assertIsNotNone(booking.remainder_paid_at)
         self.assertEqual(booking.status, "OPLACONA")  # the ride's own lifecycle is untouched
-        self.assertIn("w całości", sms.call_args.args[1])
+        self.assertIn("w calosci", sms.call_args.args[1])
 
     # --- SMS ---------------------------------------------------------------
     def test_confirming_a_booking_texts_the_link_in_the_customers_language(self):
@@ -1529,3 +1529,41 @@ class SmsLinkRejectedFallbackTests(TestCase):
         with patch("apps.accounts.sms.get_sms_backend", return_value=Gateway()):
             with self.assertRaisesRegex(RuntimeError, "error 94"):
                 send_payment_link_sms(self.booking)
+
+
+class EverySmsIsAsciiTests(TestCase):
+    """No SMS template — in any language, with customer data full of
+    diacritics substituted in — may carry a non-ASCII character."""
+
+    def test_all_sms_templates_render_to_ascii(self):
+        from .notification_texts import TEXTS, text
+
+        sample = {
+            "site": "transfer247", "code": "123456", "minutes": 60, "when": "25.09 12:00", "old": "25.09 10:00",
+            "new": "25.09 12:00", "price": "180 zł", "deposit": "60 zł", "remaining": "120 zł", "amount": "60 zł",
+            "link": "https://transfer247.pl/pay/abc", "driver": "Łukasz Żółć", "pickup": "ul. Żółkiewskiego, Kraków",
+            "dropoff": "Größe-Straße, München", "code_": "", "active_from": "25.09 11:00", "deadline": "25.09 13:00",
+        }
+        checked = 0
+        for language, catalog in TEXTS.items():
+            for key in catalog:
+                if "sms" not in key and key != "price_changed_remaining":
+                    continue
+                rendered = text(language, key, **sample)
+                self.assertTrue(rendered.isascii(), f"{language}.{key}: {rendered!r}")
+                self.assertNotIn("?", rendered, f"{language}.{key} lost a character: {rendered!r}")
+                checked += 1
+        self.assertGreater(checked, 30)
+
+    def test_reminder_that_was_garbled_in_production(self):
+        from .notification_texts import text
+
+        message = text(
+            "pl", "deposit_link_sms", site="transfer247", when="25.09 12:00", deposit="60 zł",
+            deadline="25.09 13:00", link="https://transfer247.pl/pay/abc",
+        )
+        self.assertEqual(
+            message,
+            "transfer247: Przypomnienie - aby kurs na 25.09 12:00 byl wazny, zaplac zaliczke 60 zl do 25.09 13:00: "
+            "https://transfer247.pl/pay/abc",
+        )

@@ -14,6 +14,7 @@ Placeholders: {site} brand name, {when} "dd.mm HH:MM"; amounts arrive
 pre-formatted (see notifications._money).
 """
 
+from apps.accounts.sms import sms_safe
 from config.sites import DEFAULT_LANGUAGE
 
 TEXTS = {
@@ -40,7 +41,7 @@ TEXTS = {
         ),
         "confirmed_cta": "Zapłać zaliczkę",
         # --- price change -------------------------------------------------
-        "price_changed_sms": "{site}: Cena Twojego kursu została zaktualizowana — nowa cena: {price}.",
+        "price_changed_sms": "{site}: Cena Twojego kursu została zaktualizowana - nowa cena: {price}.",
         "price_changed_remaining": " Do dopłaty: {remaining}.",
         # --- driver en route ----------------------------------------------
         "en_route_sms": (
@@ -72,7 +73,7 @@ TEXTS = {
         "cancelled_cta": "Zarezerwuj nowy termin",
         "currency_fallback": "zł",
         "deposit_link_sms": (
-            "{site}: Przypomnienie — aby kurs na {when} był ważny, zapłać zaliczkę {deposit} do {deadline}: {link}"
+            "{site}: Przypomnienie - aby kurs na {when} był ważny, zapłać zaliczkę {deposit} do {deadline}: {link}"
         ),
         "remainder_link_sms": "{site}: Prosimy o zapłatę pozostałej kwoty {amount} za kurs na {when}: {link}",
         "payment_received_deposit_sms": (
@@ -208,7 +209,15 @@ TEXTS = {
 }
 
 
+def _is_sms(key: str) -> bool:
+    return "sms" in key or key == "price_changed_remaining"  # the latter is appended to an SMS
+
+
 def text(language: str, key: str, **values) -> str:
-    """One customer-facing string in `language` (Polish if unknown)."""
+    """One customer-facing string in `language` (Polish if unknown). SMS
+    strings come back as plain ASCII (see apps.accounts.sms.sms_safe) — what
+    is stored and logged is exactly what the handset receives, including any
+    diacritics in a customer-typed address or a driver's name."""
     catalog = TEXTS.get(language) or TEXTS[DEFAULT_LANGUAGE]
-    return catalog[key].format(**values)
+    result = catalog[key].format(**values)
+    return sms_safe(result) if _is_sms(key) else result

@@ -119,3 +119,24 @@ class OtpSmsLanguageTests(TestCase):
         with patch("apps.accounts.views.get_sms_backend"):
             res = self.client.post("/api/auth/request-otp/", {"phone": "+48500777888", "language": "fr"})
         self.assertEqual(res.status_code, 400)
+
+
+class SmsSafeTests(TestCase):
+    """Whatever reaches the SMS gateway is plain ASCII — a stray em dash once
+    turned a whole reminder into garbage on the handset."""
+
+    def test_reduces_everything_to_ascii(self):
+        from .sms import sms_safe
+
+        cases = {
+            "Przypomnienie — aby kurs był ważny": "Przypomnienie - aby kurs byl wazny",
+            "Zażółć gęślą jaźń ŁÓDŹ": "Zazolc gesla jazn LODZ",
+            "Gültig für Größe ß, Ärger": "Gueltig fuer Groesse ss, Aerger",
+            "„cytat” ‘x’ … a → b – c": "\"cytat\" 'x' ... a -> b - c",
+            "40 € Café naïve": "40 EUR Cafe naive",
+            "ok 😀 ok": "ok  ok",
+            "a b": "a b",
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(sms_safe(raw), expected)
+            self.assertTrue(sms_safe(raw).isascii())
