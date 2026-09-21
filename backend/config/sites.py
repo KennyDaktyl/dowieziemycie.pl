@@ -31,3 +31,16 @@ SITE_URLS = {
     SITE_DOWIEZIEMYCIE: "https://dowieziemycie.pl",
     SITE_TRANSFER247: "https://transfer247.pl",
 }
+
+
+# Languages a customer can browse the site in (next-intl locales) — decides
+# the language of every SMS/e-mail addressed to them. Polish is the fallback
+# for anything unknown or missing (bookings created before the field existed,
+# a client that doesn't send it).
+LANGUAGE_CHOICES = [("pl", "Polski"), ("en", "English"), ("de", "Deutsch")]
+SUPPORTED_LANGUAGES = tuple(code for code, _ in LANGUAGE_CHOICES)
+DEFAULT_LANGUAGE = "pl"
+
+
+def normalize_language(value) -> str:
+    return value if value in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -55,6 +55,7 @@ function defaultDateTime() {
 
 export function BookingCard({ contact }: { contact: ContactInfo }) {
   const t = useTranslations("BookingForm");
+  const locale = useLocale();
   const tTiers = useTranslations("PricingTiers");
   const tEta = useTranslations("DriverEta");
   const router = useRouter();
@@ -416,6 +417,7 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
           coupon_code: couponCode || undefined,
           customer_name: customerName,
           customer_email: customerEmail || undefined,
+          language: locale,
         }),
       });
       if (res.status === 401) {

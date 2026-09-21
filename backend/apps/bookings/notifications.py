@@ -9,13 +9,15 @@ Two distinct events, two distinct audiences:
 
 import logging
 import re
+from decimal import Decimal
 
 from django.conf import settings
 from django.utils import timezone
 
-from config.sites import SITE_DISPLAY_NAMES, SITE_URLS
+from config.sites import SITE_DISPLAY_NAMES, SITE_URLS, normalize_language
 
 from .models import BookingSettings
+from .notification_texts import text
 
 logger = logging.getLogger("apps.bookings.notifications")
 
@@ -88,7 +90,8 @@ def _send_email(to_email: str, subject: str, body: str, site: str, *, html_body:
 
 
 def _send_customer_email(
-    to_email: str, subject: str, site: str, heading: str, body_lines: list, *, cta_label: str = "", cta_url: str = "",
+    to_email: str, subject: str, site: str, heading: str, body_lines: list, *,
+    cta_label: str = "", cta_url: str = "", language: str = "pl",
 ) -> None:
     """Customer-facing emails get the branded HTML template (see
     email_templates.py) — the plain-text part is just the body lines joined,
@@ -96,7 +99,9 @@ def _send_customer_email(
     from .email_templates import render_customer_email_html
 
     plain_body = "\n\n".join(body_lines)
-    html_body = render_customer_email_html(site, heading, body_lines, cta_label=cta_label, cta_url=cta_url)
+    html_body = render_customer_email_html(
+        site, heading, body_lines, cta_label=cta_label, cta_url=cta_url, language=language,
+    )
     _send_email(to_email, subject, plain_body, site, html_body=html_body)
 
 
@@ -163,29 +168,52 @@ def notify_dispatcher_of_new_booking(booking) -> None:
         )
 
 
+def _lang(booking) -> str:
+    return normalize_language(getattr(booking, "language", None))
+
+
+def _money(booking, amount, language: str) -> str:
+    """An amount the way this customer saw prices on the site. Polish
+    customers get PLN ("89.00 zł"); en/de customers of a catalog booking saw
+    euros, so they get the EUR equivalent (same price/price_eur ratio the
+    payment step uses, see CreatePaymentIntentView) — anything without a
+    price_eur snapshot is stated honestly in PLN."""
+    if language != "pl" and booking.price and booking.price_eur:
+        eur = (Decimal(amount) * booking.price_eur / booking.price).quantize(Decimal("0.01"))
+        formatted = f"{eur:.2f}"
+        return f"{formatted.replace('.', ',') if language == 'de' else formatted} EUR"
+    return f"{amount} {text(language, 'currency_fallback')}"
+
+
+def _brand_name(booking) -> str:
+    return SITE_DISPLAY_NAMES[booking.site]
+
+
 def notify_customer_of_confirmation(booking) -> None:
     """Dispatcher just confirmed the booking (price may have changed) —
     customer can now pay the deposit within the payment window."""
-    site_name = SITE_DISPLAY_NAMES[booking.site]
-    text = (
-        f"{site_name}: Twoja rezerwacja na {booking.scheduled_at:%d.%m %H:%M} została potwierdzona! "
-        f"Cena: {booking.price} zł, zaliczka: {booking.deposit_amount} zł. Zapłać w ciągu "
-        f"{BookingSettings.for_site(booking.site).payment_window_minutes} min, aby zachować termin."
-    )
-    _send_sms(booking.customer.phone, text, booking.site)
+    lang = _lang(booking)
+    values = {
+        "site": _brand_name(booking),
+        "when": f"{booking.scheduled_at:%d.%m %H:%M}",
+        "price": _money(booking, booking.price, lang),
+        "deposit": _money(booking, booking.deposit_amount, lang),
+        "minutes": BookingSettings.for_site(booking.site).payment_window_minutes,
+    }
+    _send_sms(booking.customer.phone, text(lang, "confirmed_sms", **values), booking.site)
     _send_customer_email(
         booking.customer.email,
-        f"{site_name}: rezerwacja potwierdzona — zapłać zaliczkę",
+        text(lang, "confirmed_subject", **values),
         booking.site,
-        "Rezerwacja potwierdzona!",
+        text(lang, "confirmed_heading"),
         [
-            f"Twoja rezerwacja na {booking.scheduled_at:%d.%m %H:%M} została potwierdzona.",
-            f"Cena: {booking.price} zł, zaliczka: {booking.deposit_amount} zł.",
-            f"Zapłać w ciągu {BookingSettings.for_site(booking.site).payment_window_minutes} minut, "
-            "aby zachować termin.",
+            text(lang, "confirmed_line1", **values),
+            text(lang, "confirmed_line2", **values),
+            text(lang, "confirmed_line3", **values),
         ],
-        cta_label="Zapłać zaliczkę",
+        cta_label=text(lang, "confirmed_cta"),
         cta_url=f"{SITE_URLS[booking.site]}/panel",
+        language=lang,
     )
 
 
@@ -194,13 +222,13 @@ def notify_customer_of_price_change(booking) -> None:
     something (e.g. renegotiating a longer route mid-trip) — text the new
     total and remaining balance so the "dopłać" button they see next isn't a
     surprise."""
-    site_name = SITE_DISPLAY_NAMES[booking.site]
-    text = f"{site_name}: Cena Twojego kursu została zaktualizowana — nowa cena: {booking.price} zł."
+    lang = _lang(booking)
+    message = text(lang, "price_changed_sms", site=_brand_name(booking), price=_money(booking, booking.price, lang))
     if booking.deposit_amount is not None and booking.remainder_paid_at is None:
         remaining = booking.price - booking.deposit_amount
         if remaining > 0:
-            text += f" Do dopłaty: {remaining} zł."
-    _send_sms(booking.customer.phone, text, booking.site)
+            message += text(lang, "price_changed_remaining", remaining=_money(booking, remaining, lang))
+    _send_sms(booking.customer.phone, message, booking.site)
 
 
 def notify_customer_driver_en_route(booking, driver) -> None:
@@ -208,59 +236,73 @@ def notify_customer_driver_en_route(booking, driver) -> None:
     dispatcher hand-assigning one from the Szef tab) — OPLACONA ->
     KIEROWCA_W_DRODZE. Texts the tracking code; email is skipped here since
     the code is time-boxed and short-lived, not worth a separate template."""
-    site_name = SITE_DISPLAY_NAMES[booking.site]
+    lang = _lang(booking)
     active_from = timezone.localtime(booking.tracking_code_valid_from).strftime("%d.%m %H:%M")
     _send_sms(
         booking.customer.phone,
-        f"{site_name}: Kierowca {driver.name} jedzie do Ciebie! Kurs: {short_address(booking.pickup_address)}. "
-        f"Kod do sledzenia: {booking.tracking_code}, aktywny od {active_from}.",
+        text(
+            lang, "en_route_sms",
+            site=_brand_name(booking), driver=driver.name, pickup=short_address(booking.pickup_address),
+            code=booking.tracking_code, active_from=active_from,
+        ),
         booking.site,
     )
 
 
 def notify_customer_ride_started(booking) -> None:
     """Driver just picked the customer up — KIEROWCA_W_DRODZE -> W_TRAKCIE."""
-    site_name = SITE_DISPLAY_NAMES[booking.site]
-    _send_sms(booking.customer.phone, f"{site_name}: Kurs się rozpoczął. Miłej podróży!", booking.site)
+    _send_sms(
+        booking.customer.phone,
+        text(_lang(booking), "ride_started_sms", site=_brand_name(booking)),
+        booking.site,
+    )
 
 
 def notify_customer_ride_finished(booking) -> None:
     """Driver just dropped the customer off — W_TRAKCIE -> ZAKONCZONA."""
-    site_name = SITE_DISPLAY_NAMES[booking.site]
-    text = f"{site_name}: Kurs zakończony. Dziękujemy za skorzystanie z naszych usług!"
-    _send_sms(booking.customer.phone, text, booking.site)
+    lang = _lang(booking)
+    values = {"site": _brand_name(booking)}
+    _send_sms(booking.customer.phone, text(lang, "ride_finished_sms", **values), booking.site)
     _send_customer_email(
         booking.customer.email,
-        f"{site_name}: kurs zakończony — dziękujemy",
+        text(lang, "ride_finished_subject", **values),
         booking.site,
-        "Dziękujemy za skorzystanie z naszych usług!",
-        ["Kurs został zakończony. Mamy nadzieję, że podróż minęła komfortowo."],
-        cta_label="Zarezerwuj kolejny kurs",
+        text(lang, "ride_finished_heading"),
+        [text(lang, "ride_finished_line")],
+        cta_label=text(lang, "ride_finished_cta"),
         cta_url=f"{SITE_URLS[booking.site]}{_BOOK_AGAIN_PATH[booking.site]}",
+        language=lang,
     )
 
 
 def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
     """Dispatcher changed scheduled_at on an already-created booking."""
-    site_name = SITE_DISPLAY_NAMES[booking.site]
-    text = (
-        f"{site_name}: Termin Twojego kursu ({booking.pickup_address} → {booking.dropoff_address}) "
-        f"został zmieniony z {old_scheduled_at:%d.%m %H:%M} na {booking.scheduled_at:%d.%m %H:%M}."
+    lang = _lang(booking)
+    values = {
+        "site": _brand_name(booking),
+        "old": f"{old_scheduled_at:%d.%m %H:%M}",
+        "new": f"{booking.scheduled_at:%d.%m %H:%M}",
+    }
+    _send_sms(
+        booking.customer.phone,
+        text(
+            lang, "rescheduled_sms", pickup=short_address(booking.pickup_address),
+            dropoff=short_address(booking.dropoff_address), **values,
+        ),
+        booking.site,
     )
-    sms_text = (
-        f"{site_name}: Termin Twojego kursu ({short_address(booking.pickup_address)} -> "
-        f"{short_address(booking.dropoff_address)}) zostal zmieniony z {old_scheduled_at:%d.%m %H:%M} "
-        f"na {booking.scheduled_at:%d.%m %H:%M}."
-    )
-    _send_sms(booking.customer.phone, sms_text, booking.site)
     _send_customer_email(
         booking.customer.email,
-        f"{site_name}: zmiana terminu kursu",
+        text(lang, "rescheduled_subject", **values),
         booking.site,
-        "Zmiana terminu kursu",
-        [text],
-        cta_label="Zobacz szczegóły w panelu",
+        text(lang, "rescheduled_heading"),
+        [text(
+            lang, "rescheduled_email_line", pickup=booking.pickup_address,
+            dropoff=booking.dropoff_address, **values,
+        )],
+        cta_label=text(lang, "rescheduled_cta"),
         cta_url=f"{SITE_URLS[booking.site]}/panel",
+        language=lang,
     )
 
 
@@ -298,23 +340,26 @@ def notify_dispatcher_of_customer_cancellation(booking) -> None:
 
 def notify_customer_of_cancellation(booking) -> None:
     """Dispatcher cancelled the booking."""
-    site_name = SITE_DISPLAY_NAMES[booking.site]
-    text = (
-        f"{site_name}: Twój kurs na {booking.scheduled_at:%d.%m %H:%M} "
-        f"({booking.pickup_address} → {booking.dropoff_address}) został anulowany. Przepraszamy za utrudnienia."
+    lang = _lang(booking)
+    values = {"site": _brand_name(booking), "when": f"{booking.scheduled_at:%d.%m %H:%M}"}
+    _send_sms(
+        booking.customer.phone,
+        text(
+            lang, "cancelled_sms", pickup=short_address(booking.pickup_address),
+            dropoff=short_address(booking.dropoff_address), **values,
+        ),
+        booking.site,
     )
-    sms_text = (
-        f"{site_name}: Twoj kurs na {booking.scheduled_at:%d.%m %H:%M} "
-        f"({short_address(booking.pickup_address)} -> {short_address(booking.dropoff_address)}) "
-        f"zostal anulowany. Przepraszamy za utrudnienia."
-    )
-    _send_sms(booking.customer.phone, sms_text, booking.site)
     _send_customer_email(
         booking.customer.email,
-        f"{site_name}: kurs anulowany",
+        text(lang, "cancelled_subject", **values),
         booking.site,
-        "Kurs anulowany",
-        [text],
-        cta_label="Zarezerwuj nowy termin",
+        text(lang, "cancelled_heading"),
+        [text(
+            lang, "cancelled_email_line", pickup=booking.pickup_address,
+            dropoff=booking.dropoff_address, **values,
+        )],
+        cta_label=text(lang, "cancelled_cta"),
         cta_url=f"{SITE_URLS[booking.site]}{_BOOK_AGAIN_PATH[booking.site]}",
+        language=lang,
     )

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useRouter } from "@/i18n/navigation";
@@ -11,6 +11,7 @@ import { PhoneInput } from "./phone-input";
 
 export function LoginForm() {
   const t = useTranslations("Auth");
+  const locale = useLocale();
   const router = useRouter();
 
   const [mode, setMode] = useState<"login" | "register">("login");
@@ -27,7 +28,7 @@ export function LoginForm() {
       const res = await fetch("/api/auth/request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, language: locale }),
       });
       if (!res.ok) throw new Error();
       setMode("register");

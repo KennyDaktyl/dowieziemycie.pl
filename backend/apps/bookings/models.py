@@ -3,7 +3,7 @@ from django.db import models
 
 from apps.accounts.models import Customer
 from apps.fleet.models import Driver
-from config.sites import DEFAULT_SITE, SITE_CHOICES
+from config.sites import DEFAULT_LANGUAGE, DEFAULT_SITE, LANGUAGE_CHOICES, SITE_CHOICES
 
 
 class BookingSettings(models.Model):
@@ -200,6 +200,14 @@ class Booking(models.Model):
     site = models.CharField(
         max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE,
         help_text="Z której marki przyszła ta rezerwacja — decyduje m.in. o brandingu SMS-a do klienta.",
+    )
+    language = models.CharField(
+        max_length=2, choices=LANGUAGE_CHOICES, default=DEFAULT_LANGUAGE,
+        help_text=(
+            "Język, w którym klient korzystał ze strony przy rezerwacji — w tym języku dostaje SMS-y i e-maile "
+            "(kod, potwierdzenie, kierowca w drodze, zmiana terminu, anulowanie). Powiadomienia dla "
+            "dyspozytora i kierowców zawsze po polsku."
+        ),
     )
     pickup_address = models.CharField(max_length=200)
     pickup_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)

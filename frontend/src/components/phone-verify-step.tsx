@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { isCompletePhoneNumber } from "@/lib/countries";
@@ -24,6 +24,7 @@ export function PhoneVerifyStep({
   onVerified: () => void;
 }) {
   const t = useTranslations("Auth");
+  const locale = useLocale();
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ export function PhoneVerifyStep({
       const res = await fetch("/api/auth/request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify({ phone, language: locale }),
       });
       if (!res.ok) throw new Error();
       setStep("code");

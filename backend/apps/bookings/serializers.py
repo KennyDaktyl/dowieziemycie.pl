@@ -1,6 +1,8 @@
 from django.db.models import Max
 from rest_framework import serializers
 
+from config.sites import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
+
 from .availability import assert_bookings_open, has_conflicting_booking
 from .models import Booking, Coupon, LocalFarePolicy, PricingTier
 from .pricing import estimate_price
@@ -175,7 +177,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "child_seat_ages", "bike_count", "coupon_code",
-            "customer_name", "customer_email",
+            "customer_name", "customer_email", "language",
         ]
         # Widened here, cut back to the column width by validate_*_address —
         # see _fit_address for why an over-long geocoder label must not 400.
@@ -299,6 +301,7 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
     flight_number = serializers.CharField(max_length=20, required=False, allow_blank=True)
     customer_name = serializers.CharField(required=False, allow_blank=True)
     customer_email = serializers.EmailField(required=False, allow_blank=True)
+    language = serializers.ChoiceField(choices=SUPPORTED_LANGUAGES, required=False, default=DEFAULT_LANGUAGE)
 
     def validate_pickup_details(self, value):
         return _fit_address(value)
@@ -401,6 +404,7 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             child_seat_ages=validated_data.get("child_seat_ages", []),
             bike_count=validated_data.get("bike_count", 0),
             flight_number=validated_data.get("flight_number", ""),
+            language=validated_data["language"],
             price=price_row.price,
             price_eur=price_row.price_eur,
             distance_km=distance_km,

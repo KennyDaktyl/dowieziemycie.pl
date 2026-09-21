@@ -1,10 +1,14 @@
 from rest_framework import serializers
 
+from config.sites import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
+
 from .models import Customer, PhoneOTP, phone_validator
 
 
 class RequestOtpSerializer(serializers.Serializer):
     phone = serializers.CharField(validators=[phone_validator])
+    # The site locale the visitor is browsing in — the code SMS is sent in it.
+    language = serializers.ChoiceField(choices=SUPPORTED_LANGUAGES, required=False, default=DEFAULT_LANGUAGE)
 
 
 class VerifyOtpSerializer(serializers.Serializer):

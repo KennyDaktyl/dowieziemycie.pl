@@ -20,10 +20,13 @@ logger = logging.getLogger("apps.accounts.sms")
 _POLISH_TRANSLITERATION = str.maketrans({
     "ą": "a", "ć": "c", "ę": "e", "ł": "l", "ń": "n", "ó": "o", "ś": "s", "ź": "z", "ż": "z",
     "Ą": "A", "Ć": "C", "Ę": "E", "Ł": "L", "Ń": "N", "Ó": "O", "Ś": "S", "Ź": "Z", "Ż": "Z",
+    # German (transfer247.pl's de locale) — the customary ASCII spellings.
+    "ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue",
 })
 
 
 def strip_polish_diacritics(text: str) -> str:
+    """Also covers German umlauts/ß — the name predates the de locale."""
     return text.translate(_POLISH_TRANSLITERATION)
 
 

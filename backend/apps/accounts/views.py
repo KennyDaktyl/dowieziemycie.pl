@@ -31,8 +31,12 @@ class RequestOtpView(APIView):
         from .models import PhoneOTP
 
         otp = PhoneOTP.generate(phone)
-        site_name = SITE_DISPLAY_NAMES[request.site_code]
-        message = f"{site_name} - Twoj kod: {otp.code}. Wazny {PhoneOTP.CODE_TTL_MINUTES} min."
+        from apps.bookings.notification_texts import text
+
+        message = text(
+            serializer.validated_data["language"], "otp_sms",
+            site=SITE_DISPLAY_NAMES[request.site_code], code=otp.code, minutes=PhoneOTP.CODE_TTL_MINUTES,
+        )
         try:
             get_sms_backend().send_message(phone, message, request.site_code)
         except Exception:

@@ -949,3 +949,137 @@ class SiteAwareEmailTests(TestCase):
 
         mock_sms.assert_called_once()
         self.assertEqual(len(mail.outbox), 1)
+
+
+class CustomerNotificationLanguageTests(TestCase):
+    """Every SMS/e-mail addressed to the customer is in the language they
+    browsed the site in (Booking.language) — pl/en/de — and never falls
+    back to Polish by accident. Dispatcher/driver messages stay Polish."""
+
+    POLISH_MARKERS = ("rezerwacja", "Kierowca", "Kurs", "Cena", "zaliczka", "anulowany", "zł", "Zapłać")
+
+    def setUp(self):
+        from .models import Booking
+
+        self.customer = Customer.objects.create(phone="+48500222333", email="klient@example.com")
+        self.Booking = Booking
+
+    def _make(self, language, *, price_eur=None, site="transfer247"):
+        return self.Booking.objects.create(
+            customer=self.customer, site=site, language=language,
+            pickup_address="Hotel Wawel, Krakow", dropoff_address="Lotnisko Balice",
+            scheduled_at=timezone.now() + timedelta(hours=5),
+            price=180, deposit_amount=60, price_eur=price_eur,
+            tracking_code="4321", tracking_code_valid_from=timezone.now(),
+        )
+
+    def _sms_and_mail(self, fn, booking, *args):
+        from django.core import mail
+
+        mail.outbox.clear()
+        with patch("apps.bookings.notifications._send_sms") as mock_sms:
+            fn(booking, *args)
+        sms = mock_sms.call_args.args[1] if mock_sms.called else ""
+        email = mail.outbox[0] if mail.outbox else None
+        return sms, email
+
+    def _assert_not_polish(self, *texts):
+        for value in texts:
+            for marker in self.POLISH_MARKERS:
+                self.assertNotIn(marker, value, f"Polish leaked into: {value!r}")
+
+    def test_default_language_is_polish(self):
+        booking = self.Booking.objects.create(
+            customer=self.customer, pickup_address="A", dropoff_address="B",
+            scheduled_at=timezone.now() + timedelta(hours=5),
+        )
+        self.assertEqual(booking.language, "pl")
+
+    def test_confirmation_in_english_and_german(self):
+        from .notifications import notify_customer_of_confirmation
+
+        sms, email = self._sms_and_mail(notify_customer_of_confirmation, self._make("en", price_eur=40))
+        self.assertIn("is confirmed", sms)
+        self.assertIn("Price: 40.00 EUR, deposit: 13.33 EUR", sms)  # scaled by the price_eur/price ratio
+        self.assertEqual(email.subject, "transfer247: booking confirmed — pay the deposit")
+        self.assertIn("Pay the deposit", email.alternatives[0][0])
+        self.assertIn('lang="en"', email.alternatives[0][0])
+        self.assertIn("Stress-free airport transfers", email.alternatives[0][0])
+        self._assert_not_polish(sms, email.subject, email.body)
+
+        sms, email = self._sms_and_mail(notify_customer_of_confirmation, self._make("de", price_eur=40))
+        self.assertIn("wurde bestaetigt", sms)
+        self.assertIn("Preis: 40,00 EUR", sms)  # German decimal comma
+        self.assertTrue(sms.isascii(), sms)
+        self.assertEqual(email.subject, "transfer247: Buchung bestätigt — bitte Anzahlung leisten")
+        self.assertIn('lang="de"', email.alternatives[0][0])
+        self._assert_not_polish(sms, email.subject, email.body)
+
+    def test_amounts_fall_back_to_pln_without_a_eur_snapshot(self):
+        from .notifications import notify_customer_of_confirmation
+
+        sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("en"))
+        self.assertIn("Price: 180 PLN, deposit: 60 PLN", sms)
+        sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("pl", site="dowieziemycie"))
+        self.assertIn("Cena: 180 zł, zaliczka: 60 zł", sms)  # Polish output unchanged
+
+    def test_every_customer_message_exists_and_is_translated_in_every_language(self):
+        from . import notifications as n
+
+        old = timezone.now() - timedelta(hours=1)
+        driver = type("D", (), {"name": "Jan"})()
+        calls = [
+            (n.notify_customer_of_confirmation, ()),
+            (n.notify_customer_of_price_change, ()),
+            (n.notify_customer_driver_en_route, (driver,)),
+            (n.notify_customer_ride_started, ()),
+            (n.notify_customer_ride_finished, ()),
+            (n.notify_customer_of_reschedule, (old,)),
+            (n.notify_customer_of_cancellation, ()),
+        ]
+        for language in ("en", "de"):
+            booking = self._make(language, price_eur=40)
+            for fn, args in calls:
+                with self.subTest(fn=fn.__name__, language=language):
+                    sms, email = self._sms_and_mail(fn, booking, *args)
+                    self.assertTrue(sms)
+                    self.assertTrue(sms.isascii(), f"non-ASCII in {language} SMS: {sms!r}")
+                    self._assert_not_polish(sms)
+                    if email:
+                        self._assert_not_polish(email.subject, email.body)
+
+    def test_unknown_language_falls_back_to_polish(self):
+        from .notifications import notify_customer_of_confirmation
+
+        booking = self._make("pl")
+        booking.language = "fr"
+        sms, _ = self._sms_and_mail(notify_customer_of_confirmation, booking)
+        self.assertIn("została potwierdzona", sms)
+
+    def test_language_is_stored_from_the_catalog_booking_request(self):
+        from rest_framework.test import APIClient
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        from apps.fleet.models import Vehicle
+        from apps.content.models import FixedRoute, FixedRouteVehiclePrice
+
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(self.customer).access_token}")
+        vehicle = Vehicle.objects.create(name="Auris", plate="XX1", seats=4)
+        route = FixedRoute.objects.create(site="transfer247", slug="lang-route", name_pl="R", name_en="R")
+        FixedRouteVehiclePrice.objects.create(route=route, vehicle=vehicle, price="100.00", price_eur="25.00")
+        body = {
+            "fixed_route_slug": "lang-route", "vehicle_id": vehicle.id, "passenger_count": 1,
+            "scheduled_at": (timezone.now() + timedelta(days=3)).isoformat(),
+            "pickup_details": "A", "dropoff_details": "B",
+        }
+        res = client.post("/api/bookings/catalog/", {**body, "language": "de"}, format="json", HTTP_X_SITE="transfer247")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(self.Booking.objects.get(id=res.data["id"]).language, "de")
+
+        body["scheduled_at"] = (timezone.now() + timedelta(days=6)).isoformat()
+        res = client.post("/api/bookings/catalog/", body, format="json", HTTP_X_SITE="transfer247")
+        self.assertEqual(self.Booking.objects.get(id=res.data["id"]).language, "pl")  # omitted -> Polish
+
+        res = client.post("/api/bookings/catalog/", {**body, "language": "xx"}, format="json", HTTP_X_SITE="transfer247")
+        self.assertEqual(res.status_code, 400)  # not a language we offer

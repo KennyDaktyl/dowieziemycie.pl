@@ -8,10 +8,11 @@ from django.template.loader import render_to_string
 
 from config.sites import SITE_DOWIEZIEMYCIE, SITE_TRANSFER247, SITE_URLS
 
+from .notification_texts import text
+
 _BRANDING = {
     SITE_DOWIEZIEMYCIE: {
         "logo_text": "dowieziemycie.pl",
-        "tagline": "Twój sąsiad z busem",
         "bg_color": "#0b0f16",
         "panel_color": "#121a24",
         "text_color": "#edeef2",
@@ -21,7 +22,6 @@ _BRANDING = {
     },
     SITE_TRANSFER247: {
         "logo_text": "transfer247.pl",
-        "tagline": "Transfery lotniskowe bez stresu",
         "bg_color": "#f4f2ef",
         "panel_color": "#ffffff",
         "text_color": "#2c2116",
@@ -32,11 +32,15 @@ _BRANDING = {
 }
 
 
-def render_customer_email_html(site: str, heading: str, body_lines: list[str], cta_label: str = "", cta_url: str = "") -> str:
+def render_customer_email_html(
+    site: str, heading: str, body_lines: list[str], cta_label: str = "", cta_url: str = "", language: str = "pl",
+) -> str:
     branding = _BRANDING[site]
     site_url = SITE_URLS[site]
     return render_to_string("emails/customer_email.html", {
         **branding,
+        "lang": language,
+        "tagline": text(language, f"tagline_{site}"),
         "site_url": site_url,
         "site_url_display": site_url.removeprefix("https://"),
         "heading": heading,

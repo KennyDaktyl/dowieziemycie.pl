@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -92,3 +94,28 @@ class VerifyOtpRoleDetectionTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["role"], "customer")
         self.assertTrue(Customer.objects.filter(phone="+48500999777").exists())
+
+
+class OtpSmsLanguageTests(TestCase):
+    """The login-code SMS is sent in the language the visitor is browsing in."""
+
+    def _request(self, **extra):
+        with patch("apps.accounts.views.get_sms_backend") as backend:
+            res = self.client.post("/api/auth/request-otp/", {"phone": "+48500777888", **extra})
+        return res, backend.return_value.send_message.call_args.args[1]
+
+    def test_polish_by_default(self):
+        res, message = self._request()
+        self.assertEqual(res.status_code, 200)
+        self.assertRegex(message, r"^dowieziemycie - Twoj kod: \d{6}\. Wazny 10 min\.$")
+
+    def test_english_and_german(self):
+        _, message = self._request(language="en")
+        self.assertRegex(message, r"^dowieziemycie - Your code: \d{6}\. Valid for 10 min\.$")
+        _, message = self._request(language="de")
+        self.assertRegex(message, r"^dowieziemycie - Ihr Code: \d{6}\. Gueltig 10 Min\.$")
+
+    def test_unknown_language_is_rejected(self):
+        with patch("apps.accounts.views.get_sms_backend"):
+            res = self.client.post("/api/auth/request-otp/", {"phone": "+48500777888", "language": "fr"})
+        self.assertEqual(res.status_code, 400)
