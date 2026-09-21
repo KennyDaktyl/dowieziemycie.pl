@@ -5,7 +5,7 @@ from config.sites import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 
 from .availability import assert_bookings_open, has_conflicting_booking
 from .models import Booking, Coupon, LocalFarePolicy, PricingTier
-from .payments import currency_for_language
+from .payments import currency_for_language, deposit_in_currency, remainder_in_currency
 from .pricing import estimate_price
 from .routing import get_route_distance_km
 
@@ -108,6 +108,10 @@ class BookingSerializer(serializers.ModelSerializer):
     booked_vehicle_plate = serializers.CharField(source="vehicle.plate", read_only=True, default=None)
     booked_vehicle_seats = serializers.IntegerField(source="vehicle.seats", read_only=True, default=None)
     remaining_amount = serializers.SerializerMethodField()
+    # EUR counterparts, for customers paying in euro — the same figures the
+    # payment endpoint and the SMS link charge.
+    deposit_amount_eur = serializers.SerializerMethodField()
+    remaining_amount_eur = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -118,8 +122,8 @@ class BookingSerializer(serializers.ModelSerializer):
             "status", "distance_km", "duration_minutes", "is_reserved",
             "price", "price_eur", "pricing_mode", "coupon_code", "driver_name", "driver_vehicle",
             "driver_vehicle_plate", "driver_vehicle_seats", "created_at",
-            "confirmed_at", "payment_deadline", "deposit_amount", "paid_at", "remainder_paid_at",
-            "remaining_amount", "booked_vehicle_id", "booked_vehicle_name",
+            "confirmed_at", "payment_deadline", "deposit_amount", "deposit_amount_eur", "paid_at", "remainder_paid_at",
+            "remaining_amount", "remaining_amount_eur", "booked_vehicle_id", "booked_vehicle_name",
             "booked_vehicle_plate", "booked_vehicle_seats",
         ]
         read_only_fields = fields
@@ -129,6 +133,17 @@ class BookingSerializer(serializers.ModelSerializer):
             return None
         remaining = obj.price - obj.deposit_amount
         return remaining if remaining > 0 else None
+
+    def get_deposit_amount_eur(self, obj):
+        if obj.deposit_amount is None:  # not confirmed yet — no deposit to show
+            return None
+        return deposit_in_currency(obj, "eur")
+
+    def get_remaining_amount_eur(self, obj):
+        if obj.price is None or obj.deposit_amount is None or obj.remainder_paid_at is not None:
+            return None
+        remaining = remainder_in_currency(obj, "eur")
+        return remaining if remaining and remaining > 0 else None
 
 
 class DriverBookingSerializer(serializers.ModelSerializer):

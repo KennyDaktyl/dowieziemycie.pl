@@ -7,7 +7,7 @@ configured yet, and every call below fails loudly with PaymentError instead
 of crashing.
 """
 
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import stripe
 from django.conf import settings
@@ -24,22 +24,69 @@ def currency_for_language(language: str) -> str:
     return "pln" if language == "pl" else "eur"
 
 
-def amount_in_currency(booking: Booking, amount_pln: Decimal, currency: str) -> Decimal:
-    """`amount_pln` (booking.price / deposit_amount stay the single PLN source
-    of truth) expressed in `currency`. EUR uses the booking's own
-    price/price_eur ratio when it has a catalog EUR price (transfer247.pl
-    routes and tours — same scaling as CreatePaymentIntentView), otherwise the
-    site's configured PLN-per-EUR rate."""
-    # str() first: freshly created (not re-read) instances can still hold
-    # the int/str/float a caller assigned instead of a Decimal.
-    amount_pln = Decimal(str(amount_pln))
+_CENT = Decimal("0.01")
+_WHOLE = Decimal("1")
+
+
+def _d(value) -> Decimal:
+    # str() first: freshly created (not re-read) instances can still hold the
+    # int/str/float a caller assigned instead of a Decimal.
+    return Decimal(str(value))
+
+
+def format_amount(amount) -> str:
+    """"75" for a whole amount, "13.33" otherwise — deposits are rounded to
+    whole zloty/euro by default, and "75.00 zł" in an SMS just looks wrong."""
+    amount = _d(amount).quantize(_CENT)
+    return f"{amount:.0f}" if amount == amount.to_integral_value() else f"{amount:.2f}"
+
+
+def total_in_currency(booking: Booking, currency: str) -> Decimal | None:
+    """The whole ride price in `currency`. PLN is booking.price. EUR is the
+    booking's own price_eur (snapshotted from the catalog EUR price, editable
+    in the admin) and, for bookings without one (map bookings on
+    dowieziemycie.pl, custom quotes), the PLN price at the site's configured
+    PLN-per-EUR rate. None while there is no price at all."""
+    if booking.price is None:
+        return None
     if currency == "pln":
-        return amount_pln.quantize(Decimal("0.01"))
-    if booking.price and booking.price_eur:
-        ratio = Decimal(str(booking.price_eur)) / Decimal(str(booking.price))
-    else:
-        ratio = 1 / Decimal(str(BookingSettings.for_site(booking.site).eur_exchange_rate))
-    return (amount_pln * ratio).quantize(Decimal("0.01"))
+        return _d(booking.price).quantize(_CENT)
+    if booking.price_eur:
+        return _d(booking.price_eur).quantize(_CENT)
+    return (_d(booking.price) / _d(BookingSettings.for_site(booking.site).eur_exchange_rate)).quantize(_CENT)
+
+
+def default_deposit(booking: Booking, currency: str) -> Decimal:
+    """What the deposit is when nobody set one by hand: the site's default
+    (100 zł / 25 EUR) but never more than the configured share (50%) of the
+    ride price, rounded — half up — to a whole zloty / whole euro. So a 149 zł
+    ride asks 75 zł and a 35 EUR ride 18 EUR."""
+    settings_row = BookingSettings.for_site(booking.site)
+    cap = _d(settings_row.deposit_amount if currency == "pln" else settings_row.deposit_amount_eur)
+    total = total_in_currency(booking, currency)
+    if total is not None:
+        cap = min(cap, total * settings_row.deposit_max_percent / 100)
+    return cap.quantize(_WHOLE, rounding=ROUND_HALF_UP)
+
+
+def deposit_in_currency(booking: Booking, currency: str) -> Decimal | None:
+    """The deposit to charge in `currency`: the one set on the booking (PLN
+    field for zloty, EUR field for euro) or, if left empty, the default rule.
+    None only for a PLN deposit that hasn't been set yet on an unconfirmed
+    booking."""
+    if currency == "pln":
+        return None if booking.deposit_amount is None else _d(booking.deposit_amount).quantize(_CENT)
+    if booking.deposit_amount_eur is not None:
+        return _d(booking.deposit_amount_eur).quantize(_CENT)
+    return default_deposit(booking, "eur").quantize(_CENT)
+
+
+def remainder_in_currency(booking: Booking, currency: str) -> Decimal | None:
+    """Ride price minus the deposit, in `currency` — never negative."""
+    total, deposit = total_in_currency(booking, currency), deposit_in_currency(booking, currency)
+    if total is None or deposit is None:
+        return None
+    return max(total - deposit, Decimal("0.00"))
 
 
 def create_payment_intent(booking: Booking, kind: str, amount: Decimal, currency: str = "pln") -> dict:

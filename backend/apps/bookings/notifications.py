@@ -18,7 +18,7 @@ from config.sites import SITE_DISPLAY_NAMES, SITE_URLS, normalize_language
 from .models import BookingSettings
 from .notification_texts import text
 from .payment_links import amount_due, payment_link_url
-from .payments import amount_in_currency
+from .payments import deposit_in_currency, format_amount, remainder_in_currency, total_in_currency
 
 logger = logging.getLogger("apps.bookings.notifications")
 
@@ -184,14 +184,19 @@ def _lang(booking) -> str:
 
 
 def _money(booking, amount, language: str) -> str:
-    """An amount in the currency this customer actually pays in
-    (Booking.payment_currency — EUR for anyone not browsing in Polish, see
-    payments.currency_for_language). booking.price/deposit_amount stay PLN
-    everywhere else; only what the customer reads is converted."""
-    if booking.payment_currency == "eur":
-        formatted = f"{amount_in_currency(booking, amount, 'eur'):.2f}"
-        return f"{formatted.replace('.', ',') if language == 'de' else formatted} EUR"
-    return f"{amount} {text(language, 'currency_fallback')}"
+    """`amount` — already in the booking's payment_currency (see
+    payments.total_in_currency / deposit_in_currency / remainder_in_currency)
+    — as text: "180 zł" / "13.33 EUR" (German: "13,33 EUR"; PLN outside
+    Polish: "180 PLN")."""
+    if amount is None:
+        return "-"
+    return _label(format_amount(amount), booking.payment_currency, language)
+
+
+def _label(number: str, currency: str, language: str) -> str:
+    if currency == "eur":
+        return f"{number.replace('.', ',') if language == 'de' else number} EUR"
+    return f"{number} {text(language, 'currency_fallback')}"
 
 
 def _brand_name(booking) -> str:
@@ -206,8 +211,8 @@ def notify_customer_of_confirmation(booking) -> None:
     values = {
         "site": _brand_name(booking),
         "when": _when(booking.scheduled_at),
-        "price": _money(booking, booking.price, lang),
-        "deposit": _money(booking, booking.deposit_amount, lang),
+        "price": _money(booking, total_in_currency(booking, booking.payment_currency), lang),
+        "deposit": _money(booking, deposit_in_currency(booking, booking.payment_currency), lang),
         "minutes": BookingSettings.for_site(booking.site).payment_window_minutes,
         "link": link,
     }
@@ -243,7 +248,7 @@ def send_payment_link_sms(booking) -> str:
     Returns the kind that was sent ("DEPOSIT" | "REMAINDER")."""
     from .models import Payment
 
-    kind, amount_pln = amount_due(booking)
+    kind, amount = amount_due(booking)
     lang = _lang(booking)
     values = {
         "site": _brand_name(booking),
@@ -253,11 +258,11 @@ def send_payment_link_sms(booking) -> str:
     if kind == Payment.Kind.DEPOSIT:
         deadline = booking.payment_deadline
         message = text(
-            lang, "deposit_link_sms", deposit=_money(booking, amount_pln, lang),
+            lang, "deposit_link_sms", deposit=_money(booking, amount, lang),
             deadline=_when(deadline) if deadline else "", **values,
         )
     else:
-        message = text(lang, "remainder_link_sms", amount=_money(booking, amount_pln, lang), **values)
+        message = text(lang, "remainder_link_sms", amount=_money(booking, amount, lang), **values)
     from apps.accounts.sms import get_sms_backend
 
     try:
@@ -280,12 +285,11 @@ def notify_customer_of_payment_received(booking, payment) -> None:
         "payment_received_deposit_sms" if payment.kind in (Payment.Kind.DEPOSIT, Payment.Kind.FULL)
         else "payment_received_remainder_sms"
     )
-    amount = f"{payment.amount:.2f}".replace(".", ",") if lang == "de" else f"{payment.amount:.2f}"
-    label = "EUR" if payment.currency == "eur" else text(lang, "currency_fallback")
+    amount = _label(format_amount(payment.amount), payment.currency, lang)
     _send_sms(
         booking.customer.phone,
         text(
-            lang, key, site=_brand_name(booking), amount=f"{amount} {label}",
+            lang, key, site=_brand_name(booking), amount=amount,
             when=_when(booking.scheduled_at),
         ),
         booking.site,
@@ -298,10 +302,13 @@ def notify_customer_of_price_change(booking) -> None:
     total and remaining balance so the "dopłać" button they see next isn't a
     surprise."""
     lang = _lang(booking)
-    message = text(lang, "price_changed_sms", site=_brand_name(booking), price=_money(booking, booking.price, lang))
+    currency = booking.payment_currency
+    message = text(
+        lang, "price_changed_sms", site=_brand_name(booking), price=_money(booking, total_in_currency(booking, currency), lang),
+    )
     if booking.deposit_amount is not None and booking.remainder_paid_at is None:
-        remaining = booking.price - booking.deposit_amount
-        if remaining > 0:
+        remaining = remainder_in_currency(booking, currency)
+        if remaining:
             message += text(lang, "price_changed_remaining", remaining=_money(booking, remaining, lang))
     _send_sms(booking.customer.phone, message, booking.site)
 

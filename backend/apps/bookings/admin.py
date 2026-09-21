@@ -8,7 +8,7 @@ from django.utils.html import format_html
 from .models import Booking, BookingSettings, Coupon, LocalFarePolicy, Payment, PricingTier
 from .notifications import send_payment_link_sms
 from .payment_links import PaymentLinkError, amount_due, payment_link_url
-from .payments import amount_in_currency
+from .payments import default_deposit, format_amount
 from .services import BookingConfirmError, confirm_booking, extend_payment_deadline
 
 
@@ -50,15 +50,16 @@ class CouponAdmin(admin.ModelAdmin):
 @admin.register(BookingSettings)
 class BookingSettingsAdmin(admin.ModelAdmin):
     list_display = (
-        "site", "bookings_paused", "deposit_amount", "payment_window_minutes", "eur_exchange_rate",
-        "driver_buffer_minutes",
+        "site", "bookings_paused", "deposit_amount", "deposit_amount_eur", "deposit_max_percent",
+        "payment_window_minutes", "eur_exchange_rate", "driver_buffer_minutes",
     )
     list_editable = (
-        "bookings_paused", "deposit_amount", "payment_window_minutes", "eur_exchange_rate", "driver_buffer_minutes",
+        "bookings_paused", "deposit_amount", "deposit_amount_eur", "deposit_max_percent", "payment_window_minutes",
+        "eur_exchange_rate", "driver_buffer_minutes",
     )
     fields = (
-        "site", "bookings_paused", "deposit_amount", "payment_window_minutes", "eur_exchange_rate",
-        "driver_buffer_minutes", "dispatcher_phone", "dispatcher_email",
+        "site", "bookings_paused", "deposit_amount", "deposit_amount_eur", "deposit_max_percent",
+        "payment_window_minutes", "eur_exchange_rate", "driver_buffer_minutes", "dispatcher_phone", "dispatcher_email",
     )
 
 
@@ -97,13 +98,12 @@ class BookingAdmin(admin.ModelAdmin):
         if not obj or not obj.pk:
             return "—"
         try:
-            kind, amount_pln = amount_due(obj)
+            kind, amount = amount_due(obj)
         except PaymentLinkError as exc:
             hint = ""
             if exc.code in ("expired", "unavailable") and obj.status in ("POTWIERDZONA", "ANULOWANA"):
                 hint = " Aby dać klientowi więcej czasu: ustaw pole „Czas na zapłatę zaliczki” poniżej albo użyj akcji „Przedłuż czas na zaliczkę”."
             return f"Nic do zapłaty teraz — {exc.detail}{hint}"
-        amount = amount_in_currency(obj, amount_pln, obj.payment_currency)
         label = "Zaliczka" if kind == Payment.Kind.DEPOSIT else "Reszta do zapłaty"
         deadline = ""
         if kind == Payment.Kind.DEPOSIT and obj.payment_deadline:
@@ -111,7 +111,7 @@ class BookingAdmin(admin.ModelAdmin):
         link = payment_link_url(obj)
         return format_html(
             "<strong>{}: {} {}</strong>{}<br><a href=\"{}\" target=\"_blank\">{}</a>",
-            label, amount, obj.payment_currency.upper(), deadline, link, link,
+            label, format_amount(amount), obj.payment_currency.upper(), deadline, link, link,
         )
 
     def save_model(self, request, obj, form, change):
@@ -139,6 +139,22 @@ class BookingAdmin(admin.ModelAdmin):
                 "anulowana przez cron w ciągu 5 minut.",
                 level="warning",
             )
+        # POTWIERDZONA set by hand without a deposit: apply the default rule
+        # (per currency, only the empty ones) instead of leaving the customer
+        # with nothing to pay.
+        if change and obj.status == "POTWIERDZONA":
+            filled = []
+            if obj.deposit_amount is None:
+                obj.deposit_amount = default_deposit(obj, "pln")
+                filled.append(f"{obj.deposit_amount} zł")
+            if obj.deposit_amount_eur is None:
+                obj.deposit_amount_eur = default_deposit(obj, "eur")
+                filled.append(f"{obj.deposit_amount_eur} EUR")
+            if filled:
+                self.message_user(
+                    request, f"Rezerwacja #{obj.id}: brakujące zaliczki ustawiono domyślnie: {', '.join(filled)}.",
+                    level="warning",
+                )
         super().save_model(request, obj, form, change)
         status_paid_gate = ("POTWIERDZONA", "OPLACONA", "KIEROWCA_W_DRODZE", "W_TRAKCIE")
         if change and "status" in form.changed_data and obj.status in status_paid_gate and not obj.deposit_amount:
@@ -173,7 +189,7 @@ class BookingAdmin(admin.ModelAdmin):
         no deadline."""
         for booking in queryset.select_related("customer"):
             try:
-                kind, amount_pln = amount_due(booking)
+                kind, amount = amount_due(booking)
             except PaymentLinkError as exc:
                 self.message_user(
                     request,
@@ -182,7 +198,6 @@ class BookingAdmin(admin.ModelAdmin):
                     level="warning",
                 )
                 continue
-            amount = amount_in_currency(booking, amount_pln, booking.payment_currency)
             if kind == Payment.Kind.DEPOSIT:
                 what = f"zaliczka, ważny do {timezone.localtime(booking.payment_deadline):%d.%m %H:%M}"
             else:
@@ -192,7 +207,7 @@ class BookingAdmin(admin.ModelAdmin):
                 request,
                 format_html(
                     "Rezerwacja #{} ({} {}, {}): <a href=\"{}\" target=\"_blank\">{}</a>",
-                    booking.id, amount, booking.payment_currency.upper(), what, link, link,
+                    booking.id, format_amount(amount), booking.payment_currency.upper(), what, link, link,
                 ),
             )
 

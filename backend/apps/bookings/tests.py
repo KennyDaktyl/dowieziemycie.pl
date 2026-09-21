@@ -1,6 +1,8 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+from decimal import Decimal
+
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -298,7 +300,9 @@ class ConfirmAndPayWorkflowTests(TestCase):
         self.assertEqual(booking.status, self.Booking.Status.POTWIERDZONA)
         self.assertEqual(booking.price, 123)
         self.assertIsNotNone(booking.payment_deadline)
-        self.assertEqual(booking.deposit_amount, 50)
+        # default rule: 100 zł / 25 EUR, never more than 50% of the price, whole units
+        self.assertEqual(booking.deposit_amount, 62)  # 50% of 123 = 61.5 -> 62
+        self.assertEqual(booking.deposit_amount_eur, 14)  # no EUR price: 123 / 4.30 = 28.60 -> 50% = 14.30 -> 14
 
     @override_settings(STRIPE_SECRET_KEY="sk_test_fake", STRIPE_PUBLISHABLE_KEY="pk_test_fake")
     def test_create_payment_intent_succeeds(self):
@@ -382,7 +386,7 @@ class ConfirmAndPayWorkflowTests(TestCase):
         self.assertEqual(res.status_code, 503)
 
     @override_settings(STRIPE_SECRET_KEY="sk_test_fake", STRIPE_PUBLISHABLE_KEY="pk_test_fake")
-    def test_create_payment_intent_in_eur_scales_by_the_bookings_price_ratio(self):
+    def test_create_payment_intent_in_eur_uses_the_eur_deposit_default_rule(self):
         from types import SimpleNamespace
 
         from .models import Payment
@@ -401,12 +405,12 @@ class ConfirmAndPayWorkflowTests(TestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertEqual(mock_create.call_args.kwargs["currency"], "eur")
-        # 50 PLN deposit * (20/89 EUR-per-PLN ratio) = 11.24 EUR
-        self.assertEqual(mock_create.call_args.kwargs["amount"], 1124)
+        # no EUR deposit set -> default rule: min(25 EUR, 50% of the 20 EUR price) = 10 EUR
+        self.assertEqual(mock_create.call_args.kwargs["amount"], 1000)
         self.assertNotIn("blik", mock_create.call_args.kwargs["payment_method_types"])
         payment = Payment.objects.get(booking=booking)
         self.assertEqual(payment.currency, Payment.Currency.EUR)
-        self.assertEqual(str(payment.amount), "11.24")
+        self.assertEqual(str(payment.amount), "10.00")
 
     @override_settings(STRIPE_SECRET_KEY="sk_test_fake", STRIPE_PUBLISHABLE_KEY="pk_test_fake")
     def test_create_payment_intent_in_eur_rejected_without_a_price_eur_snapshot(self):
@@ -1002,8 +1006,8 @@ class CustomerNotificationLanguageTests(TestCase):
         sms, email = self._sms_and_mail(notify_customer_of_confirmation, self._make("en", price_eur=40))
         self.assertIn("is confirmed", sms)
         # scaled by the booking's own price_eur/price ratio
-        self.assertIn("DEPOSIT due now: 13.33 EUR (not the full ride price", sms)
-        self.assertIn("ride price: 40.00 EUR", sms)
+        self.assertIn("DEPOSIT due now: 20 EUR (not the full ride price", sms)
+        self.assertIn("ride price: 40 EUR", sms)
         self.assertEqual(email.subject, "transfer247: booking confirmed — pay the deposit")
         self.assertIn("Pay the deposit", email.alternatives[0][0])
         self.assertIn('lang="en"', email.alternatives[0][0])
@@ -1012,7 +1016,7 @@ class CustomerNotificationLanguageTests(TestCase):
 
         sms, email = self._sms_and_mail(notify_customer_of_confirmation, self._make("de", price_eur=40))
         self.assertIn("wurde bestaetigt", sms)
-        self.assertIn("Fahrpreis: 40,00 EUR", sms)  # German decimal comma
+        self.assertIn("Fahrpreis: 40 EUR", sms)  # German decimal comma
         self.assertTrue(sms.isascii(), sms)
         self.assertEqual(email.subject, "transfer247: Buchung bestätigt — bitte Anzahlung leisten")
         self.assertIn('lang="de"', email.alternatives[0][0])
@@ -1023,7 +1027,7 @@ class CustomerNotificationLanguageTests(TestCase):
 
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("en"))
         # no price_eur snapshot -> the site's PLN-per-EUR rate (default 4.30)
-        self.assertIn("DEPOSIT due now: 13.95 EUR (not the full ride price", sms)
+        self.assertIn("DEPOSIT due now: 21 EUR (not the full ride price", sms)
         self.assertIn("ride price: 41.86 EUR", sms)
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("pl", site="dowieziemycie"))
         self.assertIn("ZALICZKA do zaplaty teraz: 60 zl", sms)
@@ -1139,10 +1143,10 @@ class PaymentLinkTests(TestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data["url"], "https://checkout.stripe.com/c/pay/cs_test_1")
-        self.assertEqual((res.data["kind"], res.data["currency"], res.data["amount"]), ("DEPOSIT", "eur", "13.33"))
+        self.assertEqual((res.data["kind"], res.data["currency"], res.data["amount"]), ("DEPOSIT", "eur", "20.00"))
         kwargs = create.call_args.kwargs
         item = kwargs["line_items"][0]["price_data"]
-        self.assertEqual((item["currency"], item["unit_amount"]), ("eur", 1333))
+        self.assertEqual((item["currency"], item["unit_amount"]), ("eur", 2000))
         self.assertEqual(item["product_data"]["name"], "Anzahlung für Ihre Fahrt")
         self.assertEqual(kwargs["locale"], "de")
         self.assertEqual(kwargs["payment_method_types"], ["card"])  # no BLIK in EUR
@@ -1152,7 +1156,7 @@ class PaymentLinkTests(TestCase):
         expected = int(booking.payment_deadline.timestamp())
         self.assertAlmostEqual(kwargs["expires_at"], expected, delta=2)
         payment = booking.payments.get()
-        self.assertEqual((payment.kind, payment.currency, str(payment.amount)), ("DEPOSIT", "eur", "13.33"))
+        self.assertEqual((payment.kind, payment.currency, str(payment.amount)), ("DEPOSIT", "eur", "20.00"))
         self.assertEqual(payment.stripe_checkout_session_id, "cs_test_1")
 
     def test_polish_customer_pays_in_pln_with_blik_available(self):
@@ -1253,7 +1257,7 @@ class PaymentLinkTests(TestCase):
         self.assertIsNotNone(booking.paid_at)
         self.assertEqual((payment.status, payment.stripe_payment_intent_id), ("SUCCEEDED", "pi_link_1"))
         sms.assert_called_once()
-        self.assertIn("received your 13.33 EUR deposit", sms.call_args.args[1])
+        self.assertIn("received your 20 EUR deposit", sms.call_args.args[1])
 
     def test_paying_the_remainder_through_the_link_settles_the_booking(self):
         import stripe
@@ -1278,8 +1282,8 @@ class PaymentLinkTests(TestCase):
         message = sms.call_args.args[1]
         booking.refresh_from_db()
         self.assertIn("pay the", message)
-        # confirm_booking snapshots the site's default deposit (50 PLN) -> 50 * 40/180 EUR
-        self.assertIn("DEPOSIT due now: 11.11 EUR (not the full ride price", message)
+        # confirm_booking applies the default rule: min(25 EUR, 50% of the 40 EUR price) = 20 EUR
+        self.assertIn("DEPOSIT due now: 20 EUR (not the full ride price", message)
         self.assertIn(f"https://transfer247.pl/pay/{booking.pay_token}", message)
         self.assertIsNotNone(booking.payment_link_sent_at)
         self.assertLessEqual(len(message), 320)  # two SMS segments at most
@@ -1295,7 +1299,7 @@ class PaymentLinkTests(TestCase):
             booking.status, booking.paid_at = "OPLACONA", timezone.now()
             booking.save(update_fields=["status", "paid_at"])
             self.assertEqual(send_payment_link_sms(booking), "REMAINDER")
-            self.assertIn("Restbetrag von 26,67 EUR", sent.call_args.args[1])
+            self.assertIn("Restbetrag von 20 EUR", sent.call_args.args[1])
             self.assertTrue(sent.call_args.args[1].isascii())
 
     # --- lifecycle ---------------------------------------------------------
@@ -1335,7 +1339,7 @@ class PaymentLinkTests(TestCase):
         res = self.client.get(f"/admin/bookings/booking/{booking.id}/change/")
         self.assertEqual(res.status_code, 200)
         html = res.content.decode()
-        self.assertIn("Zaliczka: 13.33 EUR", html)
+        self.assertIn("Zaliczka: 20 EUR", html)
         self.assertIn("https://transfer247.pl/pay/", html)
 
         with patch("apps.accounts.sms.get_sms_backend") as backend:
@@ -1595,3 +1599,128 @@ class DepositSmsIsNotMistakenForTheFullPriceTests(TestCase):
                 marked = text(language, key, **{**values, "deposit": "AAA", "price": "BBB"})
                 if "BBB" in marked:
                     self.assertLess(marked.index("AAA"), marked.index("BBB"), f"{language}.{key}")
+
+
+class DepositInBothCurrenciesTests(TestCase):
+    """Deposit per currency: PLN for Polish customers, EUR for everyone else.
+    Set on the booking; when empty the default rule applies — 100 zł / 25 EUR,
+    never more than 50% of the ride price, rounded (half up) to whole units."""
+
+    def setUp(self):
+        from .models import Booking
+
+        self.Booking = Booking
+        self.customer = Customer.objects.create(phone="+48500222333")
+
+    def _booking(self, **extra):
+        defaults = dict(
+            customer=self.customer, site="transfer247", pickup_address="A", dropoff_address="B",
+            scheduled_at=timezone.now() + timedelta(days=2),
+        )
+        return self.Booking.objects.create(**{**defaults, **extra})
+
+    def test_default_rule_examples_from_the_owner(self):
+        from .payments import default_deposit
+
+        cheap = self._booking(price=149, price_eur=35)
+        self.assertEqual(default_deposit(cheap, "pln"), 75)  # 50% of 149 = 74.5 -> 75
+        self.assertEqual(default_deposit(cheap, "eur"), 18)  # 50% of 35  = 17.5 -> 18
+
+    def test_default_is_capped_by_the_site_default_for_expensive_rides(self):
+        from .payments import default_deposit
+
+        big = self._booking(price=583, price_eur=139)
+        self.assertEqual(default_deposit(big, "pln"), 100)
+        self.assertEqual(default_deposit(big, "eur"), 25)
+
+    def test_eur_default_without_a_eur_price_uses_the_exchange_rate(self):
+        from .payments import default_deposit, total_in_currency
+
+        booking = self._booking(price=149)  # no price_eur; rate 4.30 -> 34.65 EUR
+        self.assertEqual(total_in_currency(booking, "eur"), Decimal("34.65"))
+        self.assertEqual(default_deposit(booking, "eur"), 17)  # 17.33 -> 17
+
+    def test_the_percent_and_caps_are_editable_in_the_settings(self):
+        from .models import BookingSettings
+        from .payments import default_deposit
+
+        BookingSettings.objects.filter(site="transfer247").delete()
+        BookingSettings.objects.create(site="transfer247", deposit_amount=200, deposit_amount_eur=60, deposit_max_percent=30)
+        booking = self._booking(price=500, price_eur=120)
+        self.assertEqual(default_deposit(booking, "pln"), 150)  # 30% of 500
+        self.assertEqual(default_deposit(booking, "eur"), 36)  # 30% of 120
+
+    def test_no_price_yet_falls_back_to_the_plain_caps(self):
+        from .payments import default_deposit
+
+        booking = self._booking(price=None)
+        self.assertEqual((default_deposit(booking, "pln"), default_deposit(booking, "eur")), (100, 25))
+
+    def test_a_value_set_on_the_booking_wins_and_is_kept_on_confirmation(self):
+        from .services import confirm_booking
+
+        booking = self._booking(price=300, price_eur=70, deposit_amount=120, deposit_amount_eur=33)
+        confirm_booking(booking)
+        booking.refresh_from_db()
+        self.assertEqual((booking.deposit_amount, booking.deposit_amount_eur), (120, 33))
+
+    def test_confirmation_fills_only_the_empty_currency(self):
+        from .services import confirm_booking
+
+        booking = self._booking(price=149, price_eur=35, deposit_amount=90)  # PLN chosen by hand, EUR empty
+        confirm_booking(booking)
+        booking.refresh_from_db()
+        self.assertEqual((booking.deposit_amount, booking.deposit_amount_eur), (90, 18))
+
+    def test_the_link_charges_pln_for_polish_and_the_eur_field_for_other_languages(self):
+        from .payment_links import amount_due
+
+        polish = self._booking(
+            price=300, price_eur=70, deposit_amount=120, deposit_amount_eur=33, status="POTWIERDZONA",
+            language="pl", payment_currency="pln", payment_deadline=timezone.now() + timedelta(minutes=30),
+        )
+        german = self._booking(
+            price=300, price_eur=70, deposit_amount=120, deposit_amount_eur=33, status="POTWIERDZONA",
+            language="de", payment_currency="eur", payment_deadline=timezone.now() + timedelta(minutes=30),
+            scheduled_at=timezone.now() + timedelta(days=9),
+        )
+        self.assertEqual(amount_due(polish), ("DEPOSIT", Decimal("120.00")))
+        self.assertEqual(amount_due(german), ("DEPOSIT", Decimal("33.00")))
+
+    def test_remainder_is_price_minus_deposit_in_the_same_currency(self):
+        from .payments import remainder_in_currency
+
+        booking = self._booking(price=300, price_eur=70, deposit_amount=120, deposit_amount_eur=33)
+        self.assertEqual(remainder_in_currency(booking, "pln"), Decimal("180.00"))
+        self.assertEqual(remainder_in_currency(booking, "eur"), Decimal("37.00"))
+
+    def test_amounts_are_shown_without_needless_decimals(self):
+        from .payments import format_amount
+
+        self.assertEqual([format_amount(x) for x in ("75", "75.00", "13.3", "13.33", 18)], ["75", "75", "13.30", "13.33", "18"])
+
+    def test_customer_api_exposes_the_eur_figures(self):
+        from rest_framework.test import APIClient
+        from rest_framework_simplejwt.tokens import RefreshToken
+
+        booking = self._booking(price=149, price_eur=35, deposit_amount=75, deposit_amount_eur=None, status="POTWIERDZONA")
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(self.customer).access_token}")
+        row = client.get("/api/bookings/mine/", HTTP_X_SITE="transfer247").data[0]
+        self.assertEqual((str(row["deposit_amount"]), str(row["deposit_amount_eur"])), ("75.00", "18.00"))
+        self.assertEqual(str(row["remaining_amount_eur"]), "17.00")  # 35 - 18
+
+    def test_admin_fills_missing_deposits_when_status_is_set_to_confirmed_by_hand(self):
+        from unittest.mock import MagicMock
+
+        from django.contrib import admin as dj_admin
+        from django.test import RequestFactory
+
+        from .admin import BookingAdmin
+
+        booking = self._booking(price=149, price_eur=35, status="POTWIERDZONA")
+        request = RequestFactory().post("/")
+        request.session, request._messages = {}, MagicMock()
+        BookingAdmin(self.Booking, dj_admin.site).save_model(request, booking, MagicMock(changed_data=["status"]), True)
+        booking.refresh_from_db()
+        self.assertEqual((booking.deposit_amount, booking.deposit_amount_eur), (75, 18))

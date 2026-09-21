@@ -1,5 +1,4 @@
 import logging
-from decimal import Decimal
 
 import stripe
 from django.conf import settings
@@ -11,7 +10,13 @@ from rest_framework.views import APIView
 from .models import Booking, Coupon, LocalFarePolicy, Payment, PricingTier
 from .notifications import notify_customer_of_payment_received, notify_dispatcher_of_customer_cancellation
 from .payment_links import PaymentLinkError, expire_open_checkout_sessions, resolve_payment_link
-from .payments import PaymentError, create_payment_intent
+from .payments import (
+    PaymentError,
+    create_payment_intent,
+    deposit_in_currency,
+    remainder_in_currency,
+    total_in_currency,
+)
 from .pricing import estimate_price
 from .routing import get_route_details
 from .serializers import (
@@ -209,10 +214,11 @@ class CreatePaymentIntentView(APIView):
     from a page that showed them euros — resolve_payable_amount always
     returns the PLN figure (booking.price/deposit_amount stay the single
     PLN source of truth used everywhere else: admin, driver app, SMS), so
-    the EUR amount is derived here by scaling it with the booking's own
-    price/price_eur ratio, captured at booking time from the catalog price
-    row. Rejected outright if the booking has no price_eur snapshot (any
-    dowieziemycie.pl booking, or a transfer247.pl custom quote)."""
+    the EUR amount comes from the booking's EUR deposit (Booking.
+    deposit_amount_eur, or the default rule when empty — see payments.
+    deposit_in_currency), its EUR ride price and their difference. Rejected
+    outright if the booking has no price_eur snapshot (any dowieziemycie.pl
+    booking, or a transfer247.pl custom quote)."""
 
     permission_classes = [IsAuthenticated]
 
@@ -237,8 +243,14 @@ class CreatePaymentIntentView(APIView):
                     {"detail": "Płatność w EUR jest niedostępna dla tej rezerwacji."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            ratio = booking.price_eur / booking.price
-            amount = (amount * ratio).quantize(Decimal("0.01"))
+            # Same figures the SMS link charges: the EUR deposit field (or the
+            # default rule), the EUR ride price, or the difference.
+            if payment_kind == Payment.Kind.DEPOSIT:
+                amount = deposit_in_currency(booking, "eur")
+            elif payment_kind == Payment.Kind.FULL:
+                amount = total_in_currency(booking, "eur")
+            else:
+                amount = remainder_in_currency(booking, "eur")
             currency = "eur"
 
         try:

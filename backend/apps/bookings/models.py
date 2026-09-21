@@ -20,8 +20,22 @@ class BookingSettings(models.Model):
         ),
     )
     deposit_amount = models.DecimalField(
-        max_digits=7, decimal_places=2, default=50,
-        help_text="Zaliczka wymagana do zablokowania terminu po potwierdzeniu rezerwacji.",
+        max_digits=7, decimal_places=2, default=100,
+        help_text=(
+            "Domyślna zaliczka w PLN (dla klientów płacących w złotówkach), gdy rezerwacja nie ma własnej. "
+            "Nie więcej niż podany niżej procent ceny kursu; zaokrąglana do pełnych złotych."
+        ),
+    )
+    deposit_amount_eur = models.DecimalField(
+        max_digits=7, decimal_places=2, default=25,
+        help_text=(
+            "Domyślna zaliczka w EUR (dla klientów w języku innym niż polski), gdy rezerwacja nie ma własnej. "
+            "Nie więcej niż podany niżej procent ceny kursu; zaokrąglana do pełnych euro."
+        ),
+    )
+    deposit_max_percent = models.PositiveSmallIntegerField(
+        default=50,
+        help_text="Domyślna zaliczka nie przekroczy tego procentu ceny kursu (np. 50 = połowa).",
     )
     payment_window_minutes = models.PositiveSmallIntegerField(
         default=60,
@@ -328,8 +342,19 @@ class Booking(models.Model):
         ),
     )
     deposit_amount = models.DecimalField(
-        max_digits=7, decimal_places=2, null=True, blank=True,
-        help_text="Zaliczka do zapłaty — zrzut z ustawień w momencie potwierdzenia rezerwacji.",
+        "Zaliczka w PLN", max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text=(
+            "Zaliczka do zapłaty w złotówkach (klient w języku polskim). Ustaw ją przed potwierdzeniem albo zostaw "
+            "puste — wtedy przy potwierdzeniu wyliczy się domyślna z Ustawień rezerwacji (np. 100 zł, nie więcej "
+            "niż 50% ceny, do pełnych złotych)."
+        ),
+    )
+    deposit_amount_eur = models.DecimalField(
+        "Zaliczka w EUR", max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text=(
+            "Zaliczka do zapłaty w euro (klient w innym języku niż polski). Puste = domyślna z Ustawień rezerwacji "
+            "(np. 25 EUR, nie więcej niż 50% ceny w EUR, do pełnych euro)."
+        ),
     )
     paid_at = models.DateTimeField(null=True, blank=True, help_text="Kiedy zaliczka (lub pełna kwota) wpłynęła.")
     remainder_paid_at = models.DateTimeField(

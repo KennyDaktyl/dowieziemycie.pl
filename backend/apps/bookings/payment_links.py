@@ -26,7 +26,7 @@ from config.sites import SITE_URLS, normalize_language
 
 from .models import Booking, Payment
 from .notification_texts import text
-from .payments import PaymentError, amount_in_currency
+from .payments import PaymentError, deposit_in_currency, remainder_in_currency
 from .services import BookingPaymentError, resolve_payable_amount
 
 # Stripe: a Checkout Session must live at least 30 minutes and at most 24 hours.
@@ -68,26 +68,33 @@ def payment_link_url(booking: Booking) -> str:
 
 
 def amount_due(booking: Booking) -> tuple[str, Decimal]:
-    """What the customer owes right now, as (Payment.Kind, PLN amount) —
-    or a PaymentLinkError saying why nothing can be paid."""
+    """What the customer owes right now, as (Payment.Kind, amount in the
+    booking's payment_currency) — or a PaymentLinkError saying why nothing
+    can be paid. The deposit comes from the field for that currency
+    (Booking.deposit_amount / deposit_amount_eur, or the default rule when
+    the EUR one is empty), the remainder is the ride price minus it."""
     if booking.status == Booking.Status.POTWIERDZONA:
         if booking.payment_deadline and timezone.now() > booking.payment_deadline:
             raise PaymentLinkError("expired", "Czas na zapłatę zaliczki minął.")
         try:
-            amount, kind = resolve_payable_amount(booking, "deposit")
+            resolve_payable_amount(booking, "deposit")  # re-checks the slot is still free
         except BookingPaymentError as exc:
             raise PaymentLinkError("unavailable", str(exc))
+        amount = deposit_in_currency(booking, booking.payment_currency)
         if not amount or amount <= 0:
             raise PaymentLinkError("unavailable", "Brak ustalonej zaliczki dla tego kursu.")
-        return kind, amount
+        return Payment.Kind.DEPOSIT, amount
     if booking.status in _PAID_STATUSES:
         if booking.remainder_paid_at is not None:
             raise PaymentLinkError("already_paid", "Ten kurs jest już opłacony w całości.")
         try:
-            amount, kind = resolve_payable_amount(booking, "remainder")
+            resolve_payable_amount(booking, "remainder")
         except BookingPaymentError as exc:
             raise PaymentLinkError("already_paid", str(exc))
-        return kind, amount
+        amount = remainder_in_currency(booking, booking.payment_currency)
+        if not amount or amount <= 0:
+            raise PaymentLinkError("already_paid", "Nie ma już nic do dopłaty.")
+        return Payment.Kind.REMAINDER, amount
     raise PaymentLinkError("unavailable", "Ta rezerwacja nie oczekuje na płatność.")
 
 
@@ -110,9 +117,8 @@ def resolve_payment_link(booking: Booking) -> dict:
     """Creates (or reuses the still-open) Stripe Checkout Session for what
     the booking owes right now and returns {"url", "kind", "amount",
     "currency"}."""
-    kind, amount_pln = amount_due(booking)
+    kind, amount = amount_due(booking)
     currency = booking.payment_currency
-    amount = amount_in_currency(booking, amount_pln, currency)
     language = normalize_language(booking.language)
     _stripe_ready()
 

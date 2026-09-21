@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from .availability import has_conflicting_booking
 from .models import Booking, BookingSettings, Payment
+from .payments import default_deposit
 
 
 class BookingConfirmError(Exception):
@@ -37,8 +38,9 @@ def _lock_site_bookings(site: str) -> None:
 def confirm_booking(booking: Booking, price=None, deposit_amount=None) -> Booking:
     """Dispatcher review step — NOWA -> POTWIERDZONA. `price` lets the
     dispatcher override the algorithm-computed price before locking it in;
-    `deposit_amount` likewise overrides the site's flat default (the app's
-    own UI suggests 30% of price, but the dispatcher can set any split)."""
+    `deposit_amount` likewise overrides the deposit (the app's own UI suggests
+    30% of price, but the dispatcher can set any split); without one, a value
+    already set on the booking is kept, else the default rule applies."""
     with transaction.atomic():
         _lock_site_bookings(booking.site)
         booking.refresh_from_db()
@@ -62,8 +64,19 @@ def confirm_booking(booking: Booking, price=None, deposit_amount=None) -> Bookin
         booking.status = Booking.Status.POTWIERDZONA
         booking.confirmed_at = timezone.now()
         booking.payment_deadline = booking.confirmed_at + timedelta(minutes=settings_row.payment_window_minutes)
-        booking.deposit_amount = deposit_amount if deposit_amount is not None else settings_row.deposit_amount
-        booking.save(update_fields=["price", "status", "confirmed_at", "payment_deadline", "deposit_amount"])
+        # Deposit precedence, per currency: what the dispatcher passed in
+        # (PLN only — the driver app) > what was already set on the booking >
+        # the default rule (site default, capped at a share of the price,
+        # whole zloty / euro — see payments.default_deposit).
+        if deposit_amount is not None:
+            booking.deposit_amount = deposit_amount
+        elif booking.deposit_amount is None:
+            booking.deposit_amount = default_deposit(booking, "pln")
+        if booking.deposit_amount_eur is None:
+            booking.deposit_amount_eur = default_deposit(booking, "eur")
+        booking.save(update_fields=[
+            "price", "status", "confirmed_at", "payment_deadline", "deposit_amount", "deposit_amount_eur",
+        ])
 
     from .notifications import notify_customer_of_confirmation
 
