@@ -9,7 +9,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Booking, Coupon, LocalFarePolicy, Payment, PricingTier
-from .notifications import notify_dispatcher_of_customer_cancellation
+from .notifications import notify_customer_of_payment_received, notify_dispatcher_of_customer_cancellation
+from .payment_links import PaymentLinkError, expire_open_checkout_sessions, resolve_payment_link
 from .payments import PaymentError, create_payment_intent
 from .pricing import estimate_price
 from .routing import get_route_details
@@ -179,6 +180,7 @@ class CancelMyBookingView(APIView):
             driver.status = Driver.Status.DOSTEPNY
             driver.save(update_fields=["status"])
 
+        expire_open_checkout_sessions(booking)  # the SMS link must not stay payable
         notify_dispatcher_of_customer_cancellation(booking)
         return Response(BookingSerializer(booking).data)
 
@@ -247,6 +249,16 @@ class CreatePaymentIntentView(APIView):
         return Response(result)
 
 
+def _intent_metadata(intent, key):
+    """One metadata value off a Stripe event object. stripe-python's
+    StripeObject is not a dict (no .get()), only supports [] — hence the
+    KeyError handling rather than a chained .get."""
+    try:
+        return intent["metadata"][key]
+    except (KeyError, TypeError):
+        return None
+
+
 class StripeWebhookView(APIView):
     """POST /api/payments/stripe-webhook/ — public (Stripe signs the payload
     instead of us authenticating the caller). Raw body is required for
@@ -280,15 +292,27 @@ class StripeWebhookView(APIView):
 
         if event["type"] == "payment_intent.succeeded":
             payment = Payment.objects.filter(stripe_payment_intent_id=payment_intent_id).first()
+            if payment is None:
+                # A payment made through an SMS link (Stripe Checkout): the
+                # PaymentIntent didn't exist when we logged the attempt, so
+                # match it by the payment_id we put in its metadata.
+                payment_id = _intent_metadata(intent, "payment_id")
+                payment = Payment.objects.filter(id=payment_id, stripe_payment_intent_id__isnull=True).first() \
+                    if str(payment_id or "").isdigit() else None
+                if payment:
+                    payment.stripe_payment_intent_id = payment_intent_id
+                    payment.save(update_fields=["stripe_payment_intent_id"])
             if payment and payment.status != Payment.Status.SUCCEEDED:
                 payment.status = Payment.Status.SUCCEEDED
                 payment.save(update_fields=["status"])
                 if payment.kind == Payment.Kind.DEPOSIT:
-                    mark_deposit_paid(payment.booking_id)
+                    booking = mark_deposit_paid(payment.booking_id)
                 elif payment.kind == Payment.Kind.FULL:
-                    mark_full_payment(payment.booking_id)
-                elif payment.kind == Payment.Kind.REMAINDER:
-                    mark_remainder_paid(payment.booking_id)
+                    booking = mark_full_payment(payment.booking_id)
+                else:
+                    booking = mark_remainder_paid(payment.booking_id)
+                if payment.stripe_checkout_session_id:
+                    notify_customer_of_payment_received(booking, payment)
         elif event["type"] == "payment_intent.payment_failed":
             Payment.objects.filter(
                 stripe_payment_intent_id=payment_intent_id,
@@ -297,3 +321,36 @@ class StripeWebhookView(APIView):
             logger.info("Nieobsłużony typ eventu Stripe: %s", event["type"])
 
         return Response({"received": True})
+
+
+class PaymentLinkView(APIView):
+    """GET /api/pay/<token>/ — resolves the short link from the payment SMS
+    (https://<brand>/pay/<token>, served by each frontend) into a Stripe
+    Checkout URL for whatever the booking owes right now. The token is the
+    only credential (64 random bits, one booking, payments only), so no
+    login — that's the point. Errors carry `code` + the booking's language
+    so the frontend can show a proper message instead of a bare 4xx."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token):
+        booking = Booking.objects.select_related("customer").filter(pay_token=token).first()
+        if not booking:
+            return Response(
+                {"detail": "Nie znaleziono płatności.", "code": "unavailable", "language": "pl"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        try:
+            result = resolve_payment_link(booking)
+        except PaymentLinkError as exc:
+            return Response(
+                {"detail": exc.detail, "code": exc.code, "language": booking.language},
+                status=status.HTTP_409_CONFLICT,
+            )
+        except PaymentError as exc:
+            return Response(
+                {"detail": str(exc), "code": "error", "language": booking.language},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        return Response({**result, "amount": str(result["amount"]), "language": booking.language})

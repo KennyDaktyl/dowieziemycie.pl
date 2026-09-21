@@ -34,5 +34,5 @@ export function proxy(request: Parameters<typeof intlMiddleware>[0]) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  matcher: ["/((?!api|pay/|_next|.*\\..*).*)"],
 };

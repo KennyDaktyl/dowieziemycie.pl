@@ -967,6 +967,7 @@ class CustomerNotificationLanguageTests(TestCase):
     def _make(self, language, *, price_eur=None, site="transfer247"):
         return self.Booking.objects.create(
             customer=self.customer, site=site, language=language,
+            payment_currency="pln" if language == "pl" else "eur",
             pickup_address="Hotel Wawel, Krakow", dropoff_address="Lotnisko Balice",
             scheduled_at=timezone.now() + timedelta(hours=5),
             price=180, deposit_amount=60, price_eur=price_eur,
@@ -1000,7 +1001,9 @@ class CustomerNotificationLanguageTests(TestCase):
 
         sms, email = self._sms_and_mail(notify_customer_of_confirmation, self._make("en", price_eur=40))
         self.assertIn("is confirmed", sms)
-        self.assertIn("Price: 40.00 EUR, deposit: 13.33 EUR", sms)  # scaled by the price_eur/price ratio
+        # scaled by the booking's own price_eur/price ratio
+        self.assertIn("pay the 13.33 EUR deposit", sms)
+        self.assertIn("ride price: 40.00 EUR", sms)
         self.assertEqual(email.subject, "transfer247: booking confirmed — pay the deposit")
         self.assertIn("Pay the deposit", email.alternatives[0][0])
         self.assertIn('lang="en"', email.alternatives[0][0])
@@ -1009,7 +1012,7 @@ class CustomerNotificationLanguageTests(TestCase):
 
         sms, email = self._sms_and_mail(notify_customer_of_confirmation, self._make("de", price_eur=40))
         self.assertIn("wurde bestaetigt", sms)
-        self.assertIn("Preis: 40,00 EUR", sms)  # German decimal comma
+        self.assertIn("Fahrpreis: 40,00 EUR", sms)  # German decimal comma
         self.assertTrue(sms.isascii(), sms)
         self.assertEqual(email.subject, "transfer247: Buchung bestätigt — bitte Anzahlung leisten")
         self.assertIn('lang="de"', email.alternatives[0][0])
@@ -1019,9 +1022,12 @@ class CustomerNotificationLanguageTests(TestCase):
         from .notifications import notify_customer_of_confirmation
 
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("en"))
-        self.assertIn("Price: 180 PLN, deposit: 60 PLN", sms)
+        # no price_eur snapshot -> the site's PLN-per-EUR rate (default 4.30)
+        self.assertIn("pay the 13.95 EUR deposit", sms)
+        self.assertIn("ride price: 41.86 EUR", sms)
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("pl", site="dowieziemycie"))
-        self.assertIn("Cena: 180 zł, zaliczka: 60 zł", sms)  # Polish output unchanged
+        self.assertIn("zapłać zaliczkę 60 zł", sms)
+        self.assertIn("cena kursu: 180 zł", sms)
 
     def test_every_customer_message_exists_and_is_translated_in_every_language(self):
         from . import notifications as n
@@ -1054,7 +1060,8 @@ class CustomerNotificationLanguageTests(TestCase):
         booking = self._make("pl")
         booking.language = "fr"
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, booking)
-        self.assertIn("została potwierdzona", sms)
+        self.assertIn("potwierdzona", sms)
+        self.assertIn("zaliczkę", sms)
 
     def test_language_is_stored_from_the_catalog_booking_request(self):
         from rest_framework.test import APIClient
@@ -1083,3 +1090,257 @@ class CustomerNotificationLanguageTests(TestCase):
 
         res = client.post("/api/bookings/catalog/", {**body, "language": "xx"}, format="json", HTTP_X_SITE="transfer247")
         self.assertEqual(res.status_code, 400)  # not a language we offer
+
+
+@override_settings(STRIPE_SECRET_KEY="sk_test_dummy", STRIPE_PUBLISHABLE_KEY="pk_test_dummy")
+class PaymentLinkTests(TestCase):
+    """The SMS payment link: /pay/<token> -> Stripe Checkout Session for
+    whatever the booking owes right now (deposit, then remainder), in the
+    booking's payment_currency. Stripe itself is mocked."""
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+
+        from .models import Booking
+
+        self.Booking = Booking
+        self.client = APIClient()
+        self.customer = Customer.objects.create(phone="+48500222333", email="klient@example.com")
+
+    def _booking(self, *, language="pl", currency=None, status="POTWIERDZONA", price_eur=None, **extra):
+        return self.Booking.objects.create(
+            customer=self.customer, site="transfer247", language=language,
+            payment_currency=currency or ("pln" if language == "pl" else "eur"),
+            pickup_address="Hotel Wawel", dropoff_address="Lotnisko Balice",
+            scheduled_at=timezone.now() + timedelta(days=2), status=status,
+            price=180, deposit_amount=60, price_eur=price_eur,
+            payment_deadline=timezone.now() + timedelta(minutes=50), **extra,
+        )
+
+    def _session(self, sid="cs_test_1", url="https://checkout.stripe.com/c/pay/cs_test_1", status="open"):
+        from unittest.mock import MagicMock
+
+        session = MagicMock()
+        session.id, session.url, session.status = sid, url, status
+        return session
+
+    def _open(self, booking):
+        from .payment_links import ensure_pay_token
+
+        return self.client.get(f"/api/pay/{ensure_pay_token(booking)}/")
+
+    # --- what gets created ------------------------------------------------
+    def test_deposit_link_creates_a_checkout_session_in_the_bookings_currency(self):
+        import stripe
+
+        booking = self._booking(language="de", price_eur=40)
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session()) as create:
+            res = self._open(booking)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["url"], "https://checkout.stripe.com/c/pay/cs_test_1")
+        self.assertEqual((res.data["kind"], res.data["currency"], res.data["amount"]), ("DEPOSIT", "eur", "13.33"))
+        kwargs = create.call_args.kwargs
+        item = kwargs["line_items"][0]["price_data"]
+        self.assertEqual((item["currency"], item["unit_amount"]), ("eur", 1333))
+        self.assertEqual(item["product_data"]["name"], "Anzahlung für Ihre Fahrt")
+        self.assertEqual(kwargs["locale"], "de")
+        self.assertEqual(kwargs["payment_method_types"], ["card"])  # no BLIK in EUR
+        self.assertEqual(kwargs["payment_intent_data"]["metadata"]["kind"], "DEPOSIT")
+        self.assertTrue(kwargs["success_url"].startswith("https://transfer247.pl/de/panel"))
+        # the session lives exactly as long as the payment window (within Stripe's 30min..24h limits)
+        expected = int(booking.payment_deadline.timestamp())
+        self.assertAlmostEqual(kwargs["expires_at"], expected, delta=2)
+        payment = booking.payments.get()
+        self.assertEqual((payment.kind, payment.currency, str(payment.amount)), ("DEPOSIT", "eur", "13.33"))
+        self.assertEqual(payment.stripe_checkout_session_id, "cs_test_1")
+
+    def test_polish_customer_pays_in_pln_with_blik_available(self):
+        import stripe
+
+        booking = self._booking(language="pl")
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session()) as create:
+            res = self._open(booking)
+        self.assertEqual((res.data["currency"], res.data["amount"]), ("pln", "60.00"))
+        self.assertEqual(create.call_args.kwargs["payment_method_types"], ["card", "blik"])
+
+    def test_expiry_is_never_shorter_than_stripes_30_minute_minimum(self):
+        import stripe
+
+        booking = self._booking()
+        booking.payment_deadline = timezone.now() + timedelta(minutes=5)
+        booking.save(update_fields=["payment_deadline"])
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session()) as create:
+            self._open(booking)
+        self.assertGreaterEqual(create.call_args.kwargs["expires_at"] - int(timezone.now().timestamp()), 30 * 60)
+
+    def test_an_open_session_is_reused_instead_of_creating_a_second_payable_one(self):
+        import stripe
+
+        booking = self._booking()
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session()) as create, \
+                patch.object(stripe.checkout.Session, "retrieve", return_value=self._session()):
+            self._open(booking)
+            res = self._open(booking)
+        self.assertEqual(create.call_count, 1)
+        self.assertEqual(res.data["url"], "https://checkout.stripe.com/c/pay/cs_test_1")
+        self.assertEqual(booking.payments.count(), 1)
+
+    # --- what is refused ---------------------------------------------------
+    def test_after_the_payment_window_the_link_is_expired(self):
+        booking = self._booking()
+        booking.payment_deadline = timezone.now() - timedelta(minutes=1)
+        booking.save(update_fields=["payment_deadline"])
+        res = self._open(booking)
+        self.assertEqual((res.status_code, res.data["code"]), (409, "expired"))
+
+    def test_cancelled_and_new_bookings_are_not_payable(self):
+        for status in ("ANULOWANA", "NOWA"):
+            res = self._open(self._booking(status=status))
+            self.assertEqual((res.status_code, res.data["code"]), (409, "unavailable"), status)
+
+    def test_unknown_token_is_404(self):
+        self.assertEqual(self.client.get("/api/pay/doesnotexist/").status_code, 404)
+
+    def test_fully_paid_booking_says_already_paid(self):
+        booking = self._booking(status="OPLACONA", remainder_paid_at=timezone.now())
+        res = self._open(booking)
+        self.assertEqual((res.status_code, res.data["code"]), (409, "already_paid"))
+
+    # --- remainder ---------------------------------------------------------
+    def test_after_the_deposit_the_same_link_pays_the_remainder(self):
+        import stripe
+
+        booking = self._booking(status="OPLACONA", paid_at=timezone.now())
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session("cs_r")) as create:
+            res = self._open(booking)
+        self.assertEqual((res.data["kind"], res.data["amount"], res.data["currency"]), ("REMAINDER", "120.00", "pln"))
+        self.assertEqual(create.call_args.kwargs["line_items"][0]["price_data"]["unit_amount"], 12000)
+        self.assertEqual(create.call_args.kwargs["line_items"][0]["price_data"]["product_data"]["name"], "Dopłata za przejazd")
+
+    # --- webhook -----------------------------------------------------------
+    def _webhook(self, payment, intent_id="pi_link_1"):
+        # A real StripeObject, not a dict: stripe-python's event objects have
+        # no .get(), which a plain-dict fake would silently hide.
+        import stripe
+
+        event = stripe.Event.construct_from({
+            "id": "evt_test", "object": "event", "type": "payment_intent.succeeded",
+            "data": {"object": {
+                "id": intent_id, "object": "payment_intent", "metadata": {"payment_id": str(payment.id)},
+            }},
+        }, "sk_test_dummy")
+        with patch("apps.bookings.views.stripe.Webhook.construct_event", return_value=event):
+            return self.client.post(
+                "/api/payments/stripe-webhook/", b"{}", content_type="application/json", HTTP_STRIPE_SIGNATURE="x",
+            )
+
+    def test_paying_through_the_link_marks_the_deposit_paid_and_texts_the_customer_once(self):
+        import stripe
+
+        booking = self._booking(language="en", price_eur=40)
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session()):
+            self._open(booking)
+        payment = booking.payments.get()
+
+        with patch("apps.bookings.notifications._send_sms") as sms, patch("apps.fleet.push.notify_drivers_of_new_booking"):
+            self.assertEqual(self._webhook(payment).status_code, 200)
+            self._webhook(payment)  # Stripe redelivers — must be a no-op
+
+        booking.refresh_from_db()
+        payment.refresh_from_db()
+        self.assertEqual(booking.status, "OPLACONA")
+        self.assertIsNotNone(booking.paid_at)
+        self.assertEqual((payment.status, payment.stripe_payment_intent_id), ("SUCCEEDED", "pi_link_1"))
+        sms.assert_called_once()
+        self.assertIn("received your 13.33 EUR deposit", sms.call_args.args[1])
+
+    def test_paying_the_remainder_through_the_link_settles_the_booking(self):
+        import stripe
+
+        booking = self._booking(status="OPLACONA", paid_at=timezone.now())
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session()):
+            self._open(booking)
+        with patch("apps.bookings.notifications._send_sms") as sms:
+            self._webhook(booking.payments.get())
+        booking.refresh_from_db()
+        self.assertIsNotNone(booking.remainder_paid_at)
+        self.assertEqual(booking.status, "OPLACONA")  # the ride's own lifecycle is untouched
+        self.assertIn("w całości", sms.call_args.args[1])
+
+    # --- SMS ---------------------------------------------------------------
+    def test_confirming_a_booking_texts_the_link_in_the_customers_language(self):
+        from .services import confirm_booking
+
+        booking = self._booking(language="en", status="NOWA", price_eur=40)
+        with patch("apps.bookings.notifications._send_sms", return_value=True) as sms:
+            confirm_booking(booking)
+        message = sms.call_args.args[1]
+        booking.refresh_from_db()
+        self.assertIn("pay the", message)
+        # confirm_booking snapshots the site's default deposit (50 PLN) -> 50 * 40/180 EUR
+        self.assertIn("11.11 EUR deposit", message)
+        self.assertIn(f"https://transfer247.pl/pay/{booking.pay_token}", message)
+        self.assertIsNotNone(booking.payment_link_sent_at)
+        self.assertLessEqual(len(message), 320)  # two SMS segments at most
+
+    def test_sms_link_resend_picks_deposit_then_remainder(self):
+        from .notifications import send_payment_link_sms
+
+        booking = self._booking(language="de", price_eur=40)
+        with patch("apps.bookings.notifications._send_sms", return_value=True) as sms:
+            self.assertEqual(send_payment_link_sms(booking), "DEPOSIT")
+            self.assertIn("Erinnerung", sms.call_args.args[1])
+            booking.status, booking.paid_at = "OPLACONA", timezone.now()
+            booking.save(update_fields=["status", "paid_at"])
+            self.assertEqual(send_payment_link_sms(booking), "REMAINDER")
+            self.assertIn("Restbetrag von 26,67 EUR", sms.call_args.args[1])
+            self.assertTrue(sms.call_args.args[1].isascii())
+
+    # --- lifecycle ---------------------------------------------------------
+    def test_expiring_an_unpaid_booking_closes_its_open_checkout_session(self):
+        import stripe
+
+        from .services import expire_unpaid_booking
+
+        booking = self._booking()
+        with patch.object(stripe.checkout.Session, "create", return_value=self._session()):
+            self._open(booking)
+        with patch.object(stripe.checkout.Session, "expire") as expire:
+            expire_unpaid_booking(booking.id)
+        expire.assert_called_once_with("cs_test_1")
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, "ANULOWANA")
+
+    # --- currency & times --------------------------------------------------
+    def test_currency_follows_the_language_at_booking_time(self):
+        from .payments import currency_for_language
+
+        self.assertEqual([currency_for_language(x) for x in ("pl", "en", "de")], ["pln", "eur", "eur"])
+
+    def test_messages_show_local_time_not_utc(self):
+        from datetime import datetime, timezone as tz
+
+        from .notifications import _when
+
+        self.assertEqual(_when(datetime(2026, 9, 25, 10, 0, tzinfo=tz.utc)), "25.09 12:00")  # Europe/Warsaw, summer
+
+    def test_admin_shows_the_link_and_sends_it(self):
+        from django.contrib.auth.models import User
+
+        User.objects.create_superuser("payadmin", "a@b.pl", "pw")
+        self.client.login(username="payadmin", password="pw")
+        booking = self._booking(language="en", price_eur=40)
+        res = self.client.get(f"/admin/bookings/booking/{booking.id}/change/")
+        self.assertEqual(res.status_code, 200)
+        html = res.content.decode()
+        self.assertIn("Zaliczka: 13.33 EUR", html)
+        self.assertIn("https://transfer247.pl/pay/", html)
+
+        with patch("apps.bookings.notifications._send_sms", return_value=True) as sms:
+            res = self.client.post(
+                "/admin/bookings/booking/",
+                {"action": "send_deposit_or_remainder_link", "_selected_action": [booking.id]},
+            )
+        self.assertEqual(res.status_code, 302)
+        sms.assert_called_once()

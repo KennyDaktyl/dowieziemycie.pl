@@ -362,6 +362,9 @@ class CancelBookingView(APIView):
                 driver.status = Driver.Status.DOSTEPNY
                 driver.save(update_fields=["status"])
 
+        from apps.bookings.payment_links import expire_open_checkout_sessions
+
+        expire_open_checkout_sessions(booking)  # the SMS payment link must not stay payable
         notify_customer_of_cancellation(booking)
         return Response(DriverBookingSerializer(booking).data)
 

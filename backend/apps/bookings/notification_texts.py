@@ -23,14 +23,17 @@ TEXTS = {
         "tagline_transfer247": "Transfery lotniskowe bez stresu",
         # --- confirmation -------------------------------------------------
         "confirmed_sms": (
-            "{site}: Twoja rezerwacja na {when} została potwierdzona! Cena: {price}, zaliczka: {deposit}. "
-            "Zapłać w ciągu {minutes} min, aby zachować termin."
+            "{site}: Rezerwacja na {when} potwierdzona! Aby kurs był ważny, zapłać zaliczkę {deposit} "
+            "w ciągu {minutes} min (cena kursu: {price}): {link}"
         ),
         "confirmed_subject": "{site}: rezerwacja potwierdzona — zapłać zaliczkę",
         "confirmed_heading": "Rezerwacja potwierdzona!",
         "confirmed_line1": "Twoja rezerwacja na {when} została potwierdzona.",
         "confirmed_line2": "Cena: {price}, zaliczka: {deposit}.",
-        "confirmed_line3": "Zapłać w ciągu {minutes} minut, aby zachować termin.",
+        "confirmed_line3": (
+            "Aby kurs był ważny, zapłać zaliczkę w ciągu {minutes} minut — w przeciwnym razie rezerwacja "
+            "wygaśnie. Możesz to zrobić przyciskiem poniżej albo linkiem z SMS-a."
+        ),
         "confirmed_cta": "Zapłać zaliczkę",
         # --- price change -------------------------------------------------
         "price_changed_sms": "{site}: Cena Twojego kursu została zaktualizowana — nowa cena: {price}.",
@@ -64,20 +67,33 @@ TEXTS = {
         "cancelled_heading": "Kurs anulowany",
         "cancelled_cta": "Zarezerwuj nowy termin",
         "currency_fallback": "zł",
+        "deposit_link_sms": (
+            "{site}: Przypomnienie — aby kurs na {when} był ważny, zapłać zaliczkę {deposit} do {deadline}: {link}"
+        ),
+        "remainder_link_sms": "{site}: Prosimy o zapłatę pozostałej kwoty {amount} za kurs na {when}: {link}",
+        "payment_received_deposit_sms": (
+            "{site}: Dziękujemy, otrzymaliśmy zaliczkę {amount}. Twój kurs na {when} jest potwierdzony!"
+        ),
+        "payment_received_remainder_sms": "{site}: Dziękujemy, otrzymaliśmy wpłatę {amount}. Kurs jest opłacony w całości.",
+        "checkout_product_deposit": "Zaliczka za przejazd",
+        "checkout_product_remainder": "Dopłata za przejazd",
     },
     "en": {
         "otp_sms": "{site} - Your code: {code}. Valid for {minutes} min.",
         "tagline_dowieziemycie": "Your neighbourhood van",
         "tagline_transfer247": "Stress-free airport transfers",
         "confirmed_sms": (
-            "{site}: Your booking for {when} is confirmed! Price: {price}, deposit: {deposit}. "
-            "Pay within {minutes} min to keep your slot."
+            "{site}: Your booking for {when} is confirmed! To keep it valid, pay the {deposit} deposit "
+            "within {minutes} min (ride price: {price}): {link}"
         ),
         "confirmed_subject": "{site}: booking confirmed — pay the deposit",
         "confirmed_heading": "Booking confirmed!",
         "confirmed_line1": "Your booking for {when} has been confirmed.",
         "confirmed_line2": "Price: {price}, deposit: {deposit}.",
-        "confirmed_line3": "Please pay within {minutes} minutes to keep your slot.",
+        "confirmed_line3": (
+            "To keep your booking valid, please pay the deposit within {minutes} minutes — otherwise it "
+            "will expire. Use the button below or the link from the text message."
+        ),
         "confirmed_cta": "Pay the deposit",
         "price_changed_sms": "{site}: The price of your ride has been updated - new price: {price}.",
         "price_changed_remaining": " Remaining to pay: {remaining}.",
@@ -107,20 +123,33 @@ TEXTS = {
         "cancelled_heading": "Ride cancelled",
         "cancelled_cta": "Book a new time",
         "currency_fallback": "PLN",
+        "deposit_link_sms": (
+            "{site}: Reminder - to keep your ride on {when} valid, pay the {deposit} deposit by {deadline}: {link}"
+        ),
+        "remainder_link_sms": "{site}: Please pay the remaining {amount} for your ride on {when}: {link}",
+        "payment_received_deposit_sms": (
+            "{site}: Thank you, we received your {amount} deposit. Your ride on {when} is confirmed!"
+        ),
+        "payment_received_remainder_sms": "{site}: Thank you, we received your {amount} payment. Your ride is paid in full.",
+        "checkout_product_deposit": "Deposit for your ride",
+        "checkout_product_remainder": "Remaining payment for your ride",
     },
     "de": {
         "otp_sms": "{site} - Ihr Code: {code}. Gueltig {minutes} Min.",
         "tagline_dowieziemycie": "Ihr Nachbar mit dem Bus",
         "tagline_transfer247": "Stressfreie Flughafentransfers",
         "confirmed_sms": (
-            "{site}: Ihre Buchung fuer {when} wurde bestaetigt! Preis: {price}, Anzahlung: {deposit}. "
-            "Bitte zahlen Sie innerhalb von {minutes} Min., um den Termin zu sichern."
+            "{site}: Ihre Buchung fuer {when} wurde bestaetigt! Damit sie gueltig bleibt, zahlen Sie die "
+            "Anzahlung von {deposit} innerhalb von {minutes} Min. (Fahrpreis: {price}): {link}"
         ),
         "confirmed_subject": "{site}: Buchung bestätigt — bitte Anzahlung leisten",
         "confirmed_heading": "Buchung bestätigt!",
         "confirmed_line1": "Ihre Buchung für {when} wurde bestätigt.",
         "confirmed_line2": "Preis: {price}, Anzahlung: {deposit}.",
-        "confirmed_line3": "Bitte zahlen Sie innerhalb von {minutes} Minuten, um Ihren Termin zu sichern.",
+        "confirmed_line3": (
+            "Damit Ihre Buchung gültig bleibt, zahlen Sie die Anzahlung bitte innerhalb von {minutes} Minuten — "
+            "sonst verfällt sie. Nutzen Sie dazu die Schaltfläche unten oder den Link aus der SMS."
+        ),
         "confirmed_cta": "Anzahlung leisten",
         "price_changed_sms": "{site}: Der Preis Ihrer Fahrt wurde aktualisiert - neuer Preis: {price}.",
         "price_changed_remaining": " Noch zu zahlen: {remaining}.",
@@ -149,6 +178,19 @@ TEXTS = {
         "cancelled_heading": "Fahrt storniert",
         "cancelled_cta": "Neuen Termin buchen",
         "currency_fallback": "PLN",
+        "deposit_link_sms": (
+            "{site}: Erinnerung - damit Ihre Fahrt am {when} gueltig bleibt, zahlen Sie die Anzahlung "
+            "von {deposit} bis {deadline}: {link}"
+        ),
+        "remainder_link_sms": "{site}: Bitte zahlen Sie den Restbetrag von {amount} fuer Ihre Fahrt am {when}: {link}",
+        "payment_received_deposit_sms": (
+            "{site}: Vielen Dank, Ihre Anzahlung von {amount} ist eingegangen. Ihre Fahrt am {when} ist bestaetigt!"
+        ),
+        "payment_received_remainder_sms": (
+            "{site}: Vielen Dank, Ihre Zahlung von {amount} ist eingegangen. Die Fahrt ist vollstaendig bezahlt."
+        ),
+        "checkout_product_deposit": "Anzahlung für Ihre Fahrt",
+        "checkout_product_remainder": "Restzahlung für Ihre Fahrt",
     },
 }
 

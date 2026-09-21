@@ -188,3 +188,7 @@ def expire_unpaid_booking(booking_id: int) -> None:
             return
         booking.status = Booking.Status.ANULOWANA
         booking.save(update_fields=["status"])
+
+    from .payment_links import expire_open_checkout_sessions
+
+    expire_open_checkout_sessions(booking)

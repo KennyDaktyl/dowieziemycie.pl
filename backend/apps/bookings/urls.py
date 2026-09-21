@@ -8,6 +8,7 @@ from .views import (
     CatalogBookingCreateView,
     CreatePaymentIntentView,
     LocalFarePolicyView,
+    PaymentLinkView,
     PricingTierListView,
     RouteEstimateView,
     StripeWebhookView,
@@ -33,5 +34,6 @@ urlpatterns = [
         CreatePaymentIntentView.as_view(),
         name="booking-create-payment-intent",
     ),
+    path("pay/<str:token>/", PaymentLinkView.as_view(), name="payment-link"),
     path("payments/stripe-webhook/", StripeWebhookView.as_view(), name="stripe-webhook"),
 ]

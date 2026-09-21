@@ -12,11 +12,34 @@ from decimal import Decimal
 import stripe
 from django.conf import settings
 
-from .models import Booking, Payment
+from .models import Booking, BookingSettings, Payment
 
 
 class PaymentError(Exception):
     pass
+
+
+def currency_for_language(language: str) -> str:
+    """A customer browsing in anything but Polish pays in EUR."""
+    return "pln" if language == "pl" else "eur"
+
+
+def amount_in_currency(booking: Booking, amount_pln: Decimal, currency: str) -> Decimal:
+    """`amount_pln` (booking.price / deposit_amount stay the single PLN source
+    of truth) expressed in `currency`. EUR uses the booking's own
+    price/price_eur ratio when it has a catalog EUR price (transfer247.pl
+    routes and tours — same scaling as CreatePaymentIntentView), otherwise the
+    site's configured PLN-per-EUR rate."""
+    # str() first: freshly created (not re-read) instances can still hold
+    # the int/str/float a caller assigned instead of a Decimal.
+    amount_pln = Decimal(str(amount_pln))
+    if currency == "pln":
+        return amount_pln.quantize(Decimal("0.01"))
+    if booking.price and booking.price_eur:
+        ratio = Decimal(str(booking.price_eur)) / Decimal(str(booking.price))
+    else:
+        ratio = 1 / Decimal(str(BookingSettings.for_site(booking.site).eur_exchange_rate))
+    return (amount_pln * ratio).quantize(Decimal("0.01"))
 
 
 def create_payment_intent(booking: Booking, kind: str, amount: Decimal, currency: str = "pln") -> dict:

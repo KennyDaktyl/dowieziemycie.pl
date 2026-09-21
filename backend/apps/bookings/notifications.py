@@ -9,7 +9,6 @@ Two distinct events, two distinct audiences:
 
 import logging
 import re
-from decimal import Decimal
 
 from django.conf import settings
 from django.utils import timezone
@@ -18,6 +17,8 @@ from config.sites import SITE_DISPLAY_NAMES, SITE_URLS, normalize_language
 
 from .models import BookingSettings
 from .notification_texts import text
+from .payment_links import amount_due, payment_link_url
+from .payments import amount_in_currency
 
 logger = logging.getLogger("apps.bookings.notifications")
 
@@ -27,6 +28,13 @@ _ADDRESS_NOISE_PREFIXES = ("gmina ", "powiat ", "województwo ")
 # dowieziemycie.pl has a dedicated booking page; transfer247.pl's booking
 # flow lives on the homepage itself — used for the "book again" CTA below.
 _BOOK_AGAIN_PATH = {"dowieziemycie": "/rezerwacja", "transfer247": "/"}
+
+
+def _when(moment) -> str:
+    """dd.mm HH:MM in the local (Europe/Warsaw) time. Datetimes read from the
+    database are UTC-aware — formatting one directly prints UTC, i.e. a ride
+    at 12:00 would be texted as 10:00 (summer)."""
+    return f"{timezone.localtime(moment):%d.%m %H:%M}"
 
 
 def short_address(address: str, max_len: int = 50) -> str:
@@ -105,15 +113,18 @@ def _send_customer_email(
     _send_email(to_email, subject, plain_body, site, html_body=html_body)
 
 
-def _send_sms(phone: str, message: str, site: str) -> None:
+def _send_sms(phone: str, message: str, site: str) -> bool:
+    """True when the gateway accepted the message."""
     if not phone:
-        return
+        return False
     from apps.accounts.sms import get_sms_backend
 
     try:
         get_sms_backend().send_message(phone, message, site)
     except Exception:
         logger.exception("Nie udało się wysłać SMS-a do %s", phone)
+        return False
+    return True
 
 
 def notify_dispatcher_of_new_booking(booking) -> None:
@@ -123,11 +134,11 @@ def notify_dispatcher_of_new_booking(booking) -> None:
     booking_settings = BookingSettings.for_site(booking.site)
     text = (
         f"{site_name}: nowa rezerwacja do potwierdzenia — {booking.pickup_address} → "
-        f"{booking.dropoff_address}, {booking.scheduled_at:%d.%m %H:%M}."
+        f"{booking.dropoff_address}, {_when(booking.scheduled_at)}."
     )
     sms_text = (
         f"{site_name}: nowa rezerwacja do potwierdzenia - {short_address(booking.pickup_address)} -> "
-        f"{short_address(booking.dropoff_address)}, {booking.scheduled_at:%d.%m %H:%M}."
+        f"{short_address(booking.dropoff_address)}, {_when(booking.scheduled_at)}."
     )
     if booking.flight_number:
         sms_text += f" Lot: {booking.flight_number}."
@@ -173,14 +184,12 @@ def _lang(booking) -> str:
 
 
 def _money(booking, amount, language: str) -> str:
-    """An amount the way this customer saw prices on the site. Polish
-    customers get PLN ("89.00 zł"); en/de customers of a catalog booking saw
-    euros, so they get the EUR equivalent (same price/price_eur ratio the
-    payment step uses, see CreatePaymentIntentView) — anything without a
-    price_eur snapshot is stated honestly in PLN."""
-    if language != "pl" and booking.price and booking.price_eur:
-        eur = (Decimal(amount) * booking.price_eur / booking.price).quantize(Decimal("0.01"))
-        formatted = f"{eur:.2f}"
+    """An amount in the currency this customer actually pays in
+    (Booking.payment_currency — EUR for anyone not browsing in Polish, see
+    payments.currency_for_language). booking.price/deposit_amount stay PLN
+    everywhere else; only what the customer reads is converted."""
+    if booking.payment_currency == "eur":
+        formatted = f"{amount_in_currency(booking, amount, 'eur'):.2f}"
         return f"{formatted.replace('.', ',') if language == 'de' else formatted} EUR"
     return f"{amount} {text(language, 'currency_fallback')}"
 
@@ -193,14 +202,18 @@ def notify_customer_of_confirmation(booking) -> None:
     """Dispatcher just confirmed the booking (price may have changed) —
     customer can now pay the deposit within the payment window."""
     lang = _lang(booking)
+    link = payment_link_url(booking)
     values = {
         "site": _brand_name(booking),
-        "when": f"{booking.scheduled_at:%d.%m %H:%M}",
+        "when": _when(booking.scheduled_at),
         "price": _money(booking, booking.price, lang),
         "deposit": _money(booking, booking.deposit_amount, lang),
         "minutes": BookingSettings.for_site(booking.site).payment_window_minutes,
+        "link": link,
     }
-    _send_sms(booking.customer.phone, text(lang, "confirmed_sms", **values), booking.site)
+    if _send_sms(booking.customer.phone, text(lang, "confirmed_sms", **values), booking.site):
+        booking.payment_link_sent_at = timezone.now()
+        booking.save(update_fields=["payment_link_sent_at"])
     _send_customer_email(
         booking.customer.email,
         text(lang, "confirmed_subject", **values),
@@ -212,8 +225,59 @@ def notify_customer_of_confirmation(booking) -> None:
             text(lang, "confirmed_line3", **values),
         ],
         cta_label=text(lang, "confirmed_cta"),
-        cta_url=f"{SITE_URLS[booking.site]}/panel",
+        cta_url=link,
         language=lang,
+    )
+
+
+def send_payment_link_sms(booking) -> str:
+    """Texts the customer the link for whatever they owe right now — the
+    deposit (a reminder, e.g. they lost the first SMS) or, once the deposit
+    is in, the remainder. Raises PaymentLinkError when nothing is payable.
+    Returns the kind that was sent ("DEPOSIT" | "REMAINDER")."""
+    from .models import Payment
+
+    kind, amount_pln = amount_due(booking)
+    lang = _lang(booking)
+    values = {
+        "site": _brand_name(booking),
+        "when": _when(booking.scheduled_at),
+        "link": payment_link_url(booking),
+    }
+    if kind == Payment.Kind.DEPOSIT:
+        deadline = booking.payment_deadline
+        message = text(
+            lang, "deposit_link_sms", deposit=_money(booking, amount_pln, lang),
+            deadline=_when(deadline) if deadline else "", **values,
+        )
+    else:
+        message = text(lang, "remainder_link_sms", amount=_money(booking, amount_pln, lang), **values)
+    if not _send_sms(booking.customer.phone, message, booking.site):
+        raise RuntimeError("Bramka SMS nie przyjęła wiadomości.")
+    booking.payment_link_sent_at = timezone.now()
+    booking.save(update_fields=["payment_link_sent_at"])
+    return kind
+
+
+def notify_customer_of_payment_received(booking, payment) -> None:
+    """Payment made through the SMS link — the customer never sees a
+    confirmation on our site, so text one."""
+    from .models import Payment
+
+    lang = _lang(booking)
+    key = (
+        "payment_received_deposit_sms" if payment.kind in (Payment.Kind.DEPOSIT, Payment.Kind.FULL)
+        else "payment_received_remainder_sms"
+    )
+    amount = f"{payment.amount:.2f}".replace(".", ",") if lang == "de" else f"{payment.amount:.2f}"
+    label = "EUR" if payment.currency == "eur" else text(lang, "currency_fallback")
+    _send_sms(
+        booking.customer.phone,
+        text(
+            lang, key, site=_brand_name(booking), amount=f"{amount} {label}",
+            when=_when(booking.scheduled_at),
+        ),
+        booking.site,
     )
 
 
@@ -237,7 +301,7 @@ def notify_customer_driver_en_route(booking, driver) -> None:
     KIEROWCA_W_DRODZE. Texts the tracking code; email is skipped here since
     the code is time-boxed and short-lived, not worth a separate template."""
     lang = _lang(booking)
-    active_from = timezone.localtime(booking.tracking_code_valid_from).strftime("%d.%m %H:%M")
+    active_from = _when(booking.tracking_code_valid_from)
     _send_sms(
         booking.customer.phone,
         text(
@@ -280,8 +344,8 @@ def notify_customer_of_reschedule(booking, old_scheduled_at) -> None:
     lang = _lang(booking)
     values = {
         "site": _brand_name(booking),
-        "old": f"{old_scheduled_at:%d.%m %H:%M}",
-        "new": f"{booking.scheduled_at:%d.%m %H:%M}",
+        "old": f"{_when(old_scheduled_at)}",
+        "new": f"{_when(booking.scheduled_at)}",
     }
     _send_sms(
         booking.customer.phone,
@@ -312,11 +376,11 @@ def notify_dispatcher_of_customer_cancellation(booking) -> None:
     site_name = SITE_DISPLAY_NAMES[booking.site]
     booking_settings = BookingSettings.for_site(booking.site)
     text = (
-        f"{site_name}: klient anulował rezerwację na {booking.scheduled_at:%d.%m %H:%M} "
+        f"{site_name}: klient anulował rezerwację na {_when(booking.scheduled_at)} "
         f"({booking.pickup_address} → {booking.dropoff_address})."
     )
     sms_text = (
-        f"{site_name}: klient anulowal rezerwacje na {booking.scheduled_at:%d.%m %H:%M} "
+        f"{site_name}: klient anulowal rezerwacje na {_when(booking.scheduled_at)} "
         f"({short_address(booking.pickup_address)} -> {short_address(booking.dropoff_address)})."
     )
     _send_sms(booking_settings.dispatcher_phone, sms_text, booking.site)
@@ -341,7 +405,7 @@ def notify_dispatcher_of_customer_cancellation(booking) -> None:
 def notify_customer_of_cancellation(booking) -> None:
     """Dispatcher cancelled the booking."""
     lang = _lang(booking)
-    values = {"site": _brand_name(booking), "when": f"{booking.scheduled_at:%d.%m %H:%M}"}
+    values = {"site": _brand_name(booking), "when": f"{_when(booking.scheduled_at)}"}
     _send_sms(
         booking.customer.phone,
         text(

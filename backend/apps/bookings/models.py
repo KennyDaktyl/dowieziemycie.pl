@@ -27,6 +27,14 @@ class BookingSettings(models.Model):
         default=60,
         help_text="Ile minut klient ma na zapłatę zaliczki po potwierdzeniu, zanim rezerwacja wygaśnie.",
     )
+    eur_exchange_rate = models.DecimalField(
+        max_digits=6, decimal_places=4, default="4.3000",
+        help_text=(
+            "Ile PLN za 1 EUR — do przeliczenia zaliczki/reszty dla klientów płacących w EUR, gdy kurs "
+            "nie ma własnej ceny w EUR (np. rezerwacje z mapy na dowieziemycie.pl). Kursy katalogowe "
+            "transfer247.pl liczą EUR ze swojej ceny w EUR."
+        ),
+    )
     driver_buffer_minutes = models.PositiveSmallIntegerField(
         default=60,
         help_text=(
@@ -209,6 +217,21 @@ class Booking(models.Model):
             "dyspozytora i kierowców zawsze po polsku."
         ),
     )
+    payment_currency = models.CharField(
+        max_length=3, choices=[("pln", "PLN"), ("eur", "EUR")], default="pln",
+        help_text=(
+            "Waluta, w której klient płaci zaliczkę i resztę (link SMS). Ustawiana automatycznie: klient "
+            "w języku innym niż polski płaci w EUR. Możesz to zmienić ręcznie przed wysłaniem linku."
+        ),
+    )
+    pay_token = models.CharField(
+        max_length=16, unique=True, null=True, blank=True, editable=False,
+        help_text="Losowy token w krótkim linku do płatności (/pay/<token>) z SMS-a — bez logowania.",
+    )
+    payment_link_sent_at = models.DateTimeField(
+        null=True, blank=True, editable=False,
+        help_text="Kiedy ostatnio wysłano klientowi SMS-em link do płatności.",
+    )
     pickup_address = models.CharField(max_length=200)
     pickup_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     pickup_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -371,7 +394,14 @@ class Payment(models.Model):
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.DEPOSIT)
     amount = models.DecimalField(max_digits=7, decimal_places=2)
     currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.PLN)
-    stripe_payment_intent_id = models.CharField(max_length=64, unique=True)
+    # Blank until the customer actually pays through a Checkout link (the
+    # PaymentIntent is only created by Stripe at that moment) — the webhook
+    # then matches the payment by `payment_id` metadata and fills this in.
+    stripe_payment_intent_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    stripe_checkout_session_id = models.CharField(
+        max_length=100, blank=True, db_index=True,
+        help_text="Sesja Stripe Checkout, jeśli to płatność z linku wysłanego SMS-em.",
+    )
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

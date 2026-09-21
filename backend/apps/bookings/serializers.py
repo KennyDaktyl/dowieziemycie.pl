@@ -5,6 +5,7 @@ from config.sites import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES
 
 from .availability import assert_bookings_open, has_conflicting_booking
 from .models import Booking, Coupon, LocalFarePolicy, PricingTier
+from .payments import currency_for_language
 from .pricing import estimate_price
 from .routing import get_route_distance_km
 
@@ -260,6 +261,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             is_reserved=estimate.is_reserved,
             price=price,
             coupon=coupon if isinstance(coupon, Coupon) else None,
+            payment_currency=currency_for_language(validated_data.get("language", DEFAULT_LANGUAGE)),
             **validated_data,
         )
 
@@ -405,6 +407,7 @@ class CatalogBookingCreateSerializer(serializers.Serializer):
             bike_count=validated_data.get("bike_count", 0),
             flight_number=validated_data.get("flight_number", ""),
             language=validated_data["language"],
+            payment_currency=currency_for_language(validated_data["language"]),
             price=price_row.price,
             price_eur=price_row.price_eur,
             distance_km=distance_km,

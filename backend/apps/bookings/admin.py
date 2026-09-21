@@ -1,7 +1,12 @@
 from django.contrib import admin
 from django.shortcuts import redirect
+from django.utils import timezone
+from django.utils.html import format_html
 
 from .models import Booking, BookingSettings, Coupon, LocalFarePolicy, Payment, PricingTier
+from .notifications import send_payment_link_sms
+from .payment_links import PaymentLinkError, amount_due, payment_link_url
+from .payments import amount_in_currency
 from .services import BookingConfirmError, confirm_booking
 
 
@@ -42,11 +47,16 @@ class CouponAdmin(admin.ModelAdmin):
 
 @admin.register(BookingSettings)
 class BookingSettingsAdmin(admin.ModelAdmin):
-    list_display = ("site", "bookings_paused", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes")
-    list_editable = ("bookings_paused", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes")
+    list_display = (
+        "site", "bookings_paused", "deposit_amount", "payment_window_minutes", "eur_exchange_rate",
+        "driver_buffer_minutes",
+    )
+    list_editable = (
+        "bookings_paused", "deposit_amount", "payment_window_minutes", "eur_exchange_rate", "driver_buffer_minutes",
+    )
     fields = (
-        "site", "bookings_paused", "deposit_amount", "payment_window_minutes", "driver_buffer_minutes",
-        "dispatcher_phone", "dispatcher_email",
+        "site", "bookings_paused", "deposit_amount", "payment_window_minutes", "eur_exchange_rate",
+        "driver_buffer_minutes", "dispatcher_phone", "dispatcher_email",
     )
 
 
@@ -62,16 +72,39 @@ class BookingAdmin(admin.ModelAdmin):
     search_fields = ("customer__phone", "customer__name", "pickup_address", "dropoff_address", "flight_number")
     date_hierarchy = "scheduled_at"
     autocomplete_fields = ("customer", "coupon")
-    actions = ["confirm_selected"]
+    actions = ["confirm_selected", "send_deposit_or_remainder_link"]
     # `status` is editable directly for full manual override (e.g. phone
     # bookings, fixing a stuck ride). Prefer the "Potwierdź" action for
     # NOWA -> POTWIERDZONA when possible — it also snapshots the payment
     # deadline/deposit and sends the customer SMS/e-mail, none of which a
     # plain status edit here triggers.
     readonly_fields = (
+        "payment_link_panel", "payment_link_sent_at",
         "created_at", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at",
         "started_at", "completed_at", "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
     )
+
+    @admin.display(description="Link do płatności")
+    def payment_link_panel(self, obj):
+        """What the customer owes right now, in the currency they pay in,
+        plus the short link that pays it — copy it into a chat, or use the
+        "Wyślij SMS z linkiem" action to text it."""
+        if not obj or not obj.pk:
+            return "—"
+        try:
+            kind, amount_pln = amount_due(obj)
+        except PaymentLinkError as exc:
+            return f"Nic do zapłaty teraz — {exc.detail}"
+        amount = amount_in_currency(obj, amount_pln, obj.payment_currency)
+        label = "Zaliczka" if kind == Payment.Kind.DEPOSIT else "Reszta do zapłaty"
+        deadline = ""
+        if kind == Payment.Kind.DEPOSIT and obj.payment_deadline:
+            deadline = f" (ważny do {timezone.localtime(obj.payment_deadline):%d.%m %H:%M})"
+        link = payment_link_url(obj)
+        return format_html(
+            "<strong>{}: {} {}</strong>{}<br><a href=\"{}\" target=\"_blank\">{}</a>",
+            label, amount, obj.payment_currency.upper(), deadline, link, link,
+        )
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
@@ -100,9 +133,30 @@ class BookingAdmin(admin.ModelAdmin):
             self.message_user(request, f"Nie udało się potwierdzić {failed} rezerwacji.", level="warning")
 
 
+    @admin.action(description="Wyślij klientowi SMS z linkiem do płatności (zaliczka lub reszta)")
+    def send_deposit_or_remainder_link(self, request, queryset):
+        """Deposit reminder while POTWIERDZONA; once the deposit is in, the
+        link for the remainder — replaces creating a payment in Stripe by
+        hand and texting it."""
+        sent = 0
+        for booking in queryset.select_related("customer"):
+            try:
+                kind = send_payment_link_sms(booking)
+            except PaymentLinkError as exc:
+                self.message_user(request, f"Rezerwacja #{booking.id}: {exc.detail}", level="warning")
+            except Exception as exc:
+                self.message_user(request, f"Rezerwacja #{booking.id}: nie udało się wysłać SMS-a ({exc}).", level="error")
+            else:
+                sent += 1
+                what = "zaliczki" if kind == Payment.Kind.DEPOSIT else "dopłaty reszty"
+                self.message_user(request, f"Rezerwacja #{booking.id}: wysłano SMS z linkiem do {what}.")
+        if sent > 1:
+            self.message_user(request, f"Wysłano {sent} SMS-ów z linkiem.")
+
+
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("booking", "kind", "amount", "currency", "status", "created_at")
+    list_display = ("booking", "kind", "amount", "currency", "status", "via_link", "created_at")
     list_filter = ("kind", "status", "currency")
     search_fields = ("stripe_payment_intent_id", "booking__customer__phone")
 
@@ -111,6 +165,10 @@ class PaymentAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+    @admin.display(description="Z linku SMS", boolean=True)
+    def via_link(self, obj):
+        return bool(obj.stripe_checkout_session_id)
 
 
 admin.site.site_header = "dowieziemycie.pl — panel admina"
