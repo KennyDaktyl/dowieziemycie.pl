@@ -137,7 +137,7 @@ class SiteScopingTests(APITestCase):
 
         res_transfer247 = self.client.get("/api/fixed-routes/", HTTP_X_SITE="transfer247")
         self.assertEqual(res_transfer247.status_code, 200)
-        self.assertEqual(len(res_transfer247.data), 7)
+        self.assertEqual(len(res_transfer247.data), 8)  # incl. krakow-zakopane (migration 0067)
 
     def test_tours_are_scoped_per_site(self):
         res_default = self.client.get("/api/tours/")
@@ -294,3 +294,65 @@ class FixedRouteDefaultPinsTests(APITestCase):
         html = res.content.decode()
         for needle in ("id=\"rp-map\"", "id_default_pickup_lat", "id_default_dropoff_lng", "Ustaw START"):
             self.assertIn(needle, html)
+
+
+class KrakowZakopaneTransferTests(TestCase):
+    """The Kraków – Zakopane transfer page, seeded by migration 0067."""
+
+    def setUp(self):
+        self.route = FixedRoute.objects.get(slug="krakow-zakopane")
+
+    def test_is_a_published_transfer247_transfer_with_its_own_url_section(self):
+        self.assertEqual((self.route.site, self.route.category, self.route.is_published), ("transfer247", "TRANSFER", True))
+
+    def test_price_is_599_pln_and_136_eur_per_vehicle(self):
+        prices = list(self.route.vehicle_prices.all())
+        self.assertTrue(prices, "no vehicle was priced — is there an active fleet vehicle?")
+        for price in prices:
+            self.assertEqual((str(price.price), str(price.price_eur)), ("599.00", "136.00"))
+
+    def test_copy_uses_the_required_phrases_in_every_language(self):
+        expectations = {
+            "pl": ("mikrobus dla 6 pasażerów", "Volkswagen Multivan", "fotelami kapitańskimi", "klimatyzacją"),
+            "en": ("minibus for 6 passengers", "Volkswagen Multivan", "captain's chairs", "air conditioning"),
+            "de": ("Kleinbus für 6 Personen", "Volkswagen Multivan", "Captain Chairs", "Klimaanlage"),
+        }
+        for lang, phrases in expectations.items():
+            haystacks = {
+                "body": getattr(self.route, f"body_{lang}"),
+                "h1+seo": " ".join(getattr(self.route, f"{f}_{lang}") for f in ("h1", "seo_title", "seo_description")),
+            }
+            body = haystacks["body"].lower()
+            for phrase in phrases:
+                self.assertIn(phrase.lower(), body, f"{lang}: '{phrase}' missing from the body")
+            seo = haystacks["h1+seo"].lower()
+            self.assertIn(phrases[0].lower(), seo, f"{lang}: main phrase missing from h1/seo")
+
+    def test_every_language_has_name_h1_seo_and_a_full_body_with_faq(self):
+        for lang in ("pl", "en", "de"):
+            for field in ("name", "h1", "seo_title", "seo_description", "body"):
+                self.assertTrue(getattr(self.route, f"{field}_{lang}"), f"{field}_{lang} is empty")
+            self.assertIn("## FAQ", getattr(self.route, f"body_{lang}"))
+            self.assertLessEqual(len(getattr(self.route, f"seo_title_{lang}")), 70)
+            self.assertLessEqual(len(getattr(self.route, f"seo_description_{lang}")), 320)
+
+    def test_no_hardcoded_price_in_the_copy_or_seo(self):
+        """The price table is the single source — an amount typed into the text
+        goes stale the day the price changes."""
+        for lang in ("pl", "en", "de"):
+            text = " ".join(
+                getattr(self.route, f"{f}_{lang}") for f in ("body", "h1", "seo_title", "seo_description")
+            )
+            for amount in ("599", "136", "zł", "PLN", "EUR", "€"):
+                self.assertNotIn(amount, text, f"{lang}: '{amount}' hardcoded in the copy")
+
+    def test_api_exposes_it_for_transfer247_only(self):
+        res = self.client.get("/api/fixed-routes/krakow-zakopane/", HTTP_X_SITE="transfer247")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data["category"], "TRANSFER")
+        self.assertEqual(self.client.get("/api/fixed-routes/krakow-zakopane/").status_code, 404)  # not on dowieziemycie
+
+    def test_default_pins_are_a_complete_pair(self):
+        self.route.full_clean()  # lat+lng must come together
+        self.assertIsNotNone(self.route.default_pickup)
+        self.assertIsNotNone(self.route.default_dropoff)
