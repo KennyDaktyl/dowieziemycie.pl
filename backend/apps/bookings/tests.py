@@ -1288,14 +1288,15 @@ class PaymentLinkTests(TestCase):
         from .notifications import send_payment_link_sms
 
         booking = self._booking(language="de", price_eur=40)
-        with patch("apps.bookings.notifications._send_sms", return_value=True) as sms:
+        with patch("apps.accounts.sms.get_sms_backend") as backend:
+            sent = backend.return_value.send_message
             self.assertEqual(send_payment_link_sms(booking), "DEPOSIT")
-            self.assertIn("Erinnerung", sms.call_args.args[1])
+            self.assertIn("Erinnerung", sent.call_args.args[1])
             booking.status, booking.paid_at = "OPLACONA", timezone.now()
             booking.save(update_fields=["status", "paid_at"])
             self.assertEqual(send_payment_link_sms(booking), "REMAINDER")
-            self.assertIn("Restbetrag von 26,67 EUR", sms.call_args.args[1])
-            self.assertTrue(sms.call_args.args[1].isascii())
+            self.assertIn("Restbetrag von 26,67 EUR", sent.call_args.args[1])
+            self.assertTrue(sent.call_args.args[1].isascii())
 
     # --- lifecycle ---------------------------------------------------------
     def test_expiring_an_unpaid_booking_closes_its_open_checkout_session(self):
@@ -1337,13 +1338,13 @@ class PaymentLinkTests(TestCase):
         self.assertIn("Zaliczka: 13.33 EUR", html)
         self.assertIn("https://transfer247.pl/pay/", html)
 
-        with patch("apps.bookings.notifications._send_sms", return_value=True) as sms:
+        with patch("apps.accounts.sms.get_sms_backend") as backend:
             res = self.client.post(
                 "/admin/bookings/booking/",
                 {"action": "send_deposit_or_remainder_link", "_selected_action": [booking.id]},
             )
         self.assertEqual(res.status_code, 302)
-        sms.assert_called_once()
+        backend.return_value.send_message.assert_called_once()
 
 
 class ExtendPaymentDeadlineTests(TestCase):
@@ -1478,3 +1479,53 @@ class ExtendPaymentDeadlineTests(TestCase):
         request.session, request._messages = {}, MagicMock()
         model_admin.generate_payment_link(request, self.Booking.objects.filter(id=booking.id))
         self.assertIn("Czas na zapłatę zaliczki", str(request._messages.add.call_args.args[1]))
+
+
+class SmsLinkRejectedFallbackTests(TestCase):
+    """SMSAPI refuses SMS containing a link until the domain is allow-listed
+    (error 94). Confirmation must not silently drop the customer's SMS."""
+
+    def setUp(self):
+        from .models import Booking
+
+        self.customer = Customer.objects.create(phone="+48500222333")
+        self.booking = Booking.objects.create(
+            customer=self.customer, site="transfer247", language="en", payment_currency="eur", price=180,
+            price_eur=40, pickup_address="A", dropoff_address="B", scheduled_at=timezone.now() + timedelta(days=2),
+        )
+
+    def test_confirmation_falls_back_to_a_linkless_sms_when_the_gateway_refuses_the_link(self):
+        from .services import confirm_booking
+
+        class Gateway:
+            sent = []
+
+            def send_message(self, phone, message, site=None):
+                if "http" in message:
+                    raise RuntimeError("SMSAPI.pl error 94: Not allowed to send messages with link")
+                self.sent.append(message)
+
+        with patch("apps.accounts.sms.get_sms_backend", return_value=Gateway()):
+            confirm_booking(self.booking)
+
+        self.assertEqual(len(Gateway.sent), 1)
+        self.assertIn("is confirmed", Gateway.sent[0])
+        self.assertIn("log in on the transfer247 website", Gateway.sent[0])
+        self.assertNotIn("http", Gateway.sent[0])
+        self.booking.refresh_from_db()
+        self.assertIsNone(self.booking.payment_link_sent_at)  # the link SMS did not go out
+
+    def test_admin_resend_reports_the_gateways_reason(self):
+        from .notifications import send_payment_link_sms
+
+        self.booking.status, self.booking.deposit_amount = "POTWIERDZONA", 60
+        self.booking.payment_deadline = timezone.now() + timedelta(minutes=30)
+        self.booking.save()
+
+        class Gateway:
+            def send_message(self, phone, message, site=None):
+                raise RuntimeError("SMSAPI.pl error 94: Not allowed to send messages with link")
+
+        with patch("apps.accounts.sms.get_sms_backend", return_value=Gateway()):
+            with self.assertRaisesRegex(RuntimeError, "error 94"):
+                send_payment_link_sms(self.booking)

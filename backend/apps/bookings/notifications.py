@@ -214,6 +214,12 @@ def notify_customer_of_confirmation(booking) -> None:
     if _send_sms(booking.customer.phone, text(lang, "confirmed_sms", **values), booking.site):
         booking.payment_link_sent_at = timezone.now()
         booking.save(update_fields=["payment_link_sent_at"])
+    else:
+        # The SMS gateway refuses messages containing a link until the brand's
+        # domain is allow-listed in the SMSAPI account (error 94). The customer
+        # must still learn the booking is confirmed and has to be paid — send
+        # the same message without the link (the e-mail still carries it).
+        _send_sms(booking.customer.phone, text(lang, "confirmed_sms_nolink", **values), booking.site)
     _send_customer_email(
         booking.customer.email,
         text(lang, "confirmed_subject", **values),
@@ -252,8 +258,13 @@ def send_payment_link_sms(booking) -> str:
         )
     else:
         message = text(lang, "remainder_link_sms", amount=_money(booking, amount_pln, lang), **values)
-    if not _send_sms(booking.customer.phone, message, booking.site):
-        raise RuntimeError("Bramka SMS nie przyjęła wiadomości.")
+    from apps.accounts.sms import get_sms_backend
+
+    try:
+        get_sms_backend().send_message(booking.customer.phone, message, booking.site)
+    except Exception as exc:
+        logger.exception("Nie udało się wysłać SMS-a z linkiem do %s", booking.customer.phone)
+        raise RuntimeError(str(exc) or "Bramka SMS nie przyjęła wiadomości.") from exc
     booking.payment_link_sent_at = timezone.now()
     booking.save(update_fields=["payment_link_sent_at"])
     return kind

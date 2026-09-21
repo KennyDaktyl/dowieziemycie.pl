@@ -26,6 +26,10 @@ TEXTS = {
             "{site}: Rezerwacja na {when} potwierdzona! Aby kurs był ważny, zapłać zaliczkę {deposit} "
             "w ciągu {minutes} min (cena kursu: {price}): {link}"
         ),
+        "confirmed_sms_nolink": (
+            "{site}: Rezerwacja na {when} potwierdzona! Aby kurs byl wazny, zaplac zaliczke {deposit} "
+            "w ciagu {minutes} min - zaloguj sie na stronie {site} i zaplac w panelu klienta (cena kursu: {price})."
+        ),
         "confirmed_subject": "{site}: rezerwacja potwierdzona — zapłać zaliczkę",
         "confirmed_heading": "Rezerwacja potwierdzona!",
         "confirmed_line1": "Twoja rezerwacja na {when} została potwierdzona.",
@@ -86,6 +90,10 @@ TEXTS = {
             "{site}: Your booking for {when} is confirmed! To keep it valid, pay the {deposit} deposit "
             "within {minutes} min (ride price: {price}): {link}"
         ),
+        "confirmed_sms_nolink": (
+            "{site}: Your booking for {when} is confirmed! To keep it valid, pay the {deposit} deposit within "
+            "{minutes} min - log in on the {site} website and pay in your account (ride price: {price})."
+        ),
         "confirmed_subject": "{site}: booking confirmed — pay the deposit",
         "confirmed_heading": "Booking confirmed!",
         "confirmed_line1": "Your booking for {when} has been confirmed.",
@@ -141,6 +149,11 @@ TEXTS = {
         "confirmed_sms": (
             "{site}: Ihre Buchung fuer {when} wurde bestaetigt! Damit sie gueltig bleibt, zahlen Sie die "
             "Anzahlung von {deposit} innerhalb von {minutes} Min. (Fahrpreis: {price}): {link}"
+        ),
+        "confirmed_sms_nolink": (
+            "{site}: Ihre Buchung fuer {when} wurde bestaetigt! Damit sie gueltig bleibt, zahlen Sie die "
+            "Anzahlung von {deposit} innerhalb von {minutes} Min. - melden Sie sich auf der Website {site} an "
+            "und zahlen Sie im Kundenbereich (Fahrpreis: {price})."
         ),
         "confirmed_subject": "{site}: Buchung bestätigt — bitte Anzahlung leisten",
         "confirmed_heading": "Buchung bestätigt!",

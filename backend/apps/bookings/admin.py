@@ -229,7 +229,15 @@ class BookingAdmin(admin.ModelAdmin):
             except PaymentLinkError as exc:
                 self.message_user(request, f"Rezerwacja #{booking.id}: {exc.detail}", level="warning")
             except Exception as exc:
-                self.message_user(request, f"Rezerwacja #{booking.id}: nie udało się wysłać SMS-a ({exc}).", level="error")
+                hint = ""
+                if "error 94" in str(exc):
+                    hint = (
+                        " SMSAPI blokuje SMS-y z linkami, dopóki domena nie zostanie dodana do dozwolonych w panelu "
+                        "SMSAPI. Do tego czasu skopiuj link akcją „Wygeneruj link do płatności” i wyślij go ręcznie."
+                    )
+                self.message_user(
+                    request, f"Rezerwacja #{booking.id}: nie udało się wysłać SMS-a ({exc}).{hint}", level="error",
+                )
             else:
                 sent += 1
                 what = "zaliczki" if kind == Payment.Kind.DEPOSIT else "dopłaty reszty"
