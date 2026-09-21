@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.contrib import admin
 from django.shortcuts import redirect
 from django.utils import timezone
@@ -7,7 +9,7 @@ from .models import Booking, BookingSettings, Coupon, LocalFarePolicy, Payment, 
 from .notifications import send_payment_link_sms
 from .payment_links import PaymentLinkError, amount_due, payment_link_url
 from .payments import amount_in_currency
-from .services import BookingConfirmError, confirm_booking
+from .services import BookingConfirmError, confirm_booking, extend_payment_deadline
 
 
 @admin.register(PricingTier)
@@ -72,7 +74,10 @@ class BookingAdmin(admin.ModelAdmin):
     search_fields = ("customer__phone", "customer__name", "pickup_address", "dropoff_address", "flight_number")
     date_hierarchy = "scheduled_at"
     autocomplete_fields = ("customer", "coupon")
-    actions = ["confirm_selected", "send_deposit_or_remainder_link"]
+    actions = [
+        "confirm_selected", "generate_payment_link", "extend_deposit_deadline", "extend_deposit_deadline_24h",
+        "send_deposit_or_remainder_link",
+    ]
     # `status` is editable directly for full manual override (e.g. phone
     # bookings, fixing a stuck ride). Prefer the "Potwierdź" action for
     # NOWA -> POTWIERDZONA when possible — it also snapshots the payment
@@ -80,7 +85,7 @@ class BookingAdmin(admin.ModelAdmin):
     # plain status edit here triggers.
     readonly_fields = (
         "payment_link_panel", "payment_link_sent_at",
-        "created_at", "confirmed_at", "payment_deadline", "paid_at", "remainder_paid_at",
+        "created_at", "confirmed_at", "paid_at", "remainder_paid_at",
         "started_at", "completed_at", "tracking_code", "tracking_code_valid_from", "tracking_code_expires_at",
     )
 
@@ -94,7 +99,10 @@ class BookingAdmin(admin.ModelAdmin):
         try:
             kind, amount_pln = amount_due(obj)
         except PaymentLinkError as exc:
-            return f"Nic do zapłaty teraz — {exc.detail}"
+            hint = ""
+            if exc.code in ("expired", "unavailable") and obj.status in ("POTWIERDZONA", "ANULOWANA"):
+                hint = " Aby dać klientowi więcej czasu: ustaw pole „Czas na zapłatę zaliczki” poniżej albo użyj akcji „Przedłuż czas na zaliczkę”."
+            return f"Nic do zapłaty teraz — {exc.detail}{hint}"
         amount = amount_in_currency(obj, amount_pln, obj.payment_currency)
         label = "Zaliczka" if kind == Payment.Kind.DEPOSIT else "Reszta do zapłaty"
         deadline = ""
@@ -107,6 +115,30 @@ class BookingAdmin(admin.ModelAdmin):
         )
 
     def save_model(self, request, obj, form, change):
+        # A status set back to POTWIERDZONA by hand keeps its old, already
+        # past payment_deadline — expire_unpaid_bookings would cancel it again
+        # within 5 minutes. Unless the deadline was edited in this same save,
+        # start a fresh payment window instead.
+        if (
+            change and obj.status == "POTWIERDZONA" and "payment_deadline" not in form.changed_data
+            and (obj.payment_deadline is None or obj.payment_deadline < timezone.now())
+        ):
+            window = BookingSettings.for_site(obj.site).payment_window_minutes
+            obj.payment_deadline = timezone.now() + timedelta(minutes=window)
+            obj.confirmed_at = obj.confirmed_at or timezone.now()
+            self.message_user(
+                request,
+                f"Rezerwacja #{obj.id}: termin zaliczki był pusty lub minął — ustawiono nowy "
+                f"({timezone.localtime(obj.payment_deadline):%d.%m %H:%M}). Możesz go zmienić w polu „Czas na zapłatę zaliczki”.",
+                level="warning",
+            )
+        elif change and obj.status == "POTWIERDZONA" and obj.payment_deadline < timezone.now():
+            self.message_user(
+                request,
+                f"Rezerwacja #{obj.id}: ustawiony termin zaliczki jest w przeszłości — rezerwacja zostanie "
+                "anulowana przez cron w ciągu 5 minut.",
+                level="warning",
+            )
         super().save_model(request, obj, form, change)
         status_paid_gate = ("POTWIERDZONA", "OPLACONA", "KIEROWCA_W_DRODZE", "W_TRAKCIE")
         if change and "status" in form.changed_data and obj.status in status_paid_gate and not obj.deposit_amount:
@@ -132,6 +164,58 @@ class BookingAdmin(admin.ModelAdmin):
         if failed:
             self.message_user(request, f"Nie udało się potwierdzić {failed} rezerwacji.", level="warning")
 
+
+    @admin.action(description="Wygeneruj link do płatności (pokaż do skopiowania, bez wysyłania SMS-a)")
+    def generate_payment_link(self, request, queryset):
+        """Just shows the link — its validity is the booking's "Czas na
+        zapłatę zaliczki" field, which the dispatcher sets by hand (or with
+        the "Przedłuż czas na zaliczkę" actions). For the remainder there is
+        no deadline."""
+        for booking in queryset.select_related("customer"):
+            try:
+                kind, amount_pln = amount_due(booking)
+            except PaymentLinkError as exc:
+                self.message_user(
+                    request,
+                    f"Rezerwacja #{booking.id}: nie można wygenerować linku — {exc.detail} "
+                    "Ustaw pole „Czas na zapłatę zaliczki” w rezerwacji albo użyj akcji „Przedłuż czas na zaliczkę”.",
+                    level="warning",
+                )
+                continue
+            amount = amount_in_currency(booking, amount_pln, booking.payment_currency)
+            if kind == Payment.Kind.DEPOSIT:
+                what = f"zaliczka, ważny do {timezone.localtime(booking.payment_deadline):%d.%m %H:%M}"
+            else:
+                what = "reszta do zapłaty, bez terminu"
+            link = payment_link_url(booking)
+            self.message_user(
+                request,
+                format_html(
+                    "Rezerwacja #{} ({} {}, {}): <a href=\"{}\" target=\"_blank\">{}</a>",
+                    booking.id, amount, booking.payment_currency.upper(), what, link, link,
+                ),
+            )
+
+    def _extend(self, request, queryset, minutes):
+        for booking in queryset:
+            try:
+                updated = extend_payment_deadline(booking, minutes)
+            except BookingConfirmError as exc:
+                self.message_user(request, f"Rezerwacja #{booking.id}: {exc}", level="warning")
+            else:
+                self.message_user(
+                    request,
+                    f"Rezerwacja #{booking.id}: zaliczka do {timezone.localtime(updated.payment_deadline):%d.%m %H:%M}. "
+                    "Klient nie został powiadomiony — użyj akcji „Wyślij klientowi SMS z linkiem”.",
+                )
+
+    @admin.action(description="Przedłuż czas na zaliczkę (od teraz, o okno z Ustawień rezerwacji) — wznawia też anulowane")
+    def extend_deposit_deadline(self, request, queryset):
+        self._extend(request, queryset, None)
+
+    @admin.action(description="Przedłuż czas na zaliczkę o 24 godziny (od teraz) — wznawia też anulowane")
+    def extend_deposit_deadline_24h(self, request, queryset):
+        self._extend(request, queryset, 24 * 60)
 
     @admin.action(description="Wyślij klientowi SMS z linkiem do płatności (zaliczka lub reszta)")
     def send_deposit_or_remainder_link(self, request, queryset):

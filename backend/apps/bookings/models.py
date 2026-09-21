@@ -320,8 +320,12 @@ class Booking(models.Model):
     # payment window) -> normal driver-assignment flow picks up from there.
     confirmed_at = models.DateTimeField(null=True, blank=True)
     payment_deadline = models.DateTimeField(
-        null=True, blank=True,
-        help_text="Ustawiane przy potwierdzeniu — po tym czasie niezapłacona rezerwacja jest automatycznie anulowana.",
+        "Czas na zapłatę zaliczki", null=True, blank=True,
+        help_text=(
+            "Do kiedy klient ma zapłacić zaliczkę (ustawiane przy potwierdzeniu, ale możesz je ręcznie zmienić). "
+            "Po tym czasie niezapłacona rezerwacja jest automatycznie anulowana (cron co 5 min), a link do płatności "
+            "przestaje działać."
+        ),
     )
     deposit_amount = models.DecimalField(
         max_digits=7, decimal_places=2, null=True, blank=True,

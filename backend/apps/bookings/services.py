@@ -71,6 +71,41 @@ def confirm_booking(booking: Booking, price=None, deposit_amount=None) -> Bookin
     return booking
 
 
+def extend_payment_deadline(booking: Booking, minutes: int | None = None) -> Booking:
+    """Gives the customer more time to pay the deposit — `minutes` from now
+    (default: the site's payment window). Also revives a booking the cron
+    already cancelled for a missed deadline (ANULOWANA, never paid), after
+    re-checking that its slot wasn't taken in the meantime — without this,
+    setting the status back by hand gets undone by expire_unpaid_bookings a
+    few minutes later, because the old deadline is still in the past."""
+    with transaction.atomic():
+        booking = Booking.objects.select_for_update().get(id=booking.id)
+        _lock_site_bookings(booking.site)
+
+        if booking.status == Booking.Status.ANULOWANA:
+            if booking.paid_at is not None or booking.deposit_amount is None:
+                raise BookingConfirmError(
+                    "Ta rezerwacja nie była potwierdzona i czekająca na zaliczkę — użyj akcji „Potwierdź”."
+                )
+            if has_conflicting_booking(
+                booking.scheduled_at, booking.site, exclude_booking_id=booking.id,
+                duration_minutes=booking.duration_minutes,
+            ):
+                raise BookingConfirmError(
+                    "Nie można wznowić — termin został w międzyczasie zajęty przez inną rezerwację."
+                )
+        elif booking.status != Booking.Status.POTWIERDZONA:
+            raise BookingConfirmError("Termin zaliczki dotyczy tylko rezerwacji czekających na zaliczkę.")
+
+        window = minutes or BookingSettings.for_site(booking.site).payment_window_minutes
+        now = timezone.now()
+        booking.status = Booking.Status.POTWIERDZONA
+        booking.confirmed_at = booking.confirmed_at or now
+        booking.payment_deadline = now + timedelta(minutes=window)
+        booking.save(update_fields=["status", "confirmed_at", "payment_deadline"])
+    return booking
+
+
 def validate_payable(booking: Booking) -> None:
     """Fast-fail check run right before creating a Stripe PaymentIntent —
     catches the "this booking is already dead" cases (payment window

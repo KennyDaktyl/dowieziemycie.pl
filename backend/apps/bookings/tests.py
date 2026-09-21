@@ -1344,3 +1344,137 @@ class PaymentLinkTests(TestCase):
             )
         self.assertEqual(res.status_code, 302)
         sms.assert_called_once()
+
+
+class ExtendPaymentDeadlineTests(TestCase):
+    """The dispatcher can give a slow customer more time — and reviving a
+    booking the cron already cancelled must stick (before: the old deadline
+    stayed in the past, so it was cancelled again 5 minutes later)."""
+
+    def setUp(self):
+        from .models import Booking
+
+        self.Booking = Booking
+        self.customer = Customer.objects.create(phone="+48500222333")
+
+    def _booking(self, **extra):
+        defaults = dict(
+            customer=self.customer, site="transfer247", pickup_address="A", dropoff_address="B",
+            scheduled_at=timezone.now() + timedelta(days=2), status="POTWIERDZONA", price=180, deposit_amount=60,
+            payment_deadline=timezone.now() - timedelta(minutes=10),
+        )
+        return self.Booking.objects.create(**{**defaults, **extra})
+
+    def test_extends_from_now_by_the_sites_window_or_a_given_number_of_minutes(self):
+        from .services import extend_payment_deadline
+
+        booking = extend_payment_deadline(self._booking())  # site default: 60 min
+        self.assertAlmostEqual(
+            (booking.payment_deadline - timezone.now()).total_seconds(), 3600, delta=5,
+        )
+        booking = extend_payment_deadline(booking, 24 * 60)
+        self.assertAlmostEqual((booking.payment_deadline - timezone.now()).total_seconds(), 86400, delta=5)
+        self.assertEqual(booking.status, "POTWIERDZONA")
+
+    def test_a_booking_the_cron_cancelled_is_revived_and_stays_alive(self):
+        from django.core.management import call_command
+
+        from .services import extend_payment_deadline
+
+        booking = self._booking()
+        call_command("expire_unpaid_bookings", verbosity=0)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, "ANULOWANA")
+
+        extend_payment_deadline(booking, 120)
+        call_command("expire_unpaid_bookings", verbosity=0)  # the next cron run
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, "POTWIERDZONA")
+
+    def test_cannot_revive_when_the_slot_was_taken_meanwhile(self):
+        from .services import BookingConfirmError, extend_payment_deadline
+
+        booking = self._booking(status="ANULOWANA")
+        self._booking(scheduled_at=booking.scheduled_at, status="OPLACONA", payment_deadline=None)
+        with self.assertRaises(BookingConfirmError):
+            extend_payment_deadline(booking)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, "ANULOWANA")
+
+    def test_refuses_paid_never_confirmed_and_running_bookings(self):
+        from .services import BookingConfirmError, extend_payment_deadline
+
+        for booking in (
+            self._booking(status="ANULOWANA", paid_at=timezone.now()),
+            self._booking(status="ANULOWANA", deposit_amount=None, scheduled_at=timezone.now() + timedelta(days=5)),
+            self._booking(status="OPLACONA", scheduled_at=timezone.now() + timedelta(days=6)),
+        ):
+            with self.assertRaises(BookingConfirmError):
+                extend_payment_deadline(booking)
+
+    def _save_via_admin(self, booking, changed):
+        from unittest.mock import MagicMock
+
+        from django.contrib import admin as dj_admin
+        from django.test import RequestFactory
+
+        from .admin import BookingAdmin
+
+        model_admin = BookingAdmin(self.Booking, dj_admin.site)
+        form = MagicMock(changed_data=changed)
+        request = RequestFactory().post("/")
+        request.session, request._messages = {}, MagicMock()
+        model_admin.save_model(request, booking, form, change=True)
+        booking.refresh_from_db()
+        return request._messages.add.call_args_list
+
+    def test_hand_setting_the_status_back_starts_a_fresh_window_instead_of_a_stale_one(self):
+        booking = self._booking(status="POTWIERDZONA")  # deadline 10 min in the past
+        messages = self._save_via_admin(booking, ["status"])
+        self.assertGreater(booking.payment_deadline, timezone.now())
+        self.assertTrue(messages)  # the dispatcher is told what was set
+
+    def test_an_explicitly_edited_deadline_is_respected_even_in_the_past(self):
+        booking = self._booking(status="POTWIERDZONA")
+        stale = booking.payment_deadline
+        self._save_via_admin(booking, ["status", "payment_deadline"])
+        self.assertEqual(booking.payment_deadline, stale)
+
+    def test_deadline_field_is_editable_in_the_admin_form(self):
+        from django.contrib import admin as dj_admin
+
+        from .admin import BookingAdmin
+
+        self.assertNotIn("payment_deadline", BookingAdmin(self.Booking, dj_admin.site).readonly_fields)
+
+    def test_generate_link_action_shows_the_link_and_its_validity_from_the_deadline_field(self):
+        from django.contrib import admin as dj_admin
+        from django.test import RequestFactory
+        from unittest.mock import MagicMock
+
+        from .admin import BookingAdmin
+
+        booking = self._booking(payment_deadline=timezone.now() + timedelta(hours=5), language="en", payment_currency="eur")
+        model_admin = BookingAdmin(self.Booking, dj_admin.site)
+        request = RequestFactory().post("/")
+        request.session, request._messages = {}, MagicMock()
+        with patch("apps.bookings.notifications._send_sms") as sms:
+            model_admin.generate_payment_link(request, self.Booking.objects.filter(id=booking.id))
+        sms.assert_not_called()  # generating never texts the customer
+        shown = str(request._messages.add.call_args.args[1])
+        self.assertIn("https://transfer247.pl/pay/", shown)
+        self.assertIn("ważny do", shown)
+
+    def test_generate_link_action_explains_how_to_fix_an_expired_deadline(self):
+        from django.contrib import admin as dj_admin
+        from django.test import RequestFactory
+        from unittest.mock import MagicMock
+
+        from .admin import BookingAdmin
+
+        booking = self._booking()  # deadline in the past
+        model_admin = BookingAdmin(self.Booking, dj_admin.site)
+        request = RequestFactory().post("/")
+        request.session, request._messages = {}, MagicMock()
+        model_admin.generate_payment_link(request, self.Booking.objects.filter(id=booking.id))
+        self.assertIn("Czas na zapłatę zaliczki", str(request._messages.add.call_args.args[1]))
