@@ -1002,7 +1002,7 @@ class CustomerNotificationLanguageTests(TestCase):
         sms, email = self._sms_and_mail(notify_customer_of_confirmation, self._make("en", price_eur=40))
         self.assertIn("is confirmed", sms)
         # scaled by the booking's own price_eur/price ratio
-        self.assertIn("pay the 13.33 EUR deposit", sms)
+        self.assertIn("DEPOSIT due now: 13.33 EUR (not the full ride price", sms)
         self.assertIn("ride price: 40.00 EUR", sms)
         self.assertEqual(email.subject, "transfer247: booking confirmed — pay the deposit")
         self.assertIn("Pay the deposit", email.alternatives[0][0])
@@ -1023,10 +1023,10 @@ class CustomerNotificationLanguageTests(TestCase):
 
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("en"))
         # no price_eur snapshot -> the site's PLN-per-EUR rate (default 4.30)
-        self.assertIn("pay the 13.95 EUR deposit", sms)
+        self.assertIn("DEPOSIT due now: 13.95 EUR (not the full ride price", sms)
         self.assertIn("ride price: 41.86 EUR", sms)
         sms, _ = self._sms_and_mail(notify_customer_of_confirmation, self._make("pl", site="dowieziemycie"))
-        self.assertIn("zaplac zaliczke 60 zl", sms)
+        self.assertIn("ZALICZKA do zaplaty teraz: 60 zl", sms)
         self.assertIn("cena kursu: 180 zl", sms)
 
     def test_every_customer_message_exists_and_is_translated_in_every_language(self):
@@ -1279,7 +1279,7 @@ class PaymentLinkTests(TestCase):
         booking.refresh_from_db()
         self.assertIn("pay the", message)
         # confirm_booking snapshots the site's default deposit (50 PLN) -> 50 * 40/180 EUR
-        self.assertIn("11.11 EUR deposit", message)
+        self.assertIn("DEPOSIT due now: 11.11 EUR (not the full ride price", message)
         self.assertIn(f"https://transfer247.pl/pay/{booking.pay_token}", message)
         self.assertIsNotNone(booking.payment_link_sent_at)
         self.assertLessEqual(len(message), 320)  # two SMS segments at most
@@ -1564,6 +1564,34 @@ class EverySmsIsAsciiTests(TestCase):
         )
         self.assertEqual(
             message,
-            "transfer247: Przypomnienie - aby kurs na 25.09 12:00 byl wazny, zaplac zaliczke 60 zl do 25.09 13:00: "
-            "https://transfer247.pl/pay/abc",
+            "transfer247: Przypomnienie - do zaplaty ZALICZKA 60 zl (nie cala cena kursu), aby kurs na 25.09 12:00 "
+            "byl wazny. Zaplac do 25.09 13:00: https://transfer247.pl/pay/abc",
         )
+
+
+class DepositSmsIsNotMistakenForTheFullPriceTests(TestCase):
+    """A customer read "ride price: 139 EUR" in the SMS as the amount to pay,
+    then found 11.90 EUR on the payment page. Every deposit message must say
+    it is the deposit, and not the whole price, in the customer's language."""
+
+    def test_confirmation_and_reminder_name_the_deposit_and_say_it_is_not_the_full_price(self):
+        from .notification_texts import text
+
+        values = dict(
+            site="transfer247", when="25.09 12:00", deposit="11.90 EUR", price="139.00 EUR", minutes=60,
+            link="https://transfer247.pl/pay/x", deadline="25.09 13:00",
+        )
+        expectations = {
+            "pl": ("ZALICZKA", "nie cala cena kursu"),
+            "en": ("DEPOSIT", "not the full ride price"),
+            "de": ("ANZAHLUNG", "nicht der volle Fahrpreis"),
+        }
+        for language, (word, disclaimer) in expectations.items():
+            for key in ("confirmed_sms", "confirmed_sms_nolink", "deposit_link_sms"):
+                message = text(language, key, **values)
+                self.assertIn(word, message, f"{language}.{key}")
+                self.assertIn(disclaimer, message, f"{language}.{key}")
+                # the deposit is stated first; the full price is only ever "information"
+                marked = text(language, key, **{**values, "deposit": "AAA", "price": "BBB"})
+                if "BBB" in marked:
+                    self.assertLess(marked.index("AAA"), marked.index("BBB"), f"{language}.{key}")
