@@ -40,6 +40,18 @@ class VehicleAdmin(admin.ModelAdmin):
                 "description": "Widoczne na publicznej stronie /flota — puste pole w EN/DE pokaże opis polski.",
             },
         ),
+        (
+            "Opis na transfer247.pl",
+            {
+                "fields": (
+                    "description_transfer247_pl", "description_transfer247_en", "description_transfer247_de",
+                ),
+                "description": (
+                    "Ten sam samochód na transfer247.pl /flota. Puste pole PL = transfer247.pl pokazuje "
+                    "opis ogólny (powyżej); puste EN/DE = opis polski z tej sekcji."
+                ),
+            },
+        ),
     )
 
 

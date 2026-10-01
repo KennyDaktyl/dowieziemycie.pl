@@ -15,6 +15,17 @@ class Vehicle(models.Model):
     )
     description_en = models.TextField(blank=True)
     description_de = models.TextField(blank=True)
+    # The same physical vehicle is listed on both sites, but each brand
+    # describes it in its own words (dowieziemycie: weddings, events, 7
+    # seats with the rear bench; transfer247: airport transfers for 6).
+    # When the transfer247 PL text is filled, the API serves these fields to
+    # transfer247 instead of description_* — see VehicleSerializer.
+    description_transfer247_pl = models.TextField(
+        "opis na transfer247.pl (PL)", blank=True,
+        help_text="Puste = transfer247.pl pokazuje ogólny opis z pól powyżej.",
+    )
+    description_transfer247_en = models.TextField("opis na transfer247.pl (EN)", blank=True)
+    description_transfer247_de = models.TextField("opis na transfer247.pl (DE)", blank=True)
     cover_photo = models.ImageField(upload_to="vehicles/covers/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
 

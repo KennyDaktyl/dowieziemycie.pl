@@ -592,6 +592,26 @@ class VehicleListViewTests(TestCase):
         self.assertEqual(res.data[0]["description_en"], "Opis EN")
         self.assertEqual(res.data[0]["description_de"], "Opis DE")
 
+    def test_transfer247_gets_its_own_description(self):
+        Vehicle.objects.create(
+            name="Volkswagen", model="Multivan", plate="KR3TEST", seats=6,
+            description_pl="Wesela, do 7 osób", description_en="Weddings EN",
+            description_transfer247_pl="Transfery, 6 pasażerów", description_transfer247_en="Transfers EN",
+        )
+        t247 = self.client.get("/api/fleet/vehicles/", HTTP_X_SITE="transfer247").data[0]
+        self.assertEqual(t247["description_pl"], "Transfery, 6 pasażerów")
+        self.assertEqual(t247["description_en"], "Transfers EN")
+        # Blank site-specific DE stays blank (frontend falls back to this site's PL),
+        # never the other brand's copy.
+        self.assertEqual(t247["description_de"], "")
+        dz = self.client.get("/api/fleet/vehicles/", HTTP_X_SITE="dowieziemycie").data[0]
+        self.assertEqual(dz["description_pl"], "Wesela, do 7 osób")
+
+    def test_transfer247_falls_back_to_shared_description_when_own_is_blank(self):
+        Vehicle.objects.create(name="Volkswagen", plate="KR4TEST", description_pl="Opis wspólny")
+        t247 = self.client.get("/api/fleet/vehicles/", HTTP_X_SITE="transfer247").data[0]
+        self.assertEqual(t247["description_pl"], "Opis wspólny")
+
     def test_hides_inactive_vehicles(self):
         Vehicle.objects.create(name="Retired Van", plate="KR2TEST", is_active=False)
         res = self.client.get("/api/fleet/vehicles/")
