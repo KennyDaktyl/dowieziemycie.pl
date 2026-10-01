@@ -244,10 +244,10 @@ REPLACE = [
      "Cena 399 zł obowiązuje", "Cena {price:route:balice-zakopane} obowiązuje"),
     ("blog", "auschwitz-birkenau-jak-zaplanowac-wycieczke", "body_pl",
      AUSCHWITZ_TABLE_OLD,
-     "| Volkswagen Multivan | do 6 osób | **od {price:tour:auschwitz-birkenau-transfer247}** |"),
+     "| Volkswagen T6.1 Multivan | do 6 osób | **od {price:tour:auschwitz-birkenau-transfer247}** |"),
     ("blog", "kopalnia-soli-wieliczka-transfer-i-bilety", "body_pl",
      WIELICZKA_TABLE_OLD,
-     "| Volkswagen Multivan | do 6 osób | **od {price:tour:wieliczka-transfer247}** |"),
+     "| Volkswagen T6.1 Multivan | do 6 osób | **od {price:tour:wieliczka-transfer247}** |"),
     # Blog: leaked SEO notes + missing contextual links.
     ("blog", "krakow-airport-transfer-to-hotel-guide", "body_pl",
      "Turysta przylatujący na lotnisko Kraków Balice zwykle szuka prostego rozwiązania: **Krakow airport transfer to hotel**, **private transfer from Krakow Airport**, **Balice airport taxi to city centre** albo **transfer KRK airport to Old Town**. Dobra strona transferowa musi jasno odpowiadać na te pytania już w pierwszym widoku: skąd odbiór, dokąd jedziemy, czy kierowca mówi po angielsku, czy cena jest stała i czy można zarezerwować kurs przed przylotem.",
