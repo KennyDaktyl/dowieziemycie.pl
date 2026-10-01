@@ -93,7 +93,7 @@ class TourSerializer(serializers.ModelSerializer):
             "duration", "vehicle_prices", "price_from", "price_from_eur", "cover_image",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
-            "photos", "order",
+            "photos", "order", "updated_at",
         ]
 
     def get_price_from(self, obj):
@@ -190,7 +190,7 @@ class FixedRouteSerializer(serializers.ModelSerializer):
             "body_pl", "body_en", "body_de",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
-            "photos", "order", "default_pickup", "default_dropoff",
+            "photos", "order", "default_pickup", "default_dropoff", "updated_at",
         ]
 
     def get_price_from(self, obj):
@@ -227,7 +227,7 @@ class BlogPostSerializer(serializers.ModelSerializer):
             "body_pl", "body_en", "body_de", "cover_image", "youtube_url",
             "seo_title_pl", "seo_title_en", "seo_title_de",
             "seo_description_pl", "seo_description_en", "seo_description_de",
-            "published_at", "photos", "links",
+            "published_at", "photos", "links", "updated_at",
         ]
 
 

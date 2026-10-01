@@ -176,6 +176,9 @@ class Tour(models.Model):
     seo_description_en = models.CharField(max_length=320, blank=True)
     seo_description_de = models.CharField(max_length=320, blank=True)
     is_published = models.BooleanField(default=True)
+    # Last edit — the frontend's sitemap <lastmod> and BlogPosting.dateModified.
+    # Null for rows not saved since the field was added (no made-up date).
+    updated_at = models.DateTimeField(auto_now=True, null=True, editable=False)
     order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
@@ -358,6 +361,9 @@ class FixedRoute(models.Model):
     seo_description_en = models.CharField(max_length=320, blank=True)
     seo_description_de = models.CharField(max_length=320, blank=True)
     is_published = models.BooleanField(default=True)
+    # Last edit — the frontend's sitemap <lastmod> and BlogPosting.dateModified.
+    # Null for rows not saved since the field was added (no made-up date).
+    updated_at = models.DateTimeField(auto_now=True, null=True, editable=False)
     order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
@@ -462,6 +468,9 @@ class BlogPost(models.Model):
     seo_description_de = models.CharField(max_length=320, blank=True)
     published_at = models.DateField()
     is_published = models.BooleanField(default=True)
+    # Last edit — the frontend's sitemap <lastmod> and BlogPosting.dateModified.
+    # Null for rows not saved since the field was added (no made-up date).
+    updated_at = models.DateTimeField(auto_now=True, null=True, editable=False)
 
     class Meta:
         ordering = ["-published_at"]
