@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 import { Breadcrumbs } from "@/components/breadcrumbs";
+import { EventDriverPricingSection } from "@/components/event-driver-pricing-section";
 import { LocalFareRulesSection } from "@/components/local-fare-rules-section";
 import { MarkdownContent } from "@/components/markdown-content";
 import { PricingTierSection } from "@/components/pricing-tier-section";
@@ -53,15 +54,18 @@ export default async function CennikPage({ params }: { params: Promise<{ locale:
     <>
       <BreadcrumbJsonLd items={breadcrumbItems} locale={locale} />
       <SiteHeader />
-      <main className="mx-auto max-w-[1360px] px-6 pt-16">
-        <Breadcrumbs items={breadcrumbItems} />
-        <h1 className="font-heading mt-3 mb-4 text-[32px] font-semibold md:text-[40px]">{title}</h1>
-        <div className="max-w-[900px]">
-          <MarkdownContent markdown={body} locale={appLocale} />
+      <main className="px-6 py-[70px]">
+        <div className="mx-auto max-w-[1360px]">
+          <Breadcrumbs items={breadcrumbItems} />
+          <h1 className="font-heading mt-3 mb-4 text-[32px] font-semibold md:text-[40px]">{title}</h1>
+          <div className="max-w-[900px]">
+            <MarkdownContent markdown={body} locale={appLocale} />
+          </div>
         </div>
       </main>
       <LocalFareRulesSection />
       <PricingTierSection />
+      <EventDriverPricingSection />
       <SiteFooter />
     </>
   );

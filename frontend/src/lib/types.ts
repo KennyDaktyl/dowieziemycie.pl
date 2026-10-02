@@ -71,6 +71,17 @@ export interface LocalFarePolicy {
   proximity_threshold_km: string;
 }
 
+/** Hourly driver-with-car rental rates for occasional events (weddings,
+ * concerts, parties) — shown on /imprezy and /cennik. day_starts_at/
+ * night_starts_at are "HH:MM:SS" (Django TimeField's default JSON shape). */
+export interface EventDriverPricing {
+  day_hourly_rate: string;
+  night_hourly_rate: string;
+  day_starts_at: string;
+  night_starts_at: string;
+  price_per_100km: string;
+}
+
 export interface RouteEstimate {
   distance_km: number;
   duration_min: number;

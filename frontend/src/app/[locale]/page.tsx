@@ -9,7 +9,7 @@ import { HowItWorksSection } from "@/components/how-it-works-section";
 import { LocalRoutesSection } from "@/components/local-routes-section";
 import { OrganizationJsonLd } from "@/components/organization-jsonld";
 import { PillarsSection } from "@/components/pillars-section";
-import { PricingTierSection } from "@/components/pricing-tier-section";
+import { PricingCtaSection } from "@/components/pricing-cta-section";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { StatusLegendSection } from "@/components/status-legend-section";
@@ -41,7 +41,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
         <PillarsSection />
         <TopicTilesSection />
         <StatusLegendSection />
-        <PricingTierSection />
+        <PricingCtaSection />
         <HowItWorksSection />
         <LocalRoutesSection />
         <AboutSection />

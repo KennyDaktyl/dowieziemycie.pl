@@ -184,6 +184,27 @@
     "title": "How we price short, local rides",
     "body": "If the pickup point is within {radius} km of our base in Rybna (or the driver's current location), and the whole route is no longer than {maxKm} km, we price it as a local ride: {minFare} zł for the first {includedKm} km, then {perKm} zł per km after that. Longer routes — e.g. to or from Kraków — are priced from the zone tariff below."
   },
+  "PricingCta": {
+    "eyebrow": "Pricing",
+    "title": "Check our price list",
+    "body": "Prices for local rides, routes to and from Kraków, and hourly driver rental for weddings and events — all in one place.",
+    "cta": "See the price list"
+  },
+  "EventDriverPricing": {
+    "eyebrow": "Driver rental for events",
+    "title": "What a driver for a wedding or event costs",
+    "intro": "For a wedding, concert or company event, the driver and car stay with you for the whole event — this isn't a single A-to-B ride, it's an hourly rental.",
+    "dayLabel": "Daytime rate",
+    "dayNote": "from {time}",
+    "nightLabel": "Night rate",
+    "nightNote": "from {time}",
+    "perKmLabel": "Driving between stops",
+    "perKmNote": "per 100 km",
+    "perHour": "zł / hour",
+    "perKmUnit": "zł",
+    "footnote": "These are the reference rates we use to work out a quote — the final price always depends on your event's schedule (start/end time, number of stops, routes between venues). Get in touch and we'll put together an exact offer for your wedding.",
+    "vatNote": "All prices include VAT (23%)."
+  },
   "HowItWorks": {
     "eyebrow": "Process",
     "title": "How it works",

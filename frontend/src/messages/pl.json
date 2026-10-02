@@ -184,6 +184,27 @@
     "title": "Jak liczymy krótkie, lokalne kursy",
     "body": "Jeśli miejsce odbioru jest w promieniu {radius} km od naszej bazy w Rybnej (albo od aktualnej lokalizacji kierowcy), a cała trasa nie przekracza {maxKm} km, liczymy ją jako kurs lokalny: {minFare} zł za pierwsze {includedKm} km, a każdy kolejny kilometr to {perKm} zł. Dłuższe trasy — np. dojazd do lub z Krakowa — rozliczamy według cennika strefowego poniżej."
   },
+  "PricingCta": {
+    "eyebrow": "Cennik",
+    "title": "Sprawdź nasz cennik",
+    "body": "Ceny kursów lokalnych, tras do i z Krakowa oraz wynajmu kierowcy na wesela i imprezy okolicznościowe — wszystko w jednym miejscu.",
+    "cta": "Zobacz cennik"
+  },
+  "EventDriverPricing": {
+    "eyebrow": "Wynajem kierowcy na imprezy",
+    "title": "Ile kosztuje kierowca na wesele albo imprezę okolicznościową",
+    "intro": "Przy weselu, koncercie czy imprezie firmowej kierowca z autem zostaje z Wami na cały czas trwania imprezy — to nie jest pojedynczy kurs z punktu A do B, tylko wynajem rozliczany godzinowo.",
+    "dayLabel": "Stawka dzienna",
+    "dayNote": "od {time}",
+    "nightLabel": "Stawka nocna",
+    "nightNote": "od {time}",
+    "perKmLabel": "Dojazdy w trakcie imprezy",
+    "perKmNote": "za każde 100 km",
+    "perHour": "zł / godz.",
+    "perKmUnit": "zł",
+    "footnote": "To są stawki referencyjne do wyliczenia wyceny — ostateczna cena zawsze zależy od planu imprezy (godziny rozpoczęcia i zakończenia, liczby przystanków, tras między punktami). Napisz lub zadzwoń, a przygotujemy dokładną ofertę na Wasze wesele.",
+    "vatNote": "Wszystkie ceny zawierają VAT (23%)."
+  },
   "HowItWorks": {
     "eyebrow": "Proces",
     "title": "Jak to działa",

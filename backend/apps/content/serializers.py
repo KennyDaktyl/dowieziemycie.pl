@@ -8,6 +8,7 @@ from .models import (
     BlogPostPhoto,
     ContactInfo,
     ContentPage,
+    EventDriverPricing,
     EventOffer,
     EventOfferPhoto,
     FixedRoute,
@@ -20,6 +21,14 @@ from .models import (
     TourPhoto,
     TourVehiclePrice,
 )
+
+
+class EventDriverPricingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EventDriverPricing
+        fields = [
+            "day_hourly_rate", "night_hourly_rate", "day_starts_at", "night_starts_at", "price_per_100km",
+        ]
 
 
 class HomeContentSerializer(serializers.ModelSerializer):

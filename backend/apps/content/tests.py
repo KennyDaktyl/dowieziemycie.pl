@@ -356,3 +356,48 @@ class KrakowZakopaneTransferTests(TestCase):
         self.route.full_clean()  # lat+lng must come together
         self.assertIsNotNone(self.route.default_pickup)
         self.assertIsNotNone(self.route.default_dropoff)
+
+
+class EventDriverPricingTests(APITestCase):
+    """Hourly driver-rental rates for /imprezy and /cennik (weddings, etc.)."""
+
+    def test_api_auto_creates_and_returns_the_sites_rates(self):
+        res = self.client.get("/api/event-driver-pricing/")  # no X-Site -> defaults to dowieziemycie
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(
+            (res.data["day_hourly_rate"], res.data["night_hourly_rate"], res.data["price_per_100km"]),
+            ("90.00", "120.00", "100.00"),
+        )
+        self.assertEqual((res.data["day_starts_at"], res.data["night_starts_at"]), ("06:00:00", "22:00:00"))
+
+    def test_rates_are_scoped_per_site(self):
+        from .models import EventDriverPricing
+
+        pricing = EventDriverPricing.for_site("transfer247")
+        pricing.day_hourly_rate = 150
+        pricing.save(update_fields=["day_hourly_rate"])
+
+        res_t247 = self.client.get("/api/event-driver-pricing/", HTTP_X_SITE="transfer247")
+        self.assertEqual(res_t247.data["day_hourly_rate"], "150.00")
+        res_dwz = self.client.get("/api/event-driver-pricing/")
+        self.assertEqual(res_dwz.data["day_hourly_rate"], "90.00")
+
+    def test_inactive_pricing_returns_null_instead_of_stale_numbers(self):
+        from .models import EventDriverPricing
+
+        pricing = EventDriverPricing.for_site("dowieziemycie")
+        pricing.is_active = False
+        pricing.save(update_fields=["is_active"])
+
+        res = self.client.get("/api/event-driver-pricing/")
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNone(res.data)
+
+    def test_migration_seeded_both_brands(self):
+        from .models import EventDriverPricing
+
+        self.assertEqual(
+            {(p.site, str(p.day_hourly_rate), str(p.night_hourly_rate), str(p.price_per_100km))
+             for p in EventDriverPricing.objects.all()},
+            {("dowieziemycie", "90.00", "120.00", "100.00"), ("transfer247", "90.00", "120.00", "100.00")},
+        )

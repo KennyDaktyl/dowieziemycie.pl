@@ -8,6 +8,7 @@ from .models import (
     BlogPost,
     ContactInfo,
     ContentPage,
+    EventDriverPricing,
     EventOffer,
     FixedRoute,
     HomeContent,
@@ -19,6 +20,7 @@ from .serializers import (
     BlogPostSerializer,
     ContactInfoSerializer,
     ContentPageSerializer,
+    EventDriverPricingSerializer,
     EventOfferDetailSerializer,
     EventOfferListSerializer,
     FixedRouteSerializer,
@@ -43,6 +45,21 @@ class ContactInfoView(APIView):
     def get(self, request):
         info = get_object_or_404(ContactInfo, site=request.site_code)
         return Response(ContactInfoSerializer(info).data)
+
+
+class EventDriverPricingView(APIView):
+    """GET /api/event-driver-pricing/ — hourly driver-rental rates for the
+    /imprezy and /cennik pages (wedding/event transport). Always returns a
+    row (get_or_create via for_site), so the frontend never has to handle a
+    missing-config 404 for a page that should always show real numbers."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        pricing = EventDriverPricing.for_site(request.site_code)
+        if not pricing.is_active:
+            return Response(None)
+        return Response(EventDriverPricingSerializer(pricing).data)
 
 
 class SiteShowcasePhotoListView(generics.ListAPIView):

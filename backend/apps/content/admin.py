@@ -6,6 +6,7 @@ from .models import (
     BlogPostPhoto,
     ContactInfo,
     ContentPage,
+    EventDriverPricing,
     EventOffer,
     EventOfferPhoto,
     FixedRoute,
@@ -427,6 +428,17 @@ class EventOfferPhotoInline(admin.TabularInline):
         from django.utils.html import format_html
 
         return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.thumbnail.url)
+
+
+@admin.register(EventDriverPricing)
+class EventDriverPricingAdmin(admin.ModelAdmin):
+    list_display = (
+        "site", "day_hourly_rate", "night_hourly_rate", "day_starts_at", "night_starts_at", "price_per_100km",
+        "is_active",
+    )
+    list_editable = (
+        "day_hourly_rate", "night_hourly_rate", "day_starts_at", "night_starts_at", "price_per_100km", "is_active",
+    )
 
 
 @admin.register(EventOffer)

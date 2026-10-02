@@ -5,6 +5,7 @@ from .views import (
     BlogPostListView,
     ContactInfoView,
     ContentPageDetailView,
+    EventDriverPricingView,
     EventOfferDetailView,
     EventOfferListView,
     FixedRouteDetailView,
@@ -30,6 +31,7 @@ urlpatterns = [
     path("blog/", BlogPostListView.as_view(), name="blog-list"),
     path("blog/<slug:slug>/", BlogPostDetailView.as_view(), name="blog-detail"),
     path("content-pages/<slug:slug>/", ContentPageDetailView.as_view(), name="content-page-detail"),
+    path("event-driver-pricing/", EventDriverPricingView.as_view(), name="event-driver-pricing"),
     path("events/", EventOfferListView.as_view(), name="event-offer-list"),
     path("events/<slug:slug>/", EventOfferDetailView.as_view(), name="event-offer-detail"),
 ]

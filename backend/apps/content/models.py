@@ -573,6 +573,54 @@ class ContentPage(models.Model):
         return f"{self.title_pl} ({self.get_page_type_display()})"
 
 
+class EventDriverPricing(models.Model):
+    """One row per site — how hourly driver-with-car rental for occasional
+    events (weddings, concerts, parties: the driver stays with the client
+    for the whole event instead of one point-to-point ride) is billed.
+    Shown on /imprezy and /cennik so customers asking "what's the offer for
+    a wedding" get a real answer instead of just the point-to-point price
+    list. Always "wycena indywidualna" in the end (see EventOffer.price_from)
+    — these are the reference rates quoted while working out that estimate,
+    not an instant online price."""
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, unique=True, default=DEFAULT_SITE)
+    day_hourly_rate = models.DecimalField(
+        max_digits=6, decimal_places=2, default=90,
+        help_text="Stawka za godzinę pracy kierowcy w dzień (zł).",
+    )
+    night_hourly_rate = models.DecimalField(
+        max_digits=6, decimal_places=2, default=120,
+        help_text="Stawka za godzinę pracy kierowcy w nocy (zł) — wyższa, bo to praca po godzinach.",
+    )
+    day_starts_at = models.TimeField(
+        default="06:00",
+        help_text="Od której godziny obowiązuje stawka dzienna.",
+    )
+    night_starts_at = models.TimeField(
+        default="22:00",
+        help_text="Od której godziny obowiązuje stawka nocna.",
+    )
+    price_per_100km = models.DecimalField(
+        max_digits=6, decimal_places=2, default=100,
+        help_text="Cena za każde 100 km przejechane w trakcie wynajmu (dojazd, trasy między punktami imprezy).",
+    )
+    is_active = models.BooleanField(
+        default=True, help_text="Odznacz, żeby ukryć tę sekcję na stronie bez usuwania ustawionych cen.",
+    )
+
+    class Meta:
+        verbose_name = "Cennik wynajmu kierowcy (imprezy)"
+        verbose_name_plural = "Cennik wynajmu kierowcy (imprezy)"
+
+    def __str__(self):
+        return f"Cennik wynajmu kierowcy ({self.get_site_display()})"
+
+    @classmethod
+    def for_site(cls, site: str) -> "EventDriverPricing":
+        pricing, _ = cls.objects.get_or_create(site=site)
+        return pricing
+
+
 class EventOffer(models.Model):
     """One occasional-transport offering with its own URL under /imprezy/<slug>
     — a concert-transport page, a bachelor-party page, a wedding-car-rental
