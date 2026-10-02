@@ -201,7 +201,10 @@ class TourVehiclePrice(models.Model):
     of a fixed pair of price fields that assumed exactly two."""
 
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name="vehicle_prices")
-    vehicle = models.ForeignKey("fleet.Vehicle", on_delete=models.CASCADE, related_name="tour_prices")
+    # PROTECT, not CASCADE — see apps.fleet.VehiclePhoto.vehicle for why:
+    # deleting a vehicle must never silently wipe every tour price attached
+    # to it. Retire a vehicle with is_active=False instead of deleting it.
+    vehicle = models.ForeignKey("fleet.Vehicle", on_delete=models.PROTECT, related_name="tour_prices")
     price = models.DecimalField(max_digits=7, decimal_places=2)
     price_eur = models.DecimalField(
         max_digits=7, decimal_places=2, null=True, blank=True,
@@ -403,7 +406,8 @@ class FixedRoute(models.Model):
 
 class FixedRouteVehiclePrice(models.Model):
     route = models.ForeignKey(FixedRoute, on_delete=models.CASCADE, related_name="vehicle_prices")
-    vehicle = models.ForeignKey("fleet.Vehicle", on_delete=models.CASCADE, related_name="route_prices")
+    # PROTECT, not CASCADE — same reasoning as TourVehiclePrice above.
+    vehicle = models.ForeignKey("fleet.Vehicle", on_delete=models.PROTECT, related_name="route_prices")
     price = models.DecimalField(max_digits=7, decimal_places=2)
     price_eur = models.DecimalField(
         max_digits=7, decimal_places=2, null=True, blank=True,

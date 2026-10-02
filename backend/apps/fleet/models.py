@@ -45,7 +45,13 @@ class Vehicle(models.Model):
 class VehiclePhoto(models.Model):
     """Gallery photo attached to a vehicle, managed as an inline in the admin."""
 
-    vehicle = models.ForeignKey(Vehicle, related_name="photos", on_delete=models.CASCADE)
+    # PROTECT, not CASCADE: an admin deleting a Vehicle should never silently
+    # wipe its whole gallery as a side effect — delete the photos explicitly
+    # first (or just set is_active=False to retire the vehicle instead of
+    # deleting it). See FixedRouteVehiclePrice/TourVehiclePrice for the same
+    # reasoning — a real incident (2026-10-02) deleted the fleet's only
+    # vehicle and cascaded away every route/tour price and the whole gallery.
+    vehicle = models.ForeignKey(Vehicle, related_name="photos", on_delete=models.PROTECT)
     image = models.ImageField(upload_to="vehicles/gallery/")
     thumbnail = models.ImageField(upload_to="vehicles/gallery/thumbs/", blank=True, editable=False)
     caption = models.CharField(max_length=160, blank=True)

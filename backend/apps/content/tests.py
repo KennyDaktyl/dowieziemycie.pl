@@ -401,3 +401,48 @@ class EventDriverPricingTests(APITestCase):
              for p in EventDriverPricing.objects.all()},
             {("dowieziemycie", "90.00", "120.00", "100.00"), ("transfer247", "90.00", "120.00", "100.00")},
         )
+
+
+class VehicleDeletionIsProtectedTests(TestCase):
+    """Regression test for a real incident (2026-10-02): deleting the fleet's
+    only Vehicle from the admin cascaded away every FixedRouteVehiclePrice/
+    TourVehiclePrice/VehiclePhoto row with it, breaking every booking form
+    until manually restored from a backup. Vehicle's FKs from these models
+    must now be PROTECT, not CASCADE — deleting a still-referenced vehicle
+    should raise, not silently wipe pricing/gallery data."""
+
+    def setUp(self):
+        self.vehicle = Vehicle.objects.create(name="Test Van", plate="TEST001", seats=6)
+
+    def test_cannot_delete_a_vehicle_still_priced_for_a_route(self):
+        from django.db.models import ProtectedError
+
+        route = FixedRoute.objects.create(site="transfer247", slug="protect-route", name_pl="R", name_en="R")
+        FixedRouteVehiclePrice.objects.create(route=route, vehicle=self.vehicle, price=100)
+        with self.assertRaises(ProtectedError):
+            self.vehicle.delete()
+        self.assertTrue(Vehicle.objects.filter(id=self.vehicle.id).exists())
+        self.assertEqual(FixedRouteVehiclePrice.objects.filter(route=route).count(), 1)
+
+    def test_cannot_delete_a_vehicle_still_priced_for_a_tour(self):
+        from django.db.models import ProtectedError
+
+        tour = Tour.objects.create(site="transfer247", slug="protect-tour", title_pl="T", title_en="T")
+        TourVehiclePrice.objects.create(tour=tour, vehicle=self.vehicle, price=100)
+        with self.assertRaises(ProtectedError):
+            self.vehicle.delete()
+        self.assertEqual(TourVehiclePrice.objects.filter(tour=tour).count(), 1)
+
+    def test_cannot_delete_a_vehicle_with_gallery_photos(self):
+        from django.db.models import ProtectedError
+
+        from apps.fleet.models import VehiclePhoto
+
+        VehiclePhoto.objects.create(vehicle=self.vehicle, image=_make_test_image_upload())
+        with self.assertRaises(ProtectedError):
+            self.vehicle.delete()
+        self.assertEqual(VehiclePhoto.objects.filter(vehicle=self.vehicle).count(), 1)
+
+    def test_an_unreferenced_vehicle_can_still_be_deleted(self):
+        self.vehicle.delete()
+        self.assertFalse(Vehicle.objects.filter(id=self.vehicle.id).exists())
