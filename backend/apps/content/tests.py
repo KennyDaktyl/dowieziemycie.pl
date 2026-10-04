@@ -446,3 +446,33 @@ class VehicleDeletionIsProtectedTests(TestCase):
     def test_an_unreferenced_vehicle_can_still_be_deleted(self):
         self.vehicle.delete()
         self.assertFalse(Vehicle.objects.filter(id=self.vehicle.id).exists())
+
+
+class MarkdownTranslationCheckTests(TestCase):
+    """An EN/DE body pasted from the rendered page (no ## headings) must be
+    flagged in Admin, or that language's page silently loses its H2s, FAQ
+    and links again."""
+
+    def _warnings_on_save(self, **bodies):
+        from unittest import mock
+
+        from django.contrib.admin.sites import site
+
+        from .admin import FixedRouteAdmin
+
+        route = FixedRoute(slug="check-route", name_pl="Trasa", name_en="Route", **bodies)
+        model_admin = FixedRouteAdmin(FixedRoute, site)
+        with mock.patch.object(model_admin, "message_user") as message_user:
+            model_admin.save_model(request=None, obj=route, form=None, change=False)
+        return [call.args[1] for call in message_user.call_args_list]
+
+    def test_plain_text_translation_of_a_markdown_body_is_flagged(self):
+        warnings = self._warnings_on_save(
+            body_pl="Wstęp\n\n## Cena\n\nTekst", body_en="Intro\n\nPrice\n\nText", body_de="Intro\n\n## Preis\n\nText",
+        )
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("EN", warnings[0])
+
+    def test_markdown_translations_and_empty_fields_pass(self):
+        warnings = self._warnings_on_save(body_pl="Wstęp\n\n## Cena", body_en="Intro\n\n## Price", body_de="")
+        self.assertEqual(warnings, [])

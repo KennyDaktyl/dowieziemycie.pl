@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 
 from .models import (
     BlogPost,
@@ -19,6 +19,28 @@ from .models import (
     TourPhoto,
     TourVehiclePrice,
 )
+
+
+class MarkdownTranslationCheckMixin:
+    """Warns (without blocking the save) when an EN/DE body has lost the
+    Markdown structure its PL body has — the symptom of a translation made
+    from the rendered page and pasted back: no ## headings means no H2s,
+    no FAQPage and no internal links on that language's page."""
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if "## " not in (obj.body_pl or ""):
+            return
+        for locale, label in (("en", "EN"), ("de", "DE")):
+            body = getattr(obj, f"body_{locale}", "") or ""
+            if body.strip() and "## " not in body:
+                self.message_user(
+                    request,
+                    f"Treść {label} nie ma nagłówków Markdown (## …), a treść PL je ma — wygląda na tłumaczenie "
+                    "skopiowane z gotowej strony. Na stronie zabraknie nagłówków, FAQ i linków: przetłumacz "
+                    "tekst źródłowy z pola PL, razem ze znakami ##, ** i [link](/adres).",
+                    level=messages.WARNING,
+                )
 
 
 @admin.register(HomeContent)
@@ -113,7 +135,7 @@ class TourPhotoInline(admin.TabularInline):
 
 
 @admin.register(Tour)
-class TourAdmin(admin.ModelAdmin):
+class TourAdmin(MarkdownTranslationCheckMixin, admin.ModelAdmin):
     list_display = ("title_pl", "site", "is_published", "order")
     list_editable = ("is_published", "order")
     list_filter = ("site", "is_published")
@@ -325,7 +347,7 @@ ROUTE_PINS_MAP_HTML = r"""
 """
 
 @admin.register(FixedRoute)
-class FixedRouteAdmin(admin.ModelAdmin):
+class FixedRouteAdmin(MarkdownTranslationCheckMixin, admin.ModelAdmin):
     list_display = ("name_pl", "category", "duration", "is_published", "order")
     list_editable = ("is_published", "order")
     list_filter = ("category", "is_published")
@@ -377,7 +399,7 @@ class BlogPostLinkInline(admin.TabularInline):
 
 
 @admin.register(BlogPost)
-class BlogPostAdmin(admin.ModelAdmin):
+class BlogPostAdmin(MarkdownTranslationCheckMixin, admin.ModelAdmin):
     list_display = ("title_pl", "site", "tag_pl", "published_at", "is_published")
     list_editable = ("is_published",)
     list_filter = ("site", "is_published")
