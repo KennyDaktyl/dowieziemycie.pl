@@ -19,11 +19,11 @@ import { buildAlternates } from "@/lib/seo";
 import type { ContactInfo, EventOffer, EventOfferListItem } from "@/lib/types";
 
 async function getOffers(): Promise<EventOfferListItem[]> {
-  return apiFetch<EventOfferListItem[]>("/api/events/", { next: { revalidate: 60 } }).catch(() => []);
+  return apiFetch<EventOfferListItem[]>("/api/events/").catch(() => []);
 }
 
 async function getOffer(slug: string): Promise<EventOffer | null> {
-  return apiFetch<EventOffer>(`/api/events/${slug}/`, { next: { revalidate: 60 } }).catch(() => null);
+  return apiFetch<EventOffer>(`/api/events/${slug}/`).catch(() => null);
 }
 
 export async function generateStaticParams() {
@@ -58,7 +58,7 @@ export default async function EventOfferPage({
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
     getOffer(slug),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
   ]);
 
   if (!offer) notFound();

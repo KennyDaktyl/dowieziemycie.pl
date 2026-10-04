@@ -11,7 +11,7 @@ import { buildAlternates } from "@/lib/seo";
 import type { LocalRoute } from "@/lib/types";
 
 async function getRoutes(): Promise<LocalRoute[]> {
-  return apiFetch<LocalRoute[]>("/api/routes/", { next: { revalidate: 60 } }).catch(() => []);
+  return apiFetch<LocalRoute[]>("/api/routes/").catch(() => []);
 }
 
 export async function generateMetadata({

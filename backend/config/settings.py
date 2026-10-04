@@ -230,6 +230,16 @@ SMSAPI_SENDER_NAMES = {
 # on-demand rate. See apps/bookings/models.PricingTier.
 ADVANCE_BOOKING_THRESHOLD_HOURS = int(os.environ.get("ADVANCE_BOOKING_THRESHOLD_HOURS", "2"))
 
+# On-demand cache revalidation of the Next.js frontends (apps/content/
+# revalidation.py): a content change in Admin POSTs the affected cache tags
+# to each brand's /api/revalidate. Internal URLs (127.0.0.1:<port>) on the
+# VPS; an empty URL or secret turns it off for that brand (dev, tests).
+FRONTEND_REVALIDATE_URLS = {
+    "dowieziemycie": os.environ.get("REVALIDATE_URL_DOWIEZIEMYCIE", ""),
+    "transfer247": os.environ.get("REVALIDATE_URL_TRANSFER247", ""),
+}
+REVALIDATE_SECRET = os.environ.get("REVALIDATE_SECRET", "")
+
 # Email notifications for the confirm-before-pay booking workflow (see
 # apps/bookings/notifications.py). "console" (dev) prints the message instead
 # of sending it; set EMAIL_BACKEND=smtp + the EMAIL_HOST_* vars in prod.

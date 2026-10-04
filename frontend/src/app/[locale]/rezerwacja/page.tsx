@@ -35,7 +35,7 @@ export default async function RezerwacjaPage({ params }: { params: Promise<{ loc
   const [t, tCrumbs, contact] = await Promise.all([
     getTranslations("Rezerwacja"),
     getTranslations("Breadcrumbs"),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
   ]);
 
   return (

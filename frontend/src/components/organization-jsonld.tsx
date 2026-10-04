@@ -4,7 +4,7 @@ import type { ContactInfo } from "@/lib/types";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dowieziemycie.pl";
 
 export async function OrganizationJsonLd() {
-  const contact = await apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } });
+  const contact = await apiFetch<ContactInfo>("/api/contact-info/");
   const data = {
     "@context": "https://schema.org",
     "@type": "TaxiService",

@@ -19,10 +19,10 @@ function shortTime(value: string): string {
 export async function EventDriverPricingSection() {
   const [t, pricing, contact] = await Promise.all([
     getTranslations("EventDriverPricing"),
-    apiFetch<EventDriverPricing | null>("/api/event-driver-pricing/", { next: { revalidate: 60 } }).catch(
+    apiFetch<EventDriverPricing | null>("/api/event-driver-pricing/").catch(
       () => null,
     ),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
   ]);
 
   if (!pricing) return null;

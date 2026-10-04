@@ -10,7 +10,7 @@ export async function LocalRoutesSection() {
     getLocale(),
     // ?homepage=1 — only routes flagged show_on_homepage in admin, so the
     // homepage shows a curated set rather than every published route.
-    apiFetch<LocalRoute[]>("/api/routes/?homepage=1", { next: { revalidate: 60 } }),
+    apiFetch<LocalRoute[]>("/api/routes/?homepage=1"),
   ]);
 
   return (

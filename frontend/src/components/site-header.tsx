@@ -15,7 +15,7 @@ export async function SiteHeader() {
     getTranslations("Header"),
     getTranslations("Nav"),
     getLocale(),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
     getSession(),
   ]);
 

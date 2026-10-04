@@ -19,7 +19,7 @@ import type { ContactInfo, ContentPage } from "@/lib/types";
 const SLUG = "wynajem-busa-z-kierowca";
 
 async function getPage(): Promise<ContentPage | null> {
-  return apiFetch<ContentPage>(`/api/content-pages/${SLUG}/`, { next: { revalidate: 60 } }).catch(() => null);
+  return apiFetch<ContentPage>(`/api/content-pages/${SLUG}/`).catch(() => null);
 }
 
 export async function generateMetadata({
@@ -45,7 +45,7 @@ export default async function WynajemBusaPage({ params }: { params: Promise<{ lo
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
     getPage(),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
   ]);
 
   if (!page) notFound();

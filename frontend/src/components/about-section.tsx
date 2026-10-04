@@ -7,7 +7,7 @@ export async function AboutSection() {
   const [locale, t, content] = await Promise.all([
     getLocale(),
     getTranslations("About"),
-    apiFetch<HomeContent>("/api/home-content/", { next: { revalidate: 60 } }),
+    apiFetch<HomeContent>("/api/home-content/"),
   ]);
 
   const about = locale === "en" ? content.about_en : content.about_pl;

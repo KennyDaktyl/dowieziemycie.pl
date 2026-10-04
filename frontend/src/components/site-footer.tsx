@@ -10,7 +10,7 @@ export async function SiteFooter() {
   const [t, tPayment, contact] = await Promise.all([
     getTranslations("Footer"),
     getTranslations("BookingPayment"),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
   ]);
   const [emailUser, emailDomain] = contact.email.split("@");
   const address = `${contact.address_street}, ${contact.address_postal_code} ${contact.address_city}`;

@@ -33,7 +33,7 @@ export default async function BlogIndexPage({
     getTranslations("Blog"),
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
-    apiFetch<BlogPost[]>("/api/blog/", { next: { revalidate: 60 } }).catch(() => []),
+    apiFetch<BlogPost[]>("/api/blog/").catch(() => []),
   ]);
 
   const query = q?.trim().toLowerCase() ?? "";

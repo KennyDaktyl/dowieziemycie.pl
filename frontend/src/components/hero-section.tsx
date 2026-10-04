@@ -21,7 +21,7 @@ export async function HeroSection() {
   const [locale, t, homeContent] = await Promise.all([
     getLocale(),
     getTranslations("Hero"),
-    apiFetch<HomeContent>("/api/home-content/", { next: { revalidate: 60 } }),
+    apiFetch<HomeContent>("/api/home-content/"),
   ]);
 
   const eyebrow = locale === "en" ? homeContent.eyebrow_en : homeContent.eyebrow_pl;

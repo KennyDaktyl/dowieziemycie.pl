@@ -17,7 +17,7 @@ import type { ContactInfo, LocalRoute } from "@/lib/types";
 
 async function getRoute(slug: string): Promise<LocalRoute | null> {
   try {
-    return await apiFetch<LocalRoute>(`/api/routes/${slug}/`, { next: { revalidate: 60 } });
+    return await apiFetch<LocalRoute>(`/api/routes/${slug}/`);
   } catch {
     return null;
   }
@@ -65,9 +65,9 @@ export default async function RoutePage({
   const [t, tCrumbs, allRoutes, route, contact] = await Promise.all([
     getTranslations("RoutePage"),
     getTranslations("Breadcrumbs"),
-    apiFetch<LocalRoute[]>("/api/routes/", { next: { revalidate: 60 } }),
+    apiFetch<LocalRoute[]>("/api/routes/"),
     getRoute(slug),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
   ]);
 
   if (!route) notFound();

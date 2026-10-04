@@ -17,7 +17,7 @@ export async function DriverPaymentSection() {
   const [t, locale, photos] = await Promise.all([
     getTranslations("DriverPayment"),
     getLocale() as Promise<AppLocale>,
-    apiFetch<ShowcasePhoto[]>("/api/showcase-photos/", { next: { revalidate: 60 } }).catch(
+    apiFetch<ShowcasePhoto[]>("/api/showcase-photos/").catch(
       () => [] as ShowcasePhoto[],
     ),
   ]);

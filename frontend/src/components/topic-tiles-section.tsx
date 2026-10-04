@@ -10,7 +10,7 @@ async function getFeaturedEvents(): Promise<EventOfferListItem[]> {
   // ?homepage=1 — only events flagged show_on_homepage in admin. Adding a
   // new event there (with an article, gallery, example price) makes it
   // appear here automatically, no code change needed.
-  return apiFetch<EventOfferListItem[]>("/api/events/?homepage=1", { next: { revalidate: 60 } }).catch(() => []);
+  return apiFetch<EventOfferListItem[]>("/api/events/?homepage=1").catch(() => []);
 }
 
 export async function TopicTilesSection() {

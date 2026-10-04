@@ -476,3 +476,77 @@ class MarkdownTranslationCheckTests(TestCase):
     def test_markdown_translations_and_empty_fields_pass(self):
         warnings = self._warnings_on_save(body_pl="Wstęp\n\n## Cena", body_en="Intro\n\n## Price", body_de="")
         self.assertEqual(warnings, [])
+
+
+class FrontendRevalidationTests(TestCase):
+    """Content edits revalidate the cache of the right brand's frontend:
+    one request per brand per transaction, after commit, with the secret."""
+
+    def _sent_on_commit(self, change):
+        from unittest import mock
+
+        from django.db import transaction
+
+        from . import revalidation
+
+        sent = []
+        timers = []
+
+        class ManualTimer:  # fired by hand below instead of after a delay
+            def __init__(self, delay, function):
+                self.function = function
+                timers.append(self)
+
+            def start(self):
+                pass
+
+        with mock.patch.object(revalidation.threading, "Timer", ManualTimer), \
+                mock.patch.object(revalidation, "send", side_effect=lambda site, tags: sent.append((site, tags))):
+            with self.captureOnCommitCallbacks(execute=True):
+                with transaction.atomic():
+                    change()
+                self.assertEqual(timers, [], "nothing may be queued before the transaction commits")
+            self.assertEqual(len(timers), 1, "one flush per batch of committed changes")
+            timers[0].function()
+        return sent
+
+    def test_route_and_its_inline_rows_send_one_request_to_their_brand_only(self):
+        vehicle = Vehicle.objects.create(name="Volkswagen", plate="RV1", seats=6)
+
+        def change():
+            route = FixedRoute.objects.create(site="transfer247", slug="rv-route", name_pl="R", name_en="R")
+            FixedRouteVehiclePrice.objects.create(route=route, vehicle=vehicle, price=100)
+
+        self.assertEqual(self._sent_on_commit(change), [("transfer247", ["fixed-routes"])])
+
+    def test_a_shared_vehicle_revalidates_both_brands_and_the_pages_embedding_it(self):
+        sent = self._sent_on_commit(lambda: Vehicle.objects.create(name="Bus", plate="RV2", seats=8))
+        self.assertEqual(
+            sent,
+            [("dowieziemycie", ["fixed-routes", "fleet", "tours"]), ("transfer247", ["fixed-routes", "fleet", "tours"])],
+        )
+
+    @override_settings(FRONTEND_REVALIDATE_URLS={"transfer247": "http://frontend/api/revalidate"}, REVALIDATE_SECRET="s3cret")
+    def test_send_posts_the_tags_with_the_secret(self):
+        from unittest import mock
+
+        from .revalidation import send
+
+        response = mock.MagicMock(status=200)
+        response.__enter__.return_value = response
+        with mock.patch("urllib.request.urlopen", return_value=response) as urlopen:
+            self.assertTrue(send("transfer247", ["blog", "tours"]))
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://frontend/api/revalidate")
+        self.assertEqual(request.get_header("Authorization"), "Bearer s3cret")
+        self.assertEqual(request.data, b'{"tags": ["blog", "tours"]}')
+
+    @override_settings(FRONTEND_REVALIDATE_URLS={"transfer247": ""}, REVALIDATE_SECRET="")
+    def test_send_is_a_no_op_when_not_configured(self):
+        from unittest import mock
+
+        from .revalidation import send
+
+        with mock.patch("urllib.request.urlopen") as urlopen:
+            self.assertFalse(send("transfer247", ["blog"]))
+        urlopen.assert_not_called()

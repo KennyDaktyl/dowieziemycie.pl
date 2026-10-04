@@ -19,7 +19,7 @@ function VanIcon() {
 export async function FleetSection() {
   const [t, vehicles] = await Promise.all([
     getTranslations("Fleet"),
-    apiFetch<Vehicle[]>("/api/fleet/vehicles/", { next: { revalidate: 60 } }),
+    apiFetch<Vehicle[]>("/api/fleet/vehicles/"),
   ]);
 
   const totalSeats = vehicles.reduce((sum, v) => sum + v.seats, 0);

@@ -18,11 +18,11 @@ import { buildAlternates } from "@/lib/seo";
 import type { ContactInfo, ContentPage, EventOfferListItem } from "@/lib/types";
 
 async function getPage(): Promise<ContentPage | null> {
-  return apiFetch<ContentPage>("/api/content-pages/imprezy/", { next: { revalidate: 60 } }).catch(() => null);
+  return apiFetch<ContentPage>("/api/content-pages/imprezy/").catch(() => null);
 }
 
 async function getOffers(): Promise<EventOfferListItem[]> {
-  return apiFetch<EventOfferListItem[]>("/api/events/", { next: { revalidate: 60 } }).catch(() => []);
+  return apiFetch<EventOfferListItem[]>("/api/events/").catch(() => []);
 }
 
 export async function generateMetadata({
@@ -49,7 +49,7 @@ export default async function ImprezyPage({ params }: { params: Promise<{ locale
     getLocale() as Promise<AppLocale>,
     getPage(),
     getOffers(),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
   ]);
 
   if (!page) notFound();

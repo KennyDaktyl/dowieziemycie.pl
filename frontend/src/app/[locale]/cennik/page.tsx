@@ -17,7 +17,7 @@ import { buildAlternates } from "@/lib/seo";
 import type { ContentPage } from "@/lib/types";
 
 async function getPage(): Promise<ContentPage | null> {
-  return apiFetch<ContentPage>("/api/content-pages/cennik/", { next: { revalidate: 60 } }).catch(() => null);
+  return apiFetch<ContentPage>("/api/content-pages/cennik/").catch(() => null);
 }
 
 export async function generateMetadata({

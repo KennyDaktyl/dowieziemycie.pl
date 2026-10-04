@@ -9,7 +9,7 @@ import type { LocalFarePolicy } from "@/lib/types";
 export async function LocalFareRulesSection() {
   const [t, policy] = await Promise.all([
     getTranslations("LocalFareRules"),
-    apiFetch<LocalFarePolicy | null>("/api/local-fare-policy/", { next: { revalidate: 60 } }).catch(() => null),
+    apiFetch<LocalFarePolicy | null>("/api/local-fare-policy/").catch(() => null),
   ]);
 
   if (!policy) return null;

@@ -34,7 +34,7 @@ export default async function FleetPage({ params }: { params: Promise<{ locale: 
     getTranslations("Fleet"),
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
-    apiFetch<Vehicle[]>("/api/fleet/vehicles/", { next: { revalidate: 60 } }).catch(() => []),
+    apiFetch<Vehicle[]>("/api/fleet/vehicles/").catch(() => []),
   ]);
 
   const descriptionKey = appLocale === "en" ? "description_en" : "description_pl";

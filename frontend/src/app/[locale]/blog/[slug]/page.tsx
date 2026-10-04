@@ -15,11 +15,11 @@ import { buildAlternates } from "@/lib/seo";
 import type { BlogPost } from "@/lib/types";
 
 async function getPosts(): Promise<BlogPost[]> {
-  return apiFetch<BlogPost[]>("/api/blog/", { next: { revalidate: 60 } }).catch(() => []);
+  return apiFetch<BlogPost[]>("/api/blog/").catch(() => []);
 }
 
 async function getPost(slug: string): Promise<BlogPost | null> {
-  return apiFetch<BlogPost>(`/api/blog/${slug}/`, { next: { revalidate: 60 } }).catch(() => null);
+  return apiFetch<BlogPost>(`/api/blog/${slug}/`).catch(() => null);
 }
 
 export async function generateStaticParams() {

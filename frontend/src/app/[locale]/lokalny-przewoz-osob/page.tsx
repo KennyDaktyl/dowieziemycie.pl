@@ -20,7 +20,7 @@ import type { ContactInfo, ContentPage } from "@/lib/types";
 const SLUG = "lokalny-przewoz-osob";
 
 async function getPage(): Promise<ContentPage | null> {
-  return apiFetch<ContentPage>(`/api/content-pages/${SLUG}/`, { next: { revalidate: 60 } }).catch(() => null);
+  return apiFetch<ContentPage>(`/api/content-pages/${SLUG}/`).catch(() => null);
 }
 
 export async function generateMetadata({
@@ -46,7 +46,7 @@ export default async function LokalnyPrzewozPage({ params }: { params: Promise<{
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
     getPage(),
-    apiFetch<ContactInfo>("/api/contact-info/", { next: { revalidate: 60 } }),
+    apiFetch<ContactInfo>("/api/contact-info/"),
   ]);
 
   if (!page) notFound();

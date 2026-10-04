@@ -10,7 +10,7 @@ import type { ContentPage } from "@/lib/types";
 
 async function getPage(): Promise<ContentPage | null> {
   try {
-    return await apiFetch<ContentPage>("/api/content-pages/regulamin/", { next: { revalidate: 60 } });
+    return await apiFetch<ContentPage>("/api/content-pages/regulamin/");
   } catch {
     return null;
   }
