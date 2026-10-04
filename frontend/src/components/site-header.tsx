@@ -2,21 +2,19 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
-import { getSession } from "@/lib/auth";
 import type { ContactInfo } from "@/lib/types";
 
-import { CustomerMenu } from "./customer-menu";
+import { HeaderAccount } from "./header-account";
 import { InformationMenu } from "./information-menu";
 import { LocaleSwitcher } from "./locale-switcher";
 import { MobileNav } from "./mobile-nav";
 
 export async function SiteHeader() {
-  const [t, tNav, locale, contact, { customer }] = await Promise.all([
+  const [t, tNav, locale, contact] = await Promise.all([
     getTranslations("Header"),
     getTranslations("Nav"),
     getLocale(),
     apiFetch<ContactInfo>("/api/contact-info/"),
-    getSession(),
   ]);
 
   // Anchor ids are language-neutral on purpose (same on /pl and /en) — prefixed
@@ -94,20 +92,7 @@ export async function SiteHeader() {
               <LocaleSwitcher />
             </div>
             <div className="hidden 2xl:block">
-              {customer ? (
-                <CustomerMenu myTripsLabel={t("myTrips")} logoutLabel={t("logout")} />
-              ) : (
-                <Link
-                  href="/logowanie"
-                  className="flex shrink-0 items-center gap-1.5 text-[14.5px] font-semibold whitespace-nowrap text-muted transition-colors hover:text-text"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="shrink-0">
-                    <circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.8" />
-                    <path d="M4.5 20c1.4-4 4.4-6 7.5-6s6.1 2 7.5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  </svg>
-                  {t("myTrips")}
-                </Link>
-              )}
+              <HeaderAccount myTripsLabel={t("myTrips")} logoutLabel={t("logout")} />
             </div>
             <Link
               href="/sledz"
@@ -123,14 +108,13 @@ export async function SiteHeader() {
             </a>
             <MobileNav
               navLinks={mobileNavLinks}
-              loginHref={customer ? "/moje-kursy" : "/logowanie"}
-              loginLabel={customer ? t("myTrips") : t("login")}
+              loginLabel={t("login")}
+              myTripsLabel={t("myTrips")}
               callLabel={t("call")}
               phone={contact.phone}
               trackByCodeLabel={tNav("trackByCode")}
               bookNowLabel={tNav("bookNow")}
               speaksEnglishLabel={t("speaksEnglish")}
-              isLoggedIn={Boolean(customer)}
               logoutLabel={t("logout")}
             />
           </div>

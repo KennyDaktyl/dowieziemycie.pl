@@ -3,34 +3,34 @@
 import { useEffect, useState } from "react";
 
 import { Link } from "@/i18n/navigation";
+import { useLoggedIn } from "@/lib/use-logged-in";
 
 import { LocaleSwitcher } from "./locale-switcher";
 import { LogoutButton } from "./logout-button";
 
 export function MobileNav({
   navLinks,
-  loginHref,
   loginLabel,
+  myTripsLabel,
   callLabel,
   phone,
   trackByCodeLabel,
   bookNowLabel,
   speaksEnglishLabel,
-  isLoggedIn,
   logoutLabel,
 }: {
   navLinks: { href: string; label: string }[];
-  loginHref: string;
   loginLabel: string;
+  myTripsLabel: string;
   callLabel: string;
   phone: string;
   trackByCodeLabel: string;
   bookNowLabel: string;
   speaksEnglishLabel: string;
-  isLoggedIn: boolean;
   logoutLabel: string;
 }) {
   const [open, setOpen] = useState(false);
+  const isLoggedIn = Boolean(useLoggedIn());
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -82,11 +82,11 @@ export function MobileNav({
               ),
             )}
             <Link
-              href={loginHref}
+              href={isLoggedIn ? "/moje-kursy" : "/logowanie"}
               onClick={() => setOpen(false)}
               className="rounded-md px-2 py-3 text-text transition-colors hover:bg-panel"
             >
-              {loginLabel}
+              {isLoggedIn ? myTripsLabel : loginLabel}
             </Link>
             {isLoggedIn && (
               <LogoutButton
