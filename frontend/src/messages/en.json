@@ -463,7 +463,18 @@
     "galleryNext": "Next photo",
     "seeAlso": "See also",
     "formHeading": "Send an inquiry",
-    "formLead": "Describe what needs moving, add a photo and the addresses — we'll get back to you with a fixed price."
+    "formLead": "Describe what needs moving, add a photo and the addresses — we'll get back to you with a fixed price.",
+    "busRate": "from {hour}/h + {km}/100 km",
+    "trailerRate": "from {amount} per day extra",
+    "ratesHeading": "Price list",
+    "rateHour": "Hour of work ({from}–{to})",
+    "rateNight": "Hour of work at night ({from}–{to})",
+    "rate100km": "Every 100 km",
+    "rateTrailer": "Trailer (per day)",
+    "rateLoading": "Loading, unloading, carrying",
+    "fromAmount": "from {amount}",
+    "individualQuote": "individual quote",
+    "ratesNote": "We quote the exact price for the whole job before the ride, from a photo and the addresses."
   },
   "TransportForm": {
     "vehicleOption": "How should it travel?",

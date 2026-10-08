@@ -9,6 +9,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import { apiFetch } from "@/lib/api";
+import { fillRateTokens, getGoodsPricing } from "@/lib/rates";
 import { absoluteImageUrl } from "@/lib/images";
 import { localize } from "@/lib/localize";
 import { buildAlternates } from "@/lib/seo";
@@ -45,18 +46,24 @@ export default async function BlogPostPage({ params }: { params: Promise<{ local
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const [t, tCrumbs, appLocale, post] = await Promise.all([
+  const [t, tCrumbs, appLocale, post, pricing] = await Promise.all([
     getTranslations("Blog"),
     getTranslations("Breadcrumbs"),
     getLocale() as Promise<AppLocale>,
     getPost(slug),
+    getGoodsPricing(),
   ]);
 
   if (!post) notFound();
 
   const tag = localize(post, "tag", appLocale);
   const title = localize(post, "title", appLocale);
-  const body = localize(post, "body", appLocale) || localize(post, "excerpt", appLocale);
+  // Amounts come from the Admin price list via {rate:…} tokens (lib/rates).
+  const body = fillRateTokens(
+    localize(post, "body", appLocale) || localize(post, "excerpt", appLocale),
+    pricing,
+    appLocale,
+  );
   const sortedLinks = [...post.links].sort((a, b) => a.order - b.order);
 
   return (

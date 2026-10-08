@@ -12,6 +12,7 @@ from .models import (
     FixedRoute,
     FixedRoutePhoto,
     FixedRouteVehiclePrice,
+    GoodsTransportPricing,
     HomeContent,
     LocalRoute,
     ServicePage,
@@ -629,3 +630,27 @@ class TransportInquiryAdmin(admin.ModelAdmin):
     @admin.display(description="Zdjęcia", ordering="_photo_count")
     def photo_count(self, obj):
         return obj._photo_count
+
+
+@admin.register(GoodsTransportPricing)
+class GoodsTransportPricingAdmin(admin.ModelAdmin):
+    """The only place goods-transport prices live — pages and articles show
+    them through {rate:…} tokens."""
+
+    list_display = (
+        "__str__", "hourly_rate", "night_hourly_rate", "price_per_100km", "trailer_price_per_day",
+        "loading_price_from", "updated_at",
+    )
+    fieldsets = (
+        (None, {"fields": ("site",)}),
+        ("Stawki", {
+            "fields": (
+                "hourly_rate", "night_hourly_rate", ("day_starts_at", "night_starts_at"), "price_per_100km",
+                "trailer_price_per_day", "loading_price_from",
+            ),
+            "description": (
+                "Teksty stron i artykułów nie zawierają kwot — zamiast nich są tokeny {rate:hour}, {rate:night}, "
+                "{rate:100km}, {rate:trailer}, {rate:loading}. Zmiana tutaj aktualizuje wszystkie strony."
+            ),
+        }),
+    )

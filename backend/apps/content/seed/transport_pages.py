@@ -62,7 +62,7 @@ Czego się nie podejmujemy: przeprowadzek całych domów z ekipą tragarzy, pian
 
 ## Transport z IKEA
 
-Masz meble z IKEA w Krakowie, ale nie masz ich czym przywieźć? Możemy odebrać zamówienie ze sklepu albo z punktu odbioru i dowieźć je pod Twój dom w Krakowie lub okolicy. Przed kursem sprawdź w opisie produktu wymiary i wagę paczek — przy długich elementach (np. drzwi szafy) to one decydują, czy wystarczy bus. [DO POTWIERDZENIA: czy kierowca może sam odebrać zamówienie z IKEA na podstawie numeru zamówienia / upoważnienia, czy klient jedzie razem z nim]
+Masz meble z IKEA w Krakowie, ale nie masz ich czym przywieźć? Możemy odebrać zamówienie ze sklepu albo z punktu odbioru i dowieźć je pod Twój dom w Krakowie lub okolicy. Przed kursem sprawdź w opisie produktu wymiary i wagę paczek — przy długich elementach (np. drzwi szafy) to one decydują, czy wystarczy bus. Najprościej, gdy jedziesz z nami po odbiór; jeśli nie możesz, napisz — ustalimy szczegóły przy zleceniu.
 
 ## Gdzie jeździmy
 
@@ -71,19 +71,19 @@ Kraków i okoliczne miejscowości, które znamy na pamięć: Rybna, Liszki, Kasz
 ## Najczęściej zadawane pytania
 
 **Co zmieści się w busie?**
-Multivan z wyjętymi fotelami pomieści meble w paczkach, pojedyncze meble, kartony i rowery. [DO POTWIERDZENIA: wymiary przestrzeni ładunkowej — długość, szerokość, wysokość — i maksymalna masa ładunku] Jeśli nie masz pewności, wyślij zdjęcie z wymiarami — odpowiemy, czy wystarczy jeden kurs.
+Multivan z wyjętymi fotelami pomieści meble w paczkach, pojedyncze meble, kartony i rowery. Przestrzeń ładunkowa ma ok. 131 cm wysokości i 166 cm szerokości, a po wyjęciu foteli od ok. 3,2 do 4,3 m³ pojemności (zależnie od sposobu pomiaru). Jeśli nie masz pewności, wyślij zdjęcie z wymiarami — odpowiemy, czy wystarczy jeden kurs.
 
 **Czy pomagacie wnieść meble?**
-[DO POTWIERDZENIA: czy kierowca pomaga przy załadunku i wnoszeniu, do którego piętra i czy za dopłatą] W formularzu zaznacz, czy potrzebujesz pomocy przy wnoszeniu.
+Tak, na życzenie. Wnoszenie, znoszenie, załadunek i rozładunek to usługi dodatkowe — wyceniamy je indywidualnie do zlecenia, bo zależą od tego, co przewozimy, ile to waży i na które piętro trzeba to wnieść. W formularzu zaznacz, czy potrzebujesz pomocy przy wnoszeniu.
 
 **Czy przewieziecie lodówkę albo pralkę?**
 Tak, ale warto przygotować je wcześniej. Przeczytaj, [jak przewieźć lodówkę: na leżąco czy na stojąco](/blog/transport-lodowki-na-lezaco-czy-na-stojaco) i [jak zabezpieczyć pralkę bez blokad](/blog/transport-pralki-bez-blokad).
 
 **Ile kosztuje transport mebli w Krakowie?**
-Cena zależy od odległości, ilości rzeczy i tego, czy potrzebna jest pomoc przy wnoszeniu. [DO POTWIERDZENIA: cena „od” za kurs po Krakowie] Dokładną kwotę podajemy po zdjęciu i adresach — przed kursem, nie po nim.
+Cena zależy od odległości, ilości rzeczy i tego, czy potrzebna jest pomoc przy wnoszeniu. Liczymy od {rate:hour} za godzinę pracy i {rate:100km} za każde 100 km trasy; w nocy stawka godzinowa jest wyższa (od {rate:night} za godzinę). Dokładną kwotę podajemy po zdjęciu i adresach — przed kursem, nie po nim.
 
 **Czy jeździcie wieczorem i w weekend?**
-[DO POTWIERDZENIA: w jakich godzinach i dniach realizujecie transport rzeczy]
+Tak, jeździmy 24/7 — także wieczorami, w weekendy i w nocy. W nocy stawka godzinowa jest wyższa (od {rate:night} za godzinę).
 
 **Jak mogę zapłacić?**
 Kartą, BLIK-iem albo gotówką u kierowcy.
@@ -92,7 +92,7 @@ Kartą, BLIK-iem albo gotówką u kierowcy.
 Tak, na przyczepie. Przyczepę wypożyczamy pod konkretne zlecenie, dlatego najpierw potwierdzamy dostępność w Twoim terminie, a potem podajemy cenę. Więcej w poradniku [jak przewieźć quada](/blog/jak-przewiezc-quada-przyczepa-laweta-bus).
 
 **Czy przewożony towar jest ubezpieczony?**
-[DO POTWIERDZENIA: czy i do jakiej kwoty ładunek jest ubezpieczony w czasie przewozu]""",
+Nie mamy osobnego ubezpieczenia przewożonych rzeczy (cargo). Dlatego każdy ładunek dokładnie zabezpieczamy pasami i kocami. Przy bardzo cennych rzeczach sprawdź, czy obejmuje je Twoje własne ubezpieczenie, np. mieszkania.""",
     "body_en": """Furniture transport in Kraków doesn't always call for a removal company with a crew and a lorry. If you're moving one wardrobe, a chest of drawers from an online ad, IKEA flat-packs or a dozen boxes, a van and a driver who knows the area are enough. That's how dowieziemycie.pl works: one driver, one Volkswagen Multivan, a fixed price agreed before the ride.
 
 ## What we move
@@ -113,7 +113,7 @@ What we don't take on: whole-house moves with a team of porters, pianos and safe
 
 ## IKEA delivery
 
-Bought furniture at IKEA in Kraków but have no way to get it home? We can collect the order from the store or a pick-up point and bring it to your home in Kraków or nearby. Before the ride, check the package dimensions and weight in the product details — with long parts (such as wardrobe doors) they decide whether a van is enough. [DO POTWIERDZENIA: whether the driver can collect an IKEA order alone with the order number / an authorisation, or the customer rides along]
+Bought furniture at IKEA in Kraków but have no way to get it home? We can collect the order from the store or a pick-up point and bring it to your home in Kraków or nearby. Before the ride, check the package dimensions and weight in the product details — with long parts (such as wardrobe doors) they decide whether a van is enough. It's simplest if you ride along to the collection; if you can't, let us know and we'll agree the details for the job.
 
 ## Where we go
 
@@ -122,19 +122,19 @@ Kraków and the nearby villages we know by heart: Rybna, Liszki, Kaszów, Czerni
 ## Frequently asked questions
 
 **What fits in the van?**
-A Multivan with the seats removed takes flat-packs, single pieces of furniture, boxes and bikes. [DO POTWIERDZENIA: load space dimensions — length, width, height — and maximum load weight] If you're not sure, send a photo with measurements and we'll tell you whether one trip is enough.
+A Multivan with the seats removed takes flat-packs, single pieces of furniture, boxes and bikes. The load space is about 131 cm high and 166 cm wide, with roughly 3.2–4.3 m³ of room once the seats are out (depending on how it's measured). If you're not sure, send a photo with measurements and we'll tell you whether one trip is enough.
 
 **Do you help carry the furniture?**
-[DO POTWIERDZENIA: whether the driver helps with loading and carrying, up to which floor, and whether it costs extra] Tick the "help with carrying" box in the form if you need it.
+Yes, on request. Carrying in and out, loading and unloading are extra services — we price them individually for each job, as they depend on what we're moving, how heavy it is and which floor it goes to. Tick the "help with carrying" box in the form if you need it.
 
 **Can you move a fridge or a washing machine?**
 Yes, but they need some preparation. Read [how to transport a fridge: lying down or upright](/blog/transport-lodowki-na-lezaco-czy-na-stojaco) and [how to secure a washing machine without transit bolts](/blog/transport-pralki-bez-blokad).
 
 **How much does furniture transport in Kraków cost?**
-It depends on distance, the amount of items and whether you need help carrying. [DO POTWIERDZENIA: "from" price for a ride within Kraków] We quote the exact amount once we see the photo and the addresses — before the ride, not after.
+It depends on distance, the amount of items and whether you need help carrying. We charge from {rate:hour} per hour of work plus {rate:100km} per 100 km; at night the hourly rate is higher (from {rate:night} per hour). We quote the exact amount once we see the photo and the addresses — before the ride, not after.
 
 **Do you work evenings and weekends?**
-[DO POTWIERDZENIA: which hours and days goods transport is available]
+Yes, we work 24/7 — evenings, weekends and nights too. At night the hourly rate is higher (from {rate:night} per hour).
 
 **How can I pay?**
 By card, BLIK or cash to the driver.
@@ -143,7 +143,7 @@ By card, BLIK or cash to the driver.
 Yes, on a trailer. We hire the trailer for each job, so we first confirm it's available on your date and then give you the price. More in our guide on [how to transport a quad](/blog/jak-przewiezc-quada-przyczepa-laweta-bus).
 
 **Is the load insured?**
-[DO POTWIERDZENIA: whether, and up to what amount, the load is insured in transit]""",
+We don't have separate cargo insurance for the goods we carry. That's why every load is carefully secured with straps and blankets. For very valuable items, check whether your own insurance (e.g. home insurance) covers them.""",
 }
 
 CATEGORY_PRICING = [
@@ -154,16 +154,16 @@ CATEGORY_PRICING = [
         "name_en": "By van",
         "description_pl": (
             "Volkswagen Multivan z wyjętymi fotelami — meble w paczkach, pojedyncze meble, kartony, rowery, "
-            "drobne AGD i mała przeprowadzka. [DO POTWIERDZENIA: wymiary przestrzeni ładunkowej i "
-            "maksymalna masa ładunku]"
+            "drobne AGD i mała przeprowadzka. Ok. 131 cm wysokości, 166 cm szerokości i do ok. 3,2–4,3 m³ "
+            "przestrzeni."
         ),
         "description_en": (
             "Volkswagen Multivan with the seats removed — flat-packs, single pieces of furniture, boxes, bikes, "
-            "small appliances and small moves. [DO POTWIERDZENIA: load space dimensions and maximum load weight]"
+            "small appliances and small moves. About 131 cm high, 166 cm wide and up to roughly 3.2–4.3 m³ of space."
         ),
         "price_from": None,
-        "price_note_pl": "[DO POTWIERDZENIA: cena „od” za kurs po Krakowie]",
-        "price_note_en": "[DO POTWIERDZENIA: \"from\" price for a ride within Kraków]",
+        "price_note_pl": "",
+        "price_note_en": "",
         "on_request": False,
     },
     {
@@ -174,12 +174,12 @@ CATEGORY_PRICING = [
         "description_pl": (
             "Quad, motocykl albo rzeczy, które nie zmieszczą się do busa. Przyczepę wypożyczamy pod konkretne "
             "zlecenie, więc najpierw potwierdzamy dostępność w Twoim terminie, a potem podajemy cenę. "
-            "[DO POTWIERDZENIA: maksymalna długość i masa ładunku na przyczepie]"
+            "Przyczepę dobieramy pod ładunek — do ok. 3 m długości i ok. 120 cm szerokości, o DMC do 750 kg."
         ),
         "description_en": (
             "A quad, a motorbike or items that won't fit in the van. We hire the trailer for each job, so we first "
-            "confirm it's available on your date and then give you the price. [DO POTWIERDZENIA: maximum load "
-            "length and weight on the trailer]"
+            "confirm it's available on your date and then give you the price. We match the trailer to the load — "
+            "up to about 3 m long and 120 cm wide, maximum mass up to 750 kg."
         ),
         "price_from": None,
         "price_note_pl": "",
@@ -228,7 +228,7 @@ MOVE = {
 
 ## Uczciwie o tym, czego nie robimy
 
-To jeden kierowca z busem, a nie firma przeprowadzkowa z ekipą. Nie przewozimy całych domów, pianin ani bardzo ciężkich szaf w jednym kawałku. [DO POTWIERDZENIA: czy kierowca pomaga przy wynoszeniu i wnoszeniu rzeczy, i na jakich zasadach] Jeśli rzeczy jest więcej, niż mieści się w jednym kursie, zrobimy dwa — albo powiemy wprost, że lepsza będzie firma z większym autem.
+To jeden kierowca z busem, a nie firma przeprowadzkowa z ekipą. Nie przewozimy całych domów, pianin ani bardzo ciężkich szaf w jednym kawałku. Wnoszenie, znoszenie, załadunek i rozładunek to usługi dodatkowe — wyceniamy je indywidualnie do zlecenia, bo zależą od tego, co przewozimy, ile to waży i na które piętro trzeba to wnieść. Jeśli rzeczy jest więcej, niż mieści się w jednym kursie, zrobimy dwa — albo powiemy wprost, że lepsza będzie firma z większym autem.
 
 ## Ile kosztuje mała przeprowadzka
 
@@ -237,9 +237,9 @@ Cena zależy przede wszystkim od czterech rzeczy:
 1. **Odległość** — kurs po Krakowie kosztuje mniej niż przeprowadzka z Krakowa do Krzeszowic.
 2. **Ilość rzeczy** — czy wszystko wejdzie w jeden kurs, czy trzeba dwóch.
 3. **Piętro i winda** — przy ciężkich rzeczach i braku windy załadunek trwa dłużej.
-4. **Termin** — [DO POTWIERDZENIA: czy cena różni się w weekendy, wieczorem albo na początku i końcu miesiąca]
+4. **Termin** — jeździmy 24/7, ale w nocy stawka godzinowa jest wyższa (od {rate:night} za godzinę), a na początek i koniec miesiąca warto zarezerwować wcześniej.
 
-[DO POTWIERDZENIA: orientacyjna cena „od” za małą przeprowadzkę po Krakowie] Dokładną kwotę podajemy przed kursem — wystarczy zdjęcie rzeczy (albo krótki spis) i oba adresy. Więcej o tym, jak obniżyć koszt, w artykule [ile kosztuje mała przeprowadzka w Krakowie](/blog/ile-kosztuje-mala-przeprowadzka-krakow).
+Liczymy od {rate:hour} za godzinę pracy i {rate:100km} za każde 100 km trasy; w nocy stawka godzinowa jest wyższa (od {rate:night} za godzinę). Wnoszenie i rozładunek wyceniamy osobno, indywidualnie do zlecenia. Dokładną kwotę podajemy przed kursem — wystarczy zdjęcie rzeczy (albo krótki spis) i oba adresy. Więcej o tym, jak obniżyć koszt, w artykule [ile kosztuje mała przeprowadzka w Krakowie](/blog/ile-kosztuje-mala-przeprowadzka-krakow).
 
 ## Jak przygotować się do przeprowadzki busem
 
@@ -251,13 +251,13 @@ Cena zależy przede wszystkim od czterech rzeczy:
 ## Najczęściej zadawane pytania
 
 **Czy wszystko zmieści się w jednym kursie?**
-Przy kawalerce zwykle tak, ale zależy to od mebli. [DO POTWIERDZENIA: wymiary przestrzeni ładunkowej busa] Wyślij zdjęcia albo spis rzeczy — odpowiemy przed kursem.
+Przy kawalerce zwykle tak, ale zależy to od mebli. Przestrzeń ładunkowa ma ok. 131 cm wysokości i 166 cm szerokości, a po wyjęciu foteli od ok. 3,2 do 4,3 m³ pojemności (zależnie od sposobu pomiaru). Wyślij zdjęcia albo spis rzeczy — odpowiemy przed kursem.
 
 **Czy pomagacie przy noszeniu?**
-[DO POTWIERDZENIA: zakres pomocy kierowcy przy załadunku i wnoszeniu]
+Tak, na życzenie — jako usługę dodatkową, wycenianą indywidualnie do zlecenia, zależnie od ilości rzeczy, wagi i piętra.
 
 **Czy mogę jechać razem z rzeczami?**
-[DO POTWIERDZENIA: czy przy przewozie rzeczy w busie zostaje miejsce dla pasażera]
+Tak, jeśli ładunek jedzie na przyczepie. Gdy rzeczy są w busie, fotele są wyjęte i miejsca dla pasażera nie ma.
 
 **Ile wcześniej trzeba zarezerwować?**
 Najlepiej kilka dni wcześniej, zwłaszcza na początku i końcu miesiąca, kiedy wiele osób zmienia mieszkanie. Na szybszy termin też zapytaj — czasem się da.
@@ -277,7 +277,7 @@ Wolisz zobaczyć cały zakres usług? Wróć do strony [transport mebli i rzeczy
 
 ## Honestly: what we don't do
 
-We're one driver with a van, not a removal company with a crew. We don't move whole houses, pianos or very heavy one-piece wardrobes. [DO POTWIERDZENIA: whether the driver helps carry things out and in, and on what terms] If there's more than fits in one trip, we'll do two — or tell you plainly that a company with a bigger vehicle is the better choice.
+We're one driver with a van, not a removal company with a crew. We don't move whole houses, pianos or very heavy one-piece wardrobes. Carrying in and out, loading and unloading are extra services — we price them individually for each job, as they depend on what we're moving, how heavy it is and which floor it goes to. If there's more than fits in one trip, we'll do two — or tell you plainly that a company with a bigger vehicle is the better choice.
 
 ## How much does a small move cost
 
@@ -286,9 +286,9 @@ The price depends mainly on four things:
 1. **Distance** — a ride within Kraków costs less than a move from Kraków to Krzeszowice.
 2. **Amount of items** — whether everything fits in one trip or needs two.
 3. **Floor and lift** — with heavy items and no lift, loading takes longer.
-4. **Date** — [DO POTWIERDZENIA: whether the price differs at weekends, in the evening or at the start/end of the month]
+4. **Date** — we work 24/7, but the hourly rate is higher at night (from {rate:night} per hour), and it's worth booking early for the start and end of the month.
 
-[DO POTWIERDZENIA: indicative "from" price for a small move within Kraków] We give you the exact amount before the ride — all we need is a photo of your things (or a short list) and both addresses. More on keeping the cost down in [how much a small move in Kraków costs](/blog/ile-kosztuje-mala-przeprowadzka-krakow).
+We charge from {rate:hour} per hour of work plus {rate:100km} per 100 km; at night the hourly rate is higher (from {rate:night} per hour). Carrying and unloading are priced separately for each job. We give you the exact amount before the ride — all we need is a photo of your things (or a short list) and both addresses. More on keeping the cost down in [how much a small move in Kraków costs](/blog/ile-kosztuje-mala-przeprowadzka-krakow).
 
 ## How to get ready for a move by van
 
@@ -300,13 +300,13 @@ The price depends mainly on four things:
 ## Frequently asked questions
 
 **Will everything fit in one trip?**
-For a studio flat it usually does, but it depends on the furniture. [DO POTWIERDZENIA: van load space dimensions] Send photos or a list and we'll answer before the ride.
+For a studio flat it usually does, but it depends on the furniture. The load space is about 131 cm high and 166 cm wide, with roughly 3.2–4.3 m³ of room once the seats are out (depending on how it's measured). Send photos or a list and we'll answer before the ride.
 
 **Do you help with carrying?**
-[DO POTWIERDZENIA: how much the driver helps with loading and carrying]
+Yes, on request — as an extra service, priced individually for each job depending on the amount, weight and floor.
 
 **Can I ride along with my things?**
-[DO POTWIERDZENIA: whether there's a passenger seat left when the van carries goods]
+Yes, if the load travels on the trailer. When your things are in the van, the seats are out and there's no room for a passenger.
 
 **How far in advance should I book?**
 A few days ahead is best, especially at the start and end of the month when many people move. Ask about a sooner date too — sometimes it works out.

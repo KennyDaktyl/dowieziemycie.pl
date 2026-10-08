@@ -12,7 +12,7 @@ Drugi powód jest prostszy: lodówka jest zbudowana tak, by stać. Tylna ściana
 
 ## Kiedy transport lodówki na leżąco bywa dopuszczalny
 
-W praktyce nie zawsze da się przewieźć lodówkę pionowo. Wysoka lodówka z zamrażarką ma często około 180–200 cm, a w busie osobowym, takim jak Volkswagen Multivan, nie ma tyle wysokości. [DO POTWIERDZENIA: wysokość przestrzeni ładunkowej Multivana — jaka maksymalna wysokość urządzenia zmieści się w pionie] Niska lodówka podblatowa pojedzie w pionie bez problemu, wysoka — zwykle tylko pod kątem albo na boku.
+W praktyce nie zawsze da się przewieźć lodówkę pionowo. Wysoka lodówka z zamrażarką ma często około 180–200 cm, a w busie osobowym, takim jak Volkswagen Multivan, nie ma tyle wysokości. W naszym Multivanie przestrzeń ładunkowa ma ok. 131 cm wysokości, więc w pionie zmieszczą się tylko niższe lodówki. Niska lodówka podblatowa pojedzie w pionie bez problemu, wysoka — zwykle tylko pod kątem albo na boku.
 
 Jeśli leżenie jest konieczne, trzymaj się tych zasad:
 
@@ -67,7 +67,7 @@ Masz trzy podstawowe opcje:
 - **Własne auto albo pożyczony bus** — tanio, ale musisz mieć pomocnika, pasy i auto, do którego lodówka wejdzie.
 - **Przewóz z kierowcą** — ktoś przyjeżdża z odpowiednim autem i zabezpieczeniem, a Ty nie musisz organizować transportu.
 
-Cena transportu lodówki zależy od odległości, piętra, tego, czy jest winda, i od tego, czy potrzebna jest pomoc przy wnoszeniu. U nas wycenę dostajesz przed kursem, na podstawie zdjęcia i adresów. [DO POTWIERDZENIA: orientacyjna cena przewozu lodówki po Krakowie i czy kierowca pomaga ją wnieść]
+Cena transportu lodówki zależy od odległości, piętra, tego, czy jest winda, i od tego, czy potrzebna jest pomoc przy wnoszeniu. U nas wycenę dostajesz przed kursem, na podstawie zdjęcia i adresów. Liczymy od {rate:hour} za godzinę pracy i {rate:100km} za każde 100 km trasy; w nocy stawka godzinowa jest wyższa (od {rate:night} za godzinę). Wniesienie lodówki wyceniamy indywidualnie — zależnie od piętra i dojścia.
 
 ## Najczęstsze błędy przy przewozie lodówki
 
@@ -136,7 +136,7 @@ Nawet „suchą” pralkę po ostatnim praniu trzeba opróżnić z resztek wody.
 
 ## Transport pralki — ile kosztuje i kto może go zrobić
 
-Możesz pralkę przewieźć sam (potrzebny jest pomocnik, pasy i auto, do którego wejdzie w pionie), zlecić dostawę sklepowi przy zakupie nowej albo zamówić przewóz z kierowcą. Cena zależy od odległości, piętra, windy i tego, czy potrzebna jest pomoc przy wnoszeniu. [DO POTWIERDZENIA: orientacyjna cena przewozu pralki po Krakowie i czy kierowca pomaga ją wnieść]
+Możesz pralkę przewieźć sam (potrzebny jest pomocnik, pasy i auto, do którego wejdzie w pionie), zlecić dostawę sklepowi przy zakupie nowej albo zamówić przewóz z kierowcą. Cena zależy od odległości, piętra, windy i tego, czy potrzebna jest pomoc przy wnoszeniu. Liczymy od {rate:hour} za godzinę pracy i {rate:100km} za każde 100 km trasy; w nocy stawka godzinowa jest wyższa (od {rate:night} za godzinę). Wniesienie pralki wyceniamy indywidualnie — zależnie od piętra i dojścia.
 
 ## Czy pralkę można przewozić na leżąco?
 
@@ -207,14 +207,14 @@ To najważniejszy krok, o którym wiele osób zapomina. Meble z IKEA są zapakow
 3. **Zsumuj wagę** — kilka ciężkich paczek to nie tylko kwestia miejsca, ale i noszenia.
 4. **Wyślij te dane przewoźnikowi.** Zdjęcie listy zakupów z wymiarami wystarczy, żeby ocenić, czy wszystko pojedzie jednym kursem.
 
-[DO POTWIERDZENIA: maksymalna długość paczki, która zmieści się w naszym Multivanie]
+Przestrzeń ładunkowa ma ok. 131 cm wysokości i 166 cm szerokości, a po wyjęciu foteli od ok. 3,2 do 4,3 m³ pojemności (zależnie od sposobu pomiaru). Długie paczki, np. drzwi szafy, wyślij nam z wymiarami — sprawdzimy, czy wejdą.
 
 ## Odbiór ze sklepu, punktu odbioru i od sprzedającego
 
 Zakupy z IKEA możesz odebrać w sklepie albo — przy zamówieniu online — w punkcie odbioru. Przy przewozie z kierowcą trzeba ustalić, kto fizycznie odbiera towar.
 
 - **Jedziesz razem z kierowcą** — najprostsze rozwiązanie: odbierasz zamówienie, paczki trafiają do busa, jedziecie pod Twój adres.
-- **Kierowca odbiera sam** — wymaga to zwykle numeru zamówienia i potwierdzenia, że może je odebrać w Twoim imieniu. [DO POTWIERDZENIA: czy oferujemy odbiór zamówienia z IKEA bez obecności klienta]
+- **Kierowca odbiera sam** — wymaga to zwykle numeru zamówienia i potwierdzenia, że może je odebrać w Twoim imieniu. Jeśli nie możesz jechać z nami, napisz — ustalimy szczegóły odbioru przy zleceniu.
 
 Ten sam kurs możesz połączyć z odbiorem mebla z OLX albo komisu — szafa z ogłoszenia i paczki z IKEA często jadą razem.
 
@@ -226,7 +226,7 @@ Transport kończy się pod adresem, ale meble trzeba jeszcze wnieść i złoży�
 - przygotuj miejsce na paczki w mieszkaniu, żeby nie blokowały przejścia,
 - zaplanuj montaż: sam, z pomocą znajomych albo przez zewnętrzną firmę montażową.
 
-[DO POTWIERDZENIA: czy kierowca pomaga wnieść paczki i do którego piętra]
+Wnoszenie, znoszenie, załadunek i rozładunek to usługi dodatkowe — wyceniamy je indywidualnie do zlecenia, bo zależą od tego, co przewozimy, ile to waży i na które piętro trzeba to wnieść.
 
 ## Transport mebli z IKEA w Krakowie z dowieziemycie.pl
 
@@ -236,7 +236,7 @@ Jeździmy busem Volkswagen Multivan z wyjętymi fotelami po Krakowie i okolicach
 2. Dostajesz stałą cenę przed kursem.
 3. Przyjeżdżamy, ładujemy, zabezpieczamy pasami i kocami, dowozimy pod Twój dom.
 
-Płacisz kartą, BLIK-iem albo gotówką u kierowcy. [DO POTWIERDZENIA: orientacyjna cena przewozu z IKEA po Krakowie]
+Płacisz kartą, BLIK-iem albo gotówką u kierowcy. Liczymy od {rate:hour} za godzinę pracy i {rate:100km} za każde 100 km trasy; w nocy stawka godzinowa jest wyższa (od {rate:night} za godzinę).
 
 ## Jak zabezpieczyć paczki z IKEA w aucie
 
@@ -325,7 +325,7 @@ Jesteśmy lokalnym przewoźnikiem spod Krakowa: jeden kierowca, jeden Volkswagen
 - Kwota jest stała — bez licznika i dopłat na miejscu.
 - Płacisz kartą, BLIK-iem albo gotówką u kierowcy.
 
-[DO POTWIERDZENIA: orientacyjna cena „od” za małą przeprowadzkę po Krakowie i czy kierowca pomaga przy noszeniu]
+Liczymy od {rate:hour} za godzinę pracy i {rate:100km} za każde 100 km trasy; w nocy stawka godzinowa jest wyższa (od {rate:night} za godzinę). Wnoszenie, znoszenie, załadunek i rozładunek to usługi dodatkowe — wyceniamy je indywidualnie do zlecenia, bo zależą od tego, co przewozimy, ile to waży i na które piętro trzeba to wnieść.
 
 Obsługujemy Kraków i okolice: Rybną, Liszki, Kaszów, Czernichów, Sankę, Przeginię Narodową, Alwernię i Krzeszowice.
 
@@ -338,7 +338,7 @@ Przy stałej cenie — tak, o ile zakres się nie zmieni. Dlatego tak ważne są
 Przy niewielkiej odległości często tak — dwa kursy busem mogą wyjść taniej niż jeden kurs dużym autem z ekipą.
 
 **Czy trzeba zapłacić z góry?**
-To zależy od firmy. U nas płacisz kierowcy, kartą, BLIK-iem albo gotówką. [DO POTWIERDZENIA: czy przy przeprowadzce pobieracie zaliczkę]
+To zależy od firmy. U nas płacisz kierowcy, kartą, BLIK-iem albo gotówką.
 
 ## Lista kontrolna na dzień przeprowadzki
 
@@ -407,7 +407,7 @@ Laweta to auto pomocy drogowej albo przewoźnika z platformą.
 
 To rozwiązanie dla małych quadów (np. dziecięcych lub młodzieżowych) i dużych aut dostawczych z niską, płaską podłogą i najazdem.
 
-W typowym busie osobowym (także w Volkswagenie Multivanie) pełnowymiarowy quad się nie zmieści: brakuje szerokości drzwi, długości i wysokości przestrzeni ładunkowej, a wprowadzenie go do środka bez rampy jest ryzykowne. Dlatego do quadów i motocykli używamy przyczepy. [DO POTWIERDZENIA: czy jakiekolwiek małe quady/motocykle przewozimy w samym busie]
+W typowym busie osobowym (także w Volkswagenie Multivanie) pełnowymiarowy quad się nie zmieści: brakuje szerokości drzwi, długości i wysokości przestrzeni ładunkowej, a wprowadzenie go do środka bez rampy jest ryzykowne. Dlatego do quadów i motocykli używamy przyczepy.
 
 ## Jak zabezpieczyć quada do transportu
 
@@ -439,7 +439,7 @@ To częste pytanie przy transporcie quada na przyczepie. W ogólnym zarysie w Po
 - **Kategoria B z kodem 96** pozwala prowadzić zestaw o łącznej DMC powyżej 3500 kg, ale nie większej niż 4250 kg.
 - **Kategoria B+E** pozwala ciągnąć cięższe przyczepy — do 3500 kg DMC przyczepy.
 
-[DO WERYFIKACJI PRAWNEJ: sprawdzić aktualne brzmienie przepisów (ustawa o kierujących pojazdami) i ewentualne zmiany przed publikacją] Przepisy mogą się zmieniać, dlatego przed wyjazdem sprawdź aktualne zasady i dane w dowodzie rejestracyjnym samochodu oraz przyczepy.
+Przepisy mogą się zmieniać, dlatego przed wyjazdem sprawdź aktualne zasady i dane w dowodzie rejestracyjnym samochodu oraz przyczepy.
 
 ## Transport quada — cena
 
@@ -455,7 +455,7 @@ Przy krótkiej trasie wynajem przyczepy na dzień zwykle wychodzi taniej niż la
 
 ## Transport quada z dowieziemycie.pl
 
-Przewozimy quady i motocykle na przyczepie. Przyczepę wypożyczamy pod konkretne zlecenie, dlatego działamy na zapytanie: najpierw potwierdzamy dostępność przyczepy w Twoim terminie, potem podajemy cenę. [DO POTWIERDZENIA: czy Multivan ma hak holowniczy i jaką masę przyczepy może ciągnąć]
+Przewozimy quady i motocykle na przyczepie. Przyczepę wypożyczamy pod konkretne zlecenie, dlatego działamy na zapytanie: najpierw potwierdzamy dostępność przyczepy w Twoim terminie, potem podajemy cenę. Multivan ma hak holowniczy (DMC auta 3000 kg), a przyczepę o DMC do 750 kg dobieramy pod ładunek — do ok. 3 m długości i ok. 120 cm szerokości. Za przyczepę doliczamy od {rate:trailer} za dobę.
 
 Obsługujemy Kraków i okolice: Rybną, Liszki, Kaszów, Czernichów, Sankę, Przeginię Narodową, Alwernię i Krzeszowice.
 

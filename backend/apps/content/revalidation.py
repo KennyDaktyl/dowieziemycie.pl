@@ -69,6 +69,7 @@ def _registry():
         ("content", "EventOffer"): (("events",), _own_site),
         ("content", "EventOfferPhoto"): (("events",), _parent_site("offer")),
         ("content", "ServicePage"): (("service-pages",), _own_site),
+        ("content", "GoodsTransportPricing"): (("goods-transport-pricing",), _own_site),
         ("content", "ServicePricingOption"): (("service-pages",), _parent_site("page")),
         ("content", "ServicePagePhoto"): (("service-pages",), _parent_site("page")),
         ("fleet", "Vehicle"): (VEHICLE_TAGS, _shared),

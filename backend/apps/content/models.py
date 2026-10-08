@@ -775,6 +775,42 @@ class ServicePage(models.Model):
         return f"{self.parent.title_pl} › {self.title_pl}" if self.parent_id else self.title_pl
 
 
+class GoodsTransportPricing(models.Model):
+    """The goods-transport price list ("Transport rzeczy") — one row per
+    site, edited only here. Page and blog texts never contain amounts: they
+    use tokens the frontend fills from this row, so a change here updates
+    every page at once:
+      {rate:hour} {rate:night} {rate:100km} {rate:trailer} {rate:loading}"""
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, unique=True, default=DEFAULT_SITE)
+    hourly_rate = models.DecimalField(
+        "Godzina pracy (dzień), zł", max_digits=7, decimal_places=2, help_text="Token w tekstach: {rate:hour}",
+    )
+    night_hourly_rate = models.DecimalField(
+        "Godzina pracy (noc), zł", max_digits=7, decimal_places=2, help_text="Token w tekstach: {rate:night}",
+    )
+    day_starts_at = models.TimeField("Stawka dzienna od godziny")
+    night_starts_at = models.TimeField("Stawka nocna od godziny")
+    price_per_100km = models.DecimalField(
+        "Każde 100 km trasy, zł", max_digits=7, decimal_places=2, help_text="Token w tekstach: {rate:100km}",
+    )
+    trailer_price_per_day = models.DecimalField(
+        "Przyczepa — dopłata za dobę, zł", max_digits=7, decimal_places=2, help_text="Token: {rate:trailer}",
+    )
+    loading_price_from = models.DecimalField(
+        "Załadunek / rozładunek / wnoszenie — cena od, zł", max_digits=7, decimal_places=2, null=True, blank=True,
+        help_text="Puste = „wycena indywidualna do zlecenia”. Token w tekstach: {rate:loading}",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Cennik transportu rzeczy"
+        verbose_name_plural = "Cennik transportu rzeczy"
+
+    def __str__(self):
+        return f"Cennik transportu rzeczy ({self.get_site_display()})"
+
+
 class ServicePricingOption(models.Model):
     """One pricing card on a service page — "Busem" / "Z przyczepą". With
     on_request the card shows "na zapytanie" instead of a price (the trailer

@@ -1,6 +1,11 @@
 from django.urls import path
 
-from .service_api import ServicePageDetailView, ServicePageListView, TransportInquiryCreateView
+from .service_api import (
+    GoodsTransportPricingView,
+    ServicePageDetailView,
+    ServicePageListView,
+    TransportInquiryCreateView,
+)
 
 from .views import (
     BlogPostDetailView,
@@ -38,5 +43,6 @@ urlpatterns = [
     path("events/<slug:slug>/", EventOfferDetailView.as_view(), name="event-offer-detail"),
     path("service-pages/", ServicePageListView.as_view(), name="service-page-list"),
     path("service-pages/<slug:slug>/", ServicePageDetailView.as_view(), name="service-page-detail"),
+    path("goods-transport-pricing/", GoodsTransportPricingView.as_view(), name="goods-transport-pricing"),
     path("transport-inquiries/", TransportInquiryCreateView.as_view(), name="transport-inquiry-create"),
 ]

@@ -3,6 +3,7 @@ request form on them.
 
 GET  /api/service-pages/                    published pages (?parent=<slug>, ?homepage=1, ?top=1)
 GET  /api/service-pages/<slug>/             one page with pricing, gallery, subpages
+GET  /api/goods-transport-pricing/          the goods-transport rates (edited in Admin)
 POST /api/transport-inquiries/              multipart quote request (+ up to 5 photos)
 """
 
@@ -21,6 +22,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from .models import (
+    GoodsTransportPricing,
     ServicePage,
     ServicePagePhoto,
     ServicePricingOption,
@@ -121,6 +123,27 @@ class ServicePageDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return _published(self.request).select_related("parent").prefetch_related("pricing_options", "photos")
+
+
+class GoodsTransportPricingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GoodsTransportPricing
+        fields = [
+            "hourly_rate", "night_hourly_rate", "day_starts_at", "night_starts_at", "price_per_100km",
+            "trailer_price_per_day", "loading_price_from", "updated_at",
+        ]
+
+
+class GoodsTransportPricingView(generics.RetrieveAPIView):
+    """GET /api/goods-transport-pricing/ — this brand's goods-transport rates."""
+
+    permission_classes = [AllowAny]
+    serializer_class = GoodsTransportPricingSerializer
+
+    def get_object(self):
+        from django.shortcuts import get_object_or_404
+
+        return get_object_or_404(GoodsTransportPricing, site=self.request.site_code)
 
 
 # --- quote requests -----------------------------------------------------------

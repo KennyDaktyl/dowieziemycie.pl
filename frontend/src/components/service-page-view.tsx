@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { FaqJsonLd } from "@/components/faq-jsonld";
+import { GoodsPricingTable } from "@/components/goods-pricing-table";
 import { MarkdownContent } from "@/components/markdown-content";
 import { PricingOptions } from "@/components/pricing-options";
 import { ServiceGallery } from "@/components/service-gallery";
@@ -19,6 +20,7 @@ import { apiFetch } from "@/lib/api";
 import { extractFaqPairs, splitFaqSection } from "@/lib/faq";
 import { absoluteImageUrl } from "@/lib/images";
 import { localize } from "@/lib/localize";
+import { fillRateTokens, getGoodsPricing } from "@/lib/rates";
 import { servicePagePath } from "@/lib/service-pages";
 import type { ContactInfo, ServicePage, ServicePageListItem } from "@/lib/types";
 
@@ -37,17 +39,19 @@ export async function ServicePageView({
   related: ServicePageListItem[];
   breadcrumbItems: { label: string; href?: string }[];
 }) {
-  const [t, contact] = await Promise.all([
+  const [t, contact, pricing] = await Promise.all([
     getTranslations("Transport"),
     apiFetch<ContactInfo>("/api/contact-info/"),
+    getGoodsPricing(),
   ]);
+  const fill = (text: string) => fillRateTokens(text, pricing, locale);
 
   const path = servicePagePath(page);
   const title = localize(page, "title", locale);
   const h1 = localize(page, "h1", locale) || title;
-  const lead = localize(page, "lead", locale);
-  const body = localize(page, "body", locale);
-  const description = localize(page, "seo_description", locale) || lead;
+  const lead = fill(localize(page, "lead", locale));
+  const body = fill(localize(page, "body", locale));
+  const description = fill(localize(page, "seo_description", locale)) || lead;
   const faq = splitFaqSection(body);
   const photos = page.photos.map((photo) => ({
     src: photo.image,
@@ -120,7 +124,8 @@ export async function ServicePageView({
             />
           )}
 
-          <PricingOptions options={page.pricing_options} locale={locale} />
+          <PricingOptions options={page.pricing_options} locale={locale} pricing={pricing} />
+          {pricing && page.pricing_options.length > 0 && <GoodsPricingTable pricing={pricing} locale={locale} />}
 
           <div className="mt-10 max-w-[900px]">
             <MarkdownContent markdown={faq.before} locale={locale} />

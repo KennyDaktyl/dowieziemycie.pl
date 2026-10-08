@@ -700,6 +700,9 @@ class LoadTransportContentTests(TestCase):
 
         self.assertEqual(BlogPost.objects.filter(slug__in=[a["slug"] for a in ARTICLES]).count(), 5)
         self.assertFalse(ServicePage.objects.filter(is_published=True).exists())
+        page = ServicePage.objects.get(slug="transport-rzeczy")
+        page.lead_pl += " [DO POTWIERDZENIA: cena]"
+        page.save()
         with self.assertRaises(CommandError):
             call_command("load_transport_content", "--publish", stdout=out)
         self.assertFalse(ServicePage.objects.filter(is_published=True).exists())
@@ -730,3 +733,27 @@ class LoadTransportContentTests(TestCase):
         body = ContentPage.objects.get(slug="wynajem-busa-z-kierowca").body_pl
         self.assertEqual(body.count("](/transport-rzeczy)"), 1, "cross-link added once, idempotently")
         self.assertLess(body.index("/transport-rzeczy"), body.index("## Najczęściej zadawane pytania"))
+
+
+class GoodsTransportPricingTests(APITestCase):
+    def test_rates_served_per_brand(self):
+        res = self.client.get("/api/goods-transport-pricing/", HTTP_X_SITE="dowieziemycie")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("hourly_rate", res.data)
+        self.assertEqual(self.client.get("/api/goods-transport-pricing/", HTTP_X_SITE="transfer247").status_code, 404)
+
+    def test_seed_texts_contain_no_amounts(self):
+        """Prices live only in the Admin price list; texts use {rate:…}
+        tokens. A hard-coded "80 zł" would silently go stale."""
+        from .seed import transport_blog_en, transport_blog_pl, transport_pages
+
+        amount = re.compile(r"\b\d[\d\s,.]*\s?(?:zł|PLN)\b")
+        for module in (transport_pages, transport_blog_pl, transport_blog_en):
+            for name, value in vars(module).items():
+                texts = [value] if isinstance(value, str) else []
+                if isinstance(value, dict):
+                    texts = [v for v in value.values() if isinstance(v, str)]
+                if isinstance(value, list):
+                    texts = [v for item in value if isinstance(item, dict) for v in item.values() if isinstance(v, str)]
+                for text in texts:
+                    self.assertIsNone(amount.search(text), f"{module.__name__}.{name}: {amount.search(text)}")

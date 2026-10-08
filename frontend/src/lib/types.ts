@@ -357,3 +357,14 @@ export type ServicePage = ServicePageListItem & {
   photos: ServicePagePhoto[];
   children: ServicePageListItem[];
 };
+
+export type GoodsTransportPricing = {
+  hourly_rate: string;
+  night_hourly_rate: string;
+  day_starts_at: string;
+  night_starts_at: string;
+  price_per_100km: string;
+  trailer_price_per_day: string;
+  loading_price_from: string | null;
+  updated_at: string;
+};

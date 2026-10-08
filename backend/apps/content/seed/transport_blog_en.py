@@ -12,7 +12,7 @@ The second reason is simpler: a fridge is built to stand. The back panel with it
 
 ## When transporting a fridge lying down can be acceptable
 
-In practice a fridge can't always travel upright. A tall fridge-freezer is often around 180–200 cm high, and a passenger van such as a Volkswagen Multivan doesn't have that much headroom. [DO POTWIERDZENIA: Multivan load space height — what maximum appliance height fits upright] An under-counter fridge travels upright with no trouble; a tall one usually only tilted or on its side.
+In practice a fridge can't always travel upright. A tall fridge-freezer is often around 180–200 cm high, and a passenger van such as a Volkswagen Multivan doesn't have that much headroom. In our Multivan the load space is about 131 cm high, so only lower fridges fit upright. An under-counter fridge travels upright with no trouble; a tall one usually only tilted or on its side.
 
 If lying down is unavoidable, follow these rules:
 
@@ -67,7 +67,7 @@ You have three main options:
 - **Your own car or a borrowed van** — cheap, but you need a helper, straps and a vehicle the fridge fits in.
 - **Transport with a driver** — someone comes with the right vehicle and straps, and you don't have to organise anything.
 
-The price depends on distance, floor, whether there's a lift and whether you need help carrying. With us you get the quote before the ride, based on a photo and the addresses. [DO POTWIERDZENIA: indicative price for moving a fridge within Kraków and whether the driver helps carry it]
+The price depends on distance, floor, whether there's a lift and whether you need help carrying. With us you get the quote before the ride, based on a photo and the addresses. We charge from {rate:hour} per hour of work plus {rate:100km} per 100 km; at night the hourly rate is higher (from {rate:night} per hour). Carrying the fridge in is priced individually, depending on the floor and access.
 
 ## The most common mistakes
 
@@ -136,7 +136,7 @@ Even a "dry" machine holds leftover water after the last wash. Drain it, or it w
 
 ## Washing machine transport — cost and who can do it
 
-You can move the machine yourself (you need a helper, straps and a vehicle it fits in upright), arrange delivery with the shop when buying a new one, or book transport with a driver. The price depends on distance, floor, lift and whether you need help carrying. [DO POTWIERDZENIA: indicative price for moving a washing machine within Kraków and whether the driver helps carry it]
+You can move the machine yourself (you need a helper, straps and a vehicle it fits in upright), arrange delivery with the shop when buying a new one, or book transport with a driver. The price depends on distance, floor, lift and whether you need help carrying. We charge from {rate:hour} per hour of work plus {rate:100km} per 100 km; at night the hourly rate is higher (from {rate:night} per hour). Carrying the machine in is priced individually, depending on the floor and access.
 
 ## Can a washing machine travel lying down?
 
@@ -198,14 +198,14 @@ This is the most important step, and the one people forget. IKEA furniture is fl
 3. **Add up the weight** — several heavy packages are not only about space but also about carrying.
 4. **Send these details to the carrier.** A photo of your shopping list with dimensions is enough to judge whether everything goes in one trip.
 
-[DO POTWIERDZENIA: maximum package length that fits in our Multivan]
+The load space is about 131 cm high and 166 cm wide, with roughly 3.2–4.3 m³ of room once the seats are out (depending on how it's measured). Send us long packages, such as wardrobe doors, with their dimensions and we'll check they fit.
 
 ## Collection from the store, a pick-up point or a seller
 
 You can collect IKEA purchases in store or — for online orders — at a pick-up point. With transport with a driver, you need to agree who physically collects the goods.
 
 - **You ride along with the driver** — the simplest option: you collect the order, the packages go into the van, and you drive to your address together.
-- **The driver collects alone** — this usually needs the order number and confirmation that they may collect it on your behalf. [DO POTWIERDZENIA: whether we offer IKEA order collection without the customer present]
+- **The driver collects alone** — this usually needs the order number and confirmation that they may collect it on your behalf. If you can't ride along, let us know and we'll agree the collection details for the job.
 
 The same trip can include picking up an item from a second-hand ad or a consignment shop — a used wardrobe and IKEA flat-packs often travel together.
 
@@ -217,7 +217,7 @@ Transport ends at your address, but the furniture still has to go in and be asse
 - clear space for the packages so they don't block the way,
 - plan the assembly: yourself, with friends, or with an assembly service.
 
-[DO POTWIERDZENIA: whether the driver helps carry packages in, and up to which floor]
+Carrying in and out, loading and unloading are extra services — we price them individually for each job, as they depend on what we're moving, how heavy it is and which floor it goes to.
 
 ## IKEA furniture transport in Kraków with dowieziemycie.pl
 
@@ -227,7 +227,7 @@ We drive a Volkswagen Multivan with the seats removed around Kraków and nearby 
 2. You get a fixed price before the ride.
 3. We come, load, secure everything with straps and blankets and bring it to your door.
 
-You pay by card, BLIK or cash to the driver. [DO POTWIERDZENIA: indicative price for an IKEA run within Kraków]
+You pay by card, BLIK or cash to the driver. We charge from {rate:hour} per hour of work plus {rate:100km} per 100 km; at night the hourly rate is higher (from {rate:night} per hour).
 
 ## How to secure IKEA packages in the vehicle
 
@@ -300,7 +300,7 @@ We're a local carrier from near Kraków: one driver, one Volkswagen Multivan wit
 - The amount is fixed — no meter and no extras on the spot.
 - You pay by card, BLIK or cash to the driver.
 
-[DO POTWIERDZENIA: indicative "from" price for a small move within Kraków and whether the driver helps carry]
+We charge from {rate:hour} per hour of work plus {rate:100km} per 100 km; at night the hourly rate is higher (from {rate:night} per hour). Carrying in and out, loading and unloading are extra services — we price them individually for each job, as they depend on what we're moving, how heavy it is and which floor it goes to.
 
 We cover Kraków and the area around it: Rybna, Liszki, Kaszów, Czernichów, Sanka, Przeginia Narodowa, Alwernia and Krzeszowice.
 
@@ -313,7 +313,7 @@ With a fixed price — yes, as long as the scope doesn't change. That's why phot
 Over a short distance, often yes — two van trips can cost less than one trip in a big vehicle with a crew.
 
 **Do I have to pay in advance?**
-It depends on the company. With us you pay the driver, by card, BLIK or cash. [DO POTWIERDZENIA: whether you take a deposit for moves]
+It depends on the company. With us you pay the driver, by card, BLIK or cash.
 
 ## Moving-day checklist
 
@@ -365,7 +365,7 @@ A recovery truck is a breakdown service or carrier vehicle with a flatbed.
 
 This is for small quads (e.g. children's or youth models) and large vans with a low, flat floor and a ramp.
 
-A full-size quad won't fit in a typical passenger van (including a Volkswagen Multivan): the door width, load length and height aren't enough, and getting it inside without a ramp is risky. That's why we use a trailer for quads and motorbikes. [DO POTWIERDZENIA: whether any small quads/motorbikes are carried in the van itself]
+A full-size quad won't fit in a typical passenger van (including a Volkswagen Multivan): the door width, load length and height aren't enough, and getting it inside without a ramp is risky. That's why we use a trailer for quads and motorbikes.
 
 ## How to secure a quad for transport
 
@@ -397,7 +397,7 @@ A common question when moving a quad on a trailer. In outline, these are the rul
 - **Category B with code 96** lets you drive a combination with a combined maximum authorised mass over 3,500 kg but not more than 4,250 kg.
 - **Category B+E** lets you tow heavier trailers — up to 3,500 kg trailer maximum authorised mass.
 
-[DO WERYFIKACJI PRAWNEJ: check the current wording of the rules (Polish Act on Vehicle Drivers) and any changes before publishing] Rules can change, so before you set off, check the current regulations and the data in your car's and trailer's registration documents.
+Rules can change, so before you set off, check the current regulations and the data in your car's and trailer's registration documents.
 
 ## Quad transport — price
 
@@ -410,7 +410,7 @@ The cost of moving a quad depends on:
 
 ## Quad transport with dowieziemycie.pl
 
-We move quads and motorbikes on a trailer. We hire the trailer for each job, so we work on request: first we confirm the trailer is available on your date, then we give you the price. [DO POTWIERDZENIA: whether the Multivan has a tow bar and what trailer mass it can tow]
+We move quads and motorbikes on a trailer. We hire the trailer for each job, so we work on request: first we confirm the trailer is available on your date, then we give you the price. The Multivan has a tow bar (vehicle maximum mass 3,000 kg), and we match a trailer of up to 750 kg maximum mass to the load — up to about 3 m long and 120 cm wide. The trailer adds from {rate:trailer} per day.
 
 We cover Kraków and the area around it: Rybna, Liszki, Kaszów, Czernichów, Sanka, Przeginia Narodowa, Alwernia and Krzeszowice.
 

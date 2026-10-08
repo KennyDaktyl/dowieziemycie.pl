@@ -463,7 +463,18 @@
     "galleryNext": "Następne zdjęcie",
     "seeAlso": "Zobacz też",
     "formHeading": "Wyślij zapytanie",
-    "formLead": "Opisz, co trzeba przewieźć, dodaj zdjęcie i adresy — odezwiemy się ze stałą ceną."
+    "formLead": "Opisz, co trzeba przewieźć, dodaj zdjęcie i adresy — odezwiemy się ze stałą ceną.",
+    "busRate": "od {hour}/h + {km}/100 km",
+    "trailerRate": "dopłata od {amount} za dobę",
+    "ratesHeading": "Cennik",
+    "rateHour": "Godzina pracy ({from}–{to})",
+    "rateNight": "Godzina pracy w nocy ({from}–{to})",
+    "rate100km": "Każde 100 km trasy",
+    "rateTrailer": "Przyczepa (doba)",
+    "rateLoading": "Załadunek, rozładunek, wnoszenie",
+    "fromAmount": "od {amount}",
+    "individualQuote": "wycena indywidualna",
+    "ratesNote": "Dokładną cenę za całe zlecenie podajemy przed kursem, po zdjęciu i adresach."
   },
   "TransportForm": {
     "vehicleOption": "Czym przewieźć?",
