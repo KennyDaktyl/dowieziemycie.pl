@@ -50,7 +50,7 @@ export async function SiteFooter() {
           {/* apiBaseUrl() is the server-internal address (loopback, used for
               SSR fetches) — a real visitor's browser can't reach it.
               publicApiBaseUrl() is the one meant for browser-facing links. */}
-          <a href={`${publicApiBaseUrl()}/admin/`} className="opacity-60 transition-opacity hover:opacity-100">
+          <a href={`${publicApiBaseUrl()}/admin/`} className="opacity-80 transition-opacity hover:opacity-100">
             {t("adminPanel")}
           </a>
         </div>

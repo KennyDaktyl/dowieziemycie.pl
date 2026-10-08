@@ -68,6 +68,9 @@ def _registry():
         ("content", "EventDriverPricing"): (("event-driver-pricing",), _own_site),
         ("content", "EventOffer"): (("events",), _own_site),
         ("content", "EventOfferPhoto"): (("events",), _parent_site("offer")),
+        ("content", "ServicePage"): (("service-pages",), _own_site),
+        ("content", "ServicePricingOption"): (("service-pages",), _parent_site("page")),
+        ("content", "ServicePagePhoto"): (("service-pages",), _parent_site("page")),
         ("fleet", "Vehicle"): (VEHICLE_TAGS, _shared),
         ("fleet", "VehiclePhoto"): (VEHICLE_TAGS, _shared),
         ("bookings", "PricingTier"): (("pricing-tiers",), _shared),
@@ -107,6 +110,16 @@ def _flush():
         _timer = None
     for site in sorted(batch):
         send(site, batch[site])
+
+
+def flush_now():
+    """Send whatever is queued right away — for management commands, which
+    exit before the flush timer would fire."""
+    global _timer
+    with _lock:
+        if _timer is not None:
+            _timer.cancel()
+    _flush()
 
 
 def _on_change(sender, instance, **kwargs):

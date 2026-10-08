@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { routing } from "@/i18n/routing";
-import type { BlogPost, EventOfferListItem, LocalRoute } from "@/lib/types";
+import type { BlogPost, EventOfferListItem, LocalRoute, ServicePageListItem } from "@/lib/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dowieziemycie.pl";
 
@@ -37,11 +37,24 @@ async function getSlugs<T extends { slug: string }>(path: string): Promise<strin
   }
 }
 
+/** Published, indexable service pages ("Transport rzeczy" + subpages). */
+async function getServicePaths(): Promise<string[]> {
+  try {
+    const pages = await apiFetch<ServicePageListItem[]>("/api/service-pages/", { cache: "no-store" });
+    return pages
+      .filter((page) => !page.noindex)
+      .map((page) => (page.parent_slug ? `/${page.parent_slug}/${page.slug}` : `/${page.slug}`));
+  } catch {
+    return [];
+  }
+}
+
 export async function GET() {
-  const [routeSlugs, blogSlugs, eventSlugs] = await Promise.all([
+  const [routeSlugs, blogSlugs, eventSlugs, servicePaths] = await Promise.all([
     getSlugs<LocalRoute>("/api/routes/"),
     getSlugs<BlogPost>("/api/blog/"),
     getSlugs<EventOfferListItem>("/api/events/"),
+    getServicePaths(),
   ]);
 
   const urls = [
@@ -57,6 +70,7 @@ export async function GET() {
     ...routeSlugs.flatMap((slug) => localizedUrls(`/trasa/${slug}`)),
     ...eventSlugs.flatMap((slug) => localizedUrls(`/imprezy/${slug}`)),
     ...blogSlugs.flatMap((slug) => localizedUrls(`/blog/${slug}`)),
+    ...servicePaths.flatMap((path) => localizedUrls(path)),
   ];
 
   const body = [

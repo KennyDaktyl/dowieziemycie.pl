@@ -1,5 +1,7 @@
 from django.urls import path
 
+from .service_api import ServicePageDetailView, ServicePageListView, TransportInquiryCreateView
+
 from .views import (
     BlogPostDetailView,
     BlogPostListView,
@@ -34,4 +36,7 @@ urlpatterns = [
     path("event-driver-pricing/", EventDriverPricingView.as_view(), name="event-driver-pricing"),
     path("events/", EventOfferListView.as_view(), name="event-offer-list"),
     path("events/<slug:slug>/", EventOfferDetailView.as_view(), name="event-offer-detail"),
+    path("service-pages/", ServicePageListView.as_view(), name="service-page-list"),
+    path("service-pages/<slug:slug>/", ServicePageDetailView.as_view(), name="service-page-detail"),
+    path("transport-inquiries/", TransportInquiryCreateView.as_view(), name="transport-inquiry-create"),
 ]

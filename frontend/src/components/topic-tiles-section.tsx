@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import { apiFetch } from "@/lib/api";
 import { localize } from "@/lib/localize";
+import { getServicePages, servicePagePath } from "@/lib/service-pages";
 import type { EventOfferListItem } from "@/lib/types";
 
 async function getFeaturedEvents(): Promise<EventOfferListItem[]> {
@@ -14,10 +15,13 @@ async function getFeaturedEvents(): Promise<EventOfferListItem[]> {
 }
 
 export async function TopicTilesSection() {
-  const [t, appLocale, events] = await Promise.all([
+  const [t, appLocale, events, services] = await Promise.all([
     getTranslations("TopicTiles"),
     getLocale() as Promise<AppLocale>,
     getFeaturedEvents(),
+    // Service pages flagged show_on_homepage (published only), e.g. the
+    // "Transport rzeczy" tile — text edited in admin.
+    getServicePages("?homepage=1"),
   ]);
 
   // Two evergreen tiles not tied to a specific EventOffer — night-transport
@@ -56,6 +60,19 @@ export async function TopicTilesSection() {
                   {t("priceFrom", { price: Number(event.price_from).toFixed(0) })}
                 </p>
               )}
+            </Link>
+          ))}
+          {services.map((service) => (
+            <Link
+              key={service.slug}
+              href={servicePagePath(service)}
+              className="rounded-lg border border-line bg-panel p-5 transition-colors hover:border-amber"
+            >
+              {service.tile_icon && <span className="text-[22px]">{service.tile_icon}</span>}
+              <h3 className="mt-2.5 text-[15.5px] font-semibold">
+                {localize(service, "tile_title", appLocale) || localize(service, "title", appLocale)}
+              </h3>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{localize(service, "tile_body", appLocale)}</p>
             </Link>
           ))}
           {staticTiles.map((tile) =>

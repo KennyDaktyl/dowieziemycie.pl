@@ -14,11 +14,39 @@ from .models import (
     FixedRouteVehiclePrice,
     HomeContent,
     LocalRoute,
+    ServicePage,
+    ServicePagePhoto,
+    ServicePricingOption,
     SiteShowcasePhoto,
     Tour,
     TourPhoto,
     TourVehiclePrice,
+    TransportInquiry,
+    TransportInquiryPhoto,
 )
+
+
+PLACEHOLDER_MARKERS = ("[DO POTWIERDZENIA", "[DO WERYFIKACJI", "[TREŚĆ")
+
+
+class PlaceholderCheckMixin:
+    """Warns when a published page still contains a "[DO POTWIERDZENIA: …]"
+    placeholder — those are notes for the owner, not copy for customers."""
+
+    placeholder_fields = ()
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        if not obj.is_published:
+            return
+        found = [f for f in self.placeholder_fields if any(m in (getattr(obj, f, "") or "") for m in PLACEHOLDER_MARKERS)]
+        if found:
+            self.message_user(
+                request,
+                f"Strona jest opublikowana, a w polach {', '.join(found)} zostały placeholdery "
+                "[DO POTWIERDZENIA …] — klienci je zobaczą. Uzupełnij je albo odznacz publikację.",
+                level=messages.WARNING,
+            )
 
 
 class MarkdownTranslationCheckMixin:
@@ -399,13 +427,14 @@ class BlogPostLinkInline(admin.TabularInline):
 
 
 @admin.register(BlogPost)
-class BlogPostAdmin(MarkdownTranslationCheckMixin, admin.ModelAdmin):
+class BlogPostAdmin(PlaceholderCheckMixin, MarkdownTranslationCheckMixin, admin.ModelAdmin):
     list_display = ("title_pl", "site", "tag_pl", "published_at", "is_published")
     list_editable = ("is_published",)
     list_filter = ("site", "is_published")
     prepopulated_fields = {"slug": ("title_pl",)}
     search_fields = ("title_pl", "title_en", "excerpt_pl", "excerpt_en", "slug")
     inlines = [BlogPostPhotoInline, BlogPostLinkInline]
+    placeholder_fields = ("excerpt_pl", "excerpt_en", "body_pl", "body_en", "seo_description_pl", "seo_description_en")
     fieldsets = (
         (None, {"fields": ("site", "slug", "cover_image", "youtube_url", "published_at", "is_published")}),
         (
@@ -486,3 +515,117 @@ class EventOfferAdmin(admin.ModelAdmin):
             {"fields": ("title_en", "h1_en", "excerpt_en", "body_en", "seo_title_en", "seo_description_en")},
         ),
     )
+
+
+class ServicePricingOptionInline(admin.StackedInline):
+    model = ServicePricingOption
+    extra = 0
+    fields = (
+        ("code", "order", "on_request", "price_from"),
+        ("name_pl", "name_en"),
+        ("price_note_pl", "price_note_en"),
+        "description_pl",
+        "description_en",
+    )
+
+
+class ServicePagePhotoInline(admin.TabularInline):
+    model = ServicePagePhoto
+    extra = 1
+    fields = ("image", "thumbnail_preview", "alt_pl", "alt_en", "caption_pl", "order", "is_visible")
+    readonly_fields = ("thumbnail_preview",)
+
+    @admin.display(description="Podgląd")
+    def thumbnail_preview(self, obj):
+        if not obj.thumbnail:
+            return "—"
+        from django.utils.html import format_html
+
+        return format_html('<img src="{}" style="height:60px;border-radius:6px" />', obj.thumbnail.url)
+
+
+@admin.register(ServicePage)
+class ServicePageAdmin(PlaceholderCheckMixin, MarkdownTranslationCheckMixin, admin.ModelAdmin):
+    list_display = ("__str__", "slug", "is_published", "show_on_homepage", "order", "updated_at")
+    list_editable = ("is_published", "order")
+    list_filter = ("site", "is_published", "parent")
+    search_fields = ("title_pl", "title_en", "slug")
+    prepopulated_fields = {"slug": ("title_pl",)}
+    inlines = [ServicePricingOptionInline, ServicePagePhotoInline]
+    placeholder_fields = (
+        "lead_pl", "lead_en", "body_pl", "body_en", "seo_title_pl", "seo_title_en",
+        "seo_description_pl", "seo_description_en", "tile_body_pl", "tile_body_en",
+    )
+    fieldsets = (
+        (None, {"fields": (
+            "site", "parent", "slug", "order", "is_published", "noindex", "cover_image", "default_item_type",
+        )}),
+        ("Polski", {"fields": (
+            "menu_label_pl", "title_pl", "h1_pl", "lead_pl", "body_pl", "seo_title_pl", "seo_description_pl",
+        )}),
+        ("English", {"fields": (
+            "menu_label_en", "title_en", "h1_en", "lead_en", "body_en", "seo_title_en", "seo_description_en",
+        )}),
+        ("Kafelek na stronie głównej", {"fields": (
+            "show_on_homepage", "tile_icon", "tile_title_pl", "tile_title_en", "tile_body_pl", "tile_body_en",
+        )}),
+    )
+
+
+class TransportInquiryPhotoInline(admin.TabularInline):
+    model = TransportInquiryPhoto
+    extra = 0
+    can_delete = False
+    fields = ("preview",)
+    readonly_fields = ("preview",)
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    @admin.display(description="Zdjęcie")
+    def preview(self, obj):
+        from django.utils.html import format_html
+
+        return format_html(
+            '<a href="{0}" target="_blank" rel="noopener"><img src="{0}" style="max-height:220px;border-radius:6px" /></a>',
+            obj.image.url,
+        )
+
+
+@admin.register(TransportInquiry)
+class TransportInquiryAdmin(admin.ModelAdmin):
+    """Also the demand counter: filter by "Opcja" = Przyczepa."""
+
+    list_display = (
+        "id", "created_at", "name", "phone", "item_type", "vehicle_option", "status", "source_page", "photo_count",
+    )
+    list_editable = ("status",)
+    list_filter = ("status", "vehicle_option", "item_type", "source_page", "created_at", "site")
+    search_fields = ("name", "phone", "email", "description", "pickup_address", "dropoff_address")
+    date_hierarchy = "created_at"
+    inlines = [TransportInquiryPhotoInline]
+    readonly_fields = (
+        "site", "name", "phone", "email", "item_type", "description", "vehicle_option", "pickup_address",
+        "dropoff_address", "preferred_date", "needs_carrying", "source_page", "utm_source", "utm_medium",
+        "utm_campaign", "locale", "consent", "created_at",
+    )
+    fieldsets = (
+        (None, {"fields": ("status", "admin_notes")}),
+        ("Zgłoszenie", {"fields": (
+            "created_at", "name", "phone", "email", "item_type", "vehicle_option", "description",
+            "pickup_address", "dropoff_address", "preferred_date", "needs_carrying",
+        )}),
+        ("Źródło", {"fields": ("site", "source_page", "utm_source", "utm_medium", "utm_campaign", "locale", "consent")}),
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def get_queryset(self, request):
+        from django.db.models import Count
+
+        return super().get_queryset(request).annotate(_photo_count=Count("photos"))
+
+    @admin.display(description="Zdjęcia", ordering="_photo_count")
+    def photo_count(self, obj):
+        return obj._photo_count

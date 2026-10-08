@@ -697,3 +697,205 @@ class EventOfferPhoto(models.Model):
 
     def __str__(self):
         return self.caption or f"Zdjęcie #{self.pk}"
+
+
+# --- Service categories: "Transport rzeczy" (goods transport) ---------------
+
+
+class ServicePage(models.Model):
+    """A service category page (/transport-rzeczy) or one of its subpages
+    (/transport-rzeczy/<slug>, `parent` set). Same shape as the other CMS
+    pages: one Markdown body per language (## headings become H2s, the
+    "## Najczęściej zadawane pytania" / "## FAQ" section becomes FAQPage),
+    plus structured pricing options and a gallery. Also feeds the homepage
+    tile ("Wybierz, co Cię interesuje") when show_on_homepage is set."""
+
+    class ItemType(models.TextChoices):
+        MEBLE = "meble", "Meble"
+        KARTONY = "kartony", "Kartony"
+        AGD = "agd", "AGD"
+        ROWERY = "rowery", "Rowery"
+        PRZEPROWADZKA = "przeprowadzka", "Przeprowadzka"
+        QUAD_MOTOCYKL = "quad-motocykl", "Quad / motocykl"
+        INNE = "inne", "Inne"
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
+    parent = models.ForeignKey(
+        "self", null=True, blank=True, related_name="children", on_delete=models.PROTECT,
+        help_text="Puste = strona kategorii (np. /transport-rzeczy). Ustawione = podstrona tej kategorii.",
+    )
+    slug = models.SlugField(max_length=140, unique=True)
+    order = models.PositiveSmallIntegerField(default=0, help_text="Kolejność podstron — mniejsze wyżej.")
+    is_published = models.BooleanField(
+        default=False, help_text="Nieopublikowana strona zwraca 404 i nie trafia do menu ani sitemapy.",
+    )
+    noindex = models.BooleanField(default=False, help_text="Opublikowana, ale bez indeksowania w Google.")
+    menu_label_pl = models.CharField(max_length=80, blank=True, help_text="Krótka nazwa do menu i okruszków.")
+    menu_label_en = models.CharField(max_length=80, blank=True)
+    title_pl = models.CharField(max_length=200, help_text="Tytuł do kafelków i list.")
+    title_en = models.CharField(max_length=200)
+    h1_pl = models.CharField(max_length=200, blank=True, help_text="Nagłówek H1 — puste = tytuł.")
+    h1_en = models.CharField(max_length=200, blank=True)
+    lead_pl = models.TextField(blank=True, help_text="2–3 zdania pod H1.")
+    lead_en = models.TextField(blank=True)
+    body_pl = models.TextField(blank=True, help_text="Treść strony (Markdown — nagłówki ## stają się H2).")
+    body_en = models.TextField(blank=True)
+    seo_title_pl = models.CharField(max_length=160, blank=True)
+    seo_title_en = models.CharField(max_length=160, blank=True)
+    seo_description_pl = models.CharField(max_length=320, blank=True)
+    seo_description_en = models.CharField(max_length=320, blank=True)
+    cover_image = models.ImageField(
+        upload_to="services/covers/", blank=True, null=True,
+        help_text="Zdjęcie pod H1 i do udostępniania (Open Graph).",
+    )
+    default_item_type = models.CharField(
+        max_length=20, choices=ItemType.choices, blank=True,
+        help_text="Co formularz zapytania ma zaznaczyć na starcie na tej stronie (np. przeprowadzka).",
+    )
+    show_on_homepage = models.BooleanField(
+        default=False, help_text="Kafelek w sekcji „Wybierz, co Cię interesuje” na stronie głównej.",
+    )
+    tile_icon = models.CharField(max_length=8, blank=True, help_text="Emoji kafelka, np. 📦")
+    tile_title_pl = models.CharField(max_length=120, blank=True)
+    tile_title_en = models.CharField(max_length=120, blank=True)
+    tile_body_pl = models.CharField(max_length=200, blank=True, help_text="Jedno zdanie na kafelek.")
+    tile_body_en = models.CharField(max_length=200, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "title_pl"]
+        verbose_name = "Strona usługi (transport rzeczy)"
+        verbose_name_plural = "Strony usług (transport rzeczy)"
+
+    def save(self, *args, **kwargs):
+        process_cover_image(self, "cover_image")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.parent.title_pl} › {self.title_pl}" if self.parent_id else self.title_pl
+
+
+class ServicePricingOption(models.Model):
+    """One pricing card on a service page — "Busem" / "Z przyczepą". With
+    on_request the card shows "na zapytanie" instead of a price (the trailer
+    is hired per job, so its date is always confirmed first)."""
+
+    class Code(models.TextChoices):
+        BUS = "bus", "Bus"
+        TRAILER = "trailer", "Przyczepa"
+
+    page = models.ForeignKey(ServicePage, related_name="pricing_options", on_delete=models.CASCADE)
+    code = models.CharField(max_length=20, choices=Code.choices)
+    name_pl = models.CharField(max_length=120)
+    name_en = models.CharField(max_length=120)
+    description_pl = models.TextField(blank=True)
+    description_en = models.TextField(blank=True)
+    price_from = models.DecimalField(
+        max_digits=7, decimal_places=2, null=True, blank=True, help_text="Cena „od” w zł — puste = bez kwoty.",
+    )
+    price_note_pl = models.CharField(max_length=160, blank=True, help_text="Np. „za kurs po Krakowie”.")
+    price_note_en = models.CharField(max_length=160, blank=True)
+    on_request = models.BooleanField(default=False, help_text="Zamiast ceny: „Na zapytanie — potwierdzamy termin”.")
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Opcja cenowa"
+        verbose_name_plural = "Opcje cenowe"
+
+    def __str__(self):
+        return self.name_pl
+
+
+class ServicePagePhoto(models.Model):
+    """Gallery ("Nasze realizacje") — thumbnail grid, full photo in a lightbox."""
+
+    page = models.ForeignKey(ServicePage, related_name="photos", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to="services/gallery/")
+    thumbnail = models.ImageField(upload_to="services/gallery/thumbs/", blank=True, editable=False)
+    width = models.PositiveIntegerField(null=True, blank=True, editable=False)
+    height = models.PositiveIntegerField(null=True, blank=True, editable=False)
+    alt_pl = models.CharField(max_length=200, help_text="Opis zdjęcia dla niewidomych i Google — wymagany.")
+    alt_en = models.CharField(max_length=200, blank=True)
+    caption_pl = models.CharField(max_length=200, blank=True)
+    caption_en = models.CharField(max_length=200, blank=True)
+    order = models.PositiveSmallIntegerField(default=0)
+    is_visible = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+        verbose_name = "Zdjęcie realizacji"
+        verbose_name_plural = "Galeria realizacji"
+
+    def save(self, *args, **kwargs):
+        process_gallery_photo(self, "image", "thumbnail")
+        if self.image:
+            # Stored so the frontend can reserve the space (no layout shift).
+            self.width, self.height = self.image.width, self.image.height
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.alt_pl or f"Zdjęcie #{self.pk}"
+
+
+def _inquiry_photo_path(instance, filename):
+    import uuid
+    from pathlib import Path
+
+    # Unguessable name — customers' photos shouldn't be enumerable under /media/.
+    return f"inquiries/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
+
+
+class TransportInquiry(models.Model):
+    """A goods-transport quote request from the form on /transport-rzeczy.
+    Also the demand counter: filter by vehicle_option to see how many people
+    asked for the trailer option before buying one."""
+
+    class VehicleOption(models.TextChoices):
+        BUS = "bus", "Bus"
+        TRAILER = "trailer", "Przyczepa"
+        UNKNOWN = "unknown", "Nie wiem"
+
+    class Status(models.TextChoices):
+        NEW = "nowe", "Nowe"
+        QUOTED = "wycenione", "Wycenione"
+        DONE = "zrealizowane", "Zrealizowane"
+        REJECTED = "odrzucone", "Odrzucone"
+
+    site = models.CharField(max_length=20, choices=SITE_CHOICES, default=DEFAULT_SITE)
+    name = models.CharField(max_length=120)
+    phone = models.CharField(max_length=32)
+    email = models.EmailField(blank=True)
+    item_type = models.CharField(max_length=20, choices=ServicePage.ItemType.choices)
+    description = models.TextField(max_length=3000)
+    vehicle_option = models.CharField(max_length=10, choices=VehicleOption.choices, default=VehicleOption.UNKNOWN)
+    pickup_address = models.CharField(max_length=255)
+    dropoff_address = models.CharField(max_length=255)
+    preferred_date = models.DateField(null=True, blank=True)
+    needs_carrying = models.BooleanField(default=False, help_text="Klient prosi o pomoc przy wnoszeniu.")
+    source_page = models.CharField(max_length=140, blank=True)
+    utm_source = models.CharField(max_length=100, blank=True)
+    utm_medium = models.CharField(max_length=100, blank=True)
+    utm_campaign = models.CharField(max_length=100, blank=True)
+    locale = models.CharField(max_length=5, blank=True)
+    consent = models.BooleanField(default=False)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.NEW)
+    admin_notes = models.TextField(blank=True, help_text="Notatki wewnętrzne (wycena, ustalenia).")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Zapytanie o transport rzeczy"
+        verbose_name_plural = "Zapytania o transport rzeczy"
+
+    def __str__(self):
+        return f"#{self.pk} {self.get_item_type_display()} — {self.name} ({self.created_at:%d.%m.%Y})"
+
+
+class TransportInquiryPhoto(models.Model):
+    inquiry = models.ForeignKey(TransportInquiry, related_name="photos", on_delete=models.CASCADE)
+    image = models.ImageField(upload_to=_inquiry_photo_path)
+
+    class Meta:
+        verbose_name = "Zdjęcie do zapytania"
+        verbose_name_plural = "Zdjęcia do zapytania"

@@ -294,3 +294,66 @@ export interface BookingInput {
   passenger_count?: number;
   coupon_code?: string;
 }
+
+export type ServicePageListItem = {
+  slug: string;
+  parent_slug: string | null;
+  menu_label_pl: string;
+  menu_label_en: string;
+  title_pl: string;
+  title_en: string;
+  lead_pl: string;
+  lead_en: string;
+  tile_icon: string;
+  tile_title_pl: string;
+  tile_title_en: string;
+  tile_body_pl: string;
+  tile_body_en: string;
+  noindex: boolean;
+  updated_at: string;
+};
+
+export type ServicePricingOption = {
+  code: "bus" | "trailer";
+  name_pl: string;
+  name_en: string;
+  description_pl: string;
+  description_en: string;
+  price_from: string | null;
+  price_note_pl: string;
+  price_note_en: string;
+  on_request: boolean;
+  order: number;
+};
+
+export type ServicePagePhoto = {
+  image: string;
+  thumbnail: string | null;
+  width: number | null;
+  height: number | null;
+  alt_pl: string;
+  alt_en: string;
+  caption_pl: string;
+  caption_en: string;
+  order: number;
+};
+
+export type InquiryItemType = "meble" | "kartony" | "agd" | "rowery" | "przeprowadzka" | "quad-motocykl" | "inne";
+
+export type ServicePage = ServicePageListItem & {
+  parent_menu_label_pl: string | null;
+  parent_menu_label_en: string | null;
+  h1_pl: string;
+  h1_en: string;
+  body_pl: string;
+  body_en: string;
+  seo_title_pl: string;
+  seo_title_en: string;
+  seo_description_pl: string;
+  seo_description_en: string;
+  cover_image: string | null;
+  default_item_type: InquiryItemType | "";
+  pricing_options: ServicePricingOption[];
+  photos: ServicePagePhoto[];
+  children: ServicePageListItem[];
+};

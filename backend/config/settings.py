@@ -164,7 +164,12 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_THROTTLE_RATES": {
         "otp-request": "5/hour",
+        "transport-inquiry": "5/hour",
     },
+    # nginx (one proxy) appends the client IP to X-Forwarded-For; without
+    # this DRF keys throttles on the whole header, which the client can
+    # prefix with anything to dodge the limit.
+    "NUM_PROXIES": int(os.environ.get("DRF_NUM_PROXIES", "1")),
 }
 
 from datetime import timedelta  # noqa: E402

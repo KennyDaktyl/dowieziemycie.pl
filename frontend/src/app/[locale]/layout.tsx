@@ -8,22 +8,29 @@ import { WhatsAppButton } from "@/components/whatsapp-button";
 import { routing } from "@/i18n/routing";
 import "./globals.css";
 
+// Inter and Space Grotesk are variable fonts: with no `weight` list each
+// subset is ONE file covering 100–900, instead of one file per weight — this
+// cut the fonts fetched before first render from 10 files (~250 KB) and was
+// the main cause of a 4 s mobile LCP (the LCP is body text waiting for them).
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
+// Small uppercase labels only — never the LCP, so not preloaded.
 const barlowCondensed = Barlow_Condensed({
   variable: "--font-barlow-condensed",
   subsets: ["latin", "latin-ext"],
   weight: ["500", "600", "700"],
+  display: "swap",
+  preload: false,
 });
 
 export function generateStaticParams() {

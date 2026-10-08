@@ -2,7 +2,10 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { apiFetch } from "@/lib/api";
+import { localize } from "@/lib/localize";
+import { getServicePages, servicePagePath } from "@/lib/service-pages";
 import type { ContactInfo } from "@/lib/types";
+import type { AppLocale } from "@/i18n/routing";
 
 import { HeaderAccount } from "./header-account";
 import { InformationMenu } from "./information-menu";
@@ -10,12 +13,18 @@ import { LocaleSwitcher } from "./locale-switcher";
 import { MobileNav } from "./mobile-nav";
 
 export async function SiteHeader() {
-  const [t, tNav, locale, contact] = await Promise.all([
+  const [t, tNav, locale, contact, services] = await Promise.all([
     getTranslations("Header"),
     getTranslations("Nav"),
     getLocale(),
     apiFetch<ContactInfo>("/api/contact-info/"),
+    getServicePages("?top=1"),
   ]);
+  // Published service categories ("Transport rzeczy"), label from admin.
+  const serviceLinks = services.map((service) => ({
+    href: servicePagePath(service),
+    label: localize(service, "menu_label", locale as AppLocale) || localize(service, "title", locale as AppLocale),
+  }));
 
   // Anchor ids are language-neutral on purpose (same on /pl and /en) — prefixed
   // with the current locale's home path so nav works from any page, not just "/".
@@ -23,11 +32,12 @@ export async function SiteHeader() {
   // dropdown so the row never collides with the language switcher / CTAs.
   const primaryLinks = [
     { href: "/rezerwacja", label: tNav("booking") },
-    { href: `/${locale}#routes`, label: tNav("routes") },
     { href: "/nocny-transfer-krakow", label: tNav("nocnyTransfer") },
     { href: "/imprezy", label: tNav("imprezy") },
+    ...serviceLinks,
   ];
   const informationLinks = [
+    { href: `/${locale}#routes`, label: tNav("routes") },
     { href: "/lokalny-przewoz-osob", label: tNav("localTransport") },
     { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
     { href: `/${locale}#coverage`, label: tNav("coverage") },
@@ -45,6 +55,7 @@ export async function SiteHeader() {
     { href: `/${locale}#routes`, label: tNav("routes") },
     { href: "/nocny-transfer-krakow", label: tNav("nocnyTransfer") },
     { href: "/imprezy", label: tNav("imprezy") },
+    ...serviceLinks,
     { href: "/lokalny-przewoz-osob", label: tNav("localTransport") },
     { href: "/wynajem-busa-z-kierowca", label: tNav("transport") },
     { href: "/flota", label: tNav("fleet") },

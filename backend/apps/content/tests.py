@@ -550,3 +550,183 @@ class FrontendRevalidationTests(TestCase):
         with mock.patch("urllib.request.urlopen") as urlopen:
             self.assertFalse(send("transfer247", ["blog"]))
         urlopen.assert_not_called()
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class ServicePageApiTests(APITestCase):
+    """Service pages are served per brand, only when published — a subpage
+    of an unpublished category stays hidden too."""
+
+    def setUp(self):
+        from .models import ServicePage
+
+        self.category = ServicePage.objects.create(
+            site="dowieziemycie", slug="transport-rzeczy", title_pl="T", title_en="T", is_published=True,
+            show_on_homepage=True,
+        )
+        self.sub = ServicePage.objects.create(
+            site="dowieziemycie", slug="mala-przeprowadzka-krakow", parent=self.category, title_pl="M",
+            title_en="M", is_published=True,
+        )
+
+    def _get(self, url):
+        return self.client.get(url, HTTP_X_SITE="dowieziemycie")
+
+    def test_published_page_with_children_and_parent_slug(self):
+        res = self._get("/api/service-pages/transport-rzeczy/")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual([c["slug"] for c in res.data["children"]], ["mala-przeprowadzka-krakow"])
+        self.assertEqual(self._get("/api/service-pages/mala-przeprowadzka-krakow/").data["parent_slug"], "transport-rzeczy")
+
+    def test_list_filters(self):
+        self.assertEqual([p["slug"] for p in self._get("/api/service-pages/?top=1").data], ["transport-rzeczy"])
+        self.assertEqual(
+            [p["slug"] for p in self._get("/api/service-pages/?parent=transport-rzeczy").data],
+            ["mala-przeprowadzka-krakow"],
+        )
+        self.assertEqual([p["slug"] for p in self._get("/api/service-pages/?homepage=1").data], ["transport-rzeczy"])
+
+    def test_unpublished_category_hides_its_subpages_and_other_brand_sees_nothing(self):
+        self.category.is_published = False
+        self.category.save()
+        self.assertEqual(self._get("/api/service-pages/transport-rzeczy/").status_code, 404)
+        self.assertEqual(self._get("/api/service-pages/mala-przeprowadzka-krakow/").status_code, 404)
+        self.category.is_published = True
+        self.category.save()
+        res = self.client.get("/api/service-pages/transport-rzeczy/", HTTP_X_SITE="transfer247")
+        self.assertEqual(res.status_code, 404)
+
+    def test_gallery_photo_stores_its_dimensions(self):
+        from .models import ServicePagePhoto
+
+        photo = ServicePagePhoto.objects.create(page=self.category, image=_make_test_image_upload(size=(800, 600)), alt_pl="x")
+        self.assertEqual((photo.width, photo.height), (800, 600))
+        self.assertTrue(photo.thumbnail.name.endswith("_thumb.webp"))
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class TransportInquiryApiTests(APITestCase):
+    URL = "/api/transport-inquiries/"
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()  # throttle counters
+
+    def _payload(self, **overrides):
+        data = {
+            "name": "Jan", "phone": "+48 600 100 200", "item_type": "meble", "description": "Szafa z OLX",
+            "vehicle_option": "trailer", "pickup_address": "Kraków, Długa 1", "dropoff_address": "Rybna 5",
+            "consent": "true", "source_page": "transport-rzeczy",
+        }
+        data.update(overrides)
+        return data
+
+    def _post(self, data, **extra):
+        from unittest import mock
+
+        with mock.patch("apps.content.service_api.notify_of_inquiry"), self.captureOnCommitCallbacks(execute=True):
+            return self.client.post(self.URL, data, format="multipart", HTTP_X_SITE="dowieziemycie", **extra)
+
+    def test_valid_inquiry_with_photos_is_saved(self):
+        from .models import TransportInquiry
+
+        res = self._post(self._payload(photos=[_make_test_image_upload("a.png"), _make_test_image_upload("b.png")]))
+        self.assertEqual(res.status_code, 201, res.data)
+        inquiry = TransportInquiry.objects.get()
+        self.assertEqual((inquiry.vehicle_option, inquiry.site, inquiry.photos.count()), ("trailer", "dowieziemycie", 2))
+
+    def test_consent_is_required(self):
+        res = self._post(self._payload(consent="false"))
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("consent", res.data)
+
+    def test_honeypot_fakes_success_and_saves_nothing(self):
+        from .models import TransportInquiry
+
+        res = self._post(self._payload(website="http://spam.example"))
+        self.assertEqual(res.status_code, 201)
+        self.assertFalse(TransportInquiry.objects.exists())
+
+    def test_more_than_five_photos_rejected(self):
+        res = self._post(self._payload(photos=[_make_test_image_upload(f"{i}.png") for i in range(6)]))
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("photos", res.data)
+
+    def test_non_image_file_rejected(self):
+        fake = SimpleUploadedFile("x.jpg", b"not an image", content_type="image/jpeg")
+        res = self._post(self._payload(photos=[fake]))
+        self.assertEqual(res.status_code, 400)
+
+    def test_throttled_after_five_per_hour_per_client_ip(self):
+        for _ in range(5):
+            self.assertEqual(self._post(self._payload(), HTTP_X_FORWARDED_FOR="1.2.3.4").status_code, 201)
+        self.assertEqual(self._post(self._payload(), HTTP_X_FORWARDED_FOR="1.2.3.4").status_code, 429)
+        # A spoofed prefix doesn't make a new client: nginx appends the real IP last.
+        self.assertEqual(
+            self._post(self._payload(), HTTP_X_FORWARDED_FOR="9.9.9.9, 1.2.3.4").status_code, 429,
+        )
+
+    def test_dispatcher_is_notified(self):
+        from unittest import mock
+
+        from django.core import mail
+
+        from apps.bookings.models import BookingSettings
+
+        settings_row = BookingSettings.for_site("dowieziemycie")
+        settings_row.dispatcher_email = "dispatch@example.com"
+        settings_row.save()
+        res = self._post(self._payload())
+        from .service_api import notify_of_inquiry
+
+        with mock.patch("apps.bookings.notifications._send_sms"):
+            notify_of_inquiry(res.data["id"], "http://admin/x")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Przyczepa", mail.outbox[0].subject)
+
+
+class LoadTransportContentTests(TestCase):
+    def test_loads_drafts_idempotently_and_refuses_to_publish_placeholders(self):
+        from django.core.management import CommandError, call_command
+
+        from .models import BlogPost, ServicePage
+
+        out = io.StringIO()
+        call_command("load_transport_content", stdout=out)
+        call_command("load_transport_content", stdout=out)
+        self.assertEqual(ServicePage.objects.count(), 2)
+        from .seed.transport_blog import ARTICLES
+
+        self.assertEqual(BlogPost.objects.filter(slug__in=[a["slug"] for a in ARTICLES]).count(), 5)
+        self.assertFalse(ServicePage.objects.filter(is_published=True).exists())
+        with self.assertRaises(CommandError):
+            call_command("load_transport_content", "--publish", stdout=out)
+        self.assertFalse(ServicePage.objects.filter(is_published=True).exists())
+
+    def test_publish_goes_live_and_links_existing_pages(self):
+        from django.core.management import call_command
+
+        from .models import BlogPost, ContentPage, ServicePage, ServicePricingOption
+
+        call_command("load_transport_content", stdout=io.StringIO())
+        # Simulate the owner filling every placeholder in Admin.
+        pattern = re.compile(r"\[(?:DO POTWIERDZENIA|DO WERYFIKACJI PRAWNEJ)[^\]]*\]")
+        for model in (ServicePage, ServicePricingOption, BlogPost):
+            for obj in model.objects.all():
+                for field in obj._meta.concrete_fields:
+                    value = getattr(obj, field.name)
+                    if isinstance(value, str) and pattern.search(value):
+                        setattr(obj, field.name, pattern.sub("uzupełnione", value))
+                obj.save()
+        ContentPage.objects.update_or_create(
+            slug="wynajem-busa-z-kierowca",
+            defaults={"site": "dowieziemycie", "title_pl": "W", "title_en": "W",
+                      "body_pl": "Wstęp\n\n## Najczęściej zadawane pytania\n\n**P?**\nO."},
+        )
+        call_command("load_transport_content", "--publish", stdout=io.StringIO())
+        call_command("load_transport_content", "--publish", stdout=io.StringIO())
+        self.assertEqual(ServicePage.objects.filter(is_published=True).count(), 2)
+        body = ContentPage.objects.get(slug="wynajem-busa-z-kierowca").body_pl
+        self.assertEqual(body.count("](/transport-rzeczy)"), 1, "cross-link added once, idempotently")
+        self.assertLess(body.index("/transport-rzeczy"), body.index("## Najczęściej zadawane pytania"))
