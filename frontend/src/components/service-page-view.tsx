@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 
 import { BreadcrumbJsonLd } from "@/components/breadcrumb-jsonld";
@@ -7,6 +6,7 @@ import { FaqJsonLd } from "@/components/faq-jsonld";
 import { GoodsPricingTable } from "@/components/goods-pricing-table";
 import { MarkdownContent } from "@/components/markdown-content";
 import { PricingOptions } from "@/components/pricing-options";
+import { ServiceCoverImage } from "@/components/service-cover-image";
 import { ServiceGallery } from "@/components/service-gallery";
 import { ServiceJsonLd } from "@/components/service-jsonld";
 import { SiteFooter } from "@/components/site-footer";
@@ -111,15 +111,16 @@ export async function ServicePageView({
           </div>
 
           {page.cover_image && (
-            <Image
-              src={absoluteImageUrl(page.cover_image)}
-              alt={h1}
-              width={1360}
-              height={560}
-              sizes="(max-width: 1408px) 100vw, 1360px"
-              loading="eager"
-              fetchPriority="high"
-              className="mt-8 h-[240px] w-full rounded-[14px] object-cover sm:h-[380px]"
+            <ServiceCoverImage
+              photo={{
+                src: page.cover_image,
+                thumbnailSrc: page.cover_image,
+                width: page.cover_width ?? 1600,
+                height: page.cover_height ?? 900,
+                alt: h1,
+                caption: "",
+              }}
+              openLabel={t("galleryOpen")}
             />
           )}
 

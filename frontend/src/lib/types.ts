@@ -352,6 +352,8 @@ export type ServicePage = ServicePageListItem & {
   seo_description_pl: string;
   seo_description_en: string;
   cover_image: string | null;
+  cover_width: number | null;
+  cover_height: number | null;
   default_item_type: InquiryItemType | "";
   pricing_options: ServicePricingOption[];
   photos: ServicePagePhoto[];

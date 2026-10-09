@@ -75,14 +75,31 @@ class ServicePageDetailSerializer(ServicePageListSerializer):
     pricing_options = ServicePricingOptionSerializer(many=True, read_only=True)
     photos = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
+    cover_width = serializers.SerializerMethodField()
+    cover_height = serializers.SerializerMethodField()
 
     class Meta:
         model = ServicePage
         fields = LIST_FIELDS + [
             "parent_menu_label_pl", "parent_menu_label_en", "h1_pl", "h1_en", "body_pl", "body_en",
             "seo_title_pl", "seo_title_en", "seo_description_pl", "seo_description_en", "cover_image",
-            "default_item_type", "pricing_options", "photos", "children",
+            "default_item_type", "pricing_options", "photos", "children", "cover_width", "cover_height",
         ]
+
+    # The cover's real size, so the page can show it whole (no crop) with
+    # its space reserved up front. Read from the file — the frontend caches
+    # the response, so this runs once per revalidation, not per visitor.
+    def _cover_size(self, page):
+        try:
+            return page.cover_image.width, page.cover_image.height
+        except (ValueError, OSError):
+            return None, None
+
+    def get_cover_width(self, page):
+        return self._cover_size(page)[0]
+
+    def get_cover_height(self, page):
+        return self._cover_size(page)[1]
 
     def get_photos(self, page):
         photos = [photo for photo in page.photos.all() if photo.is_visible]
