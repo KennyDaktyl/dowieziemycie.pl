@@ -6,6 +6,8 @@ import { Barlow_Condensed, Inter, Space_Grotesk } from "next/font/google";
 
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { routing } from "@/i18n/routing";
+import { AnalyticsScripts } from "@/components/analytics-scripts";
+import { CookieConsentBanner } from "@/components/cookie-consent-banner";
 import "./globals.css";
 
 // Inter and Space Grotesk are variable fonts: with no `weight` list each
@@ -68,9 +70,11 @@ export default async function LocaleLayout({
       className={`${spaceGrotesk.variable} ${inter.variable} ${barlowCondensed.variable} overflow-x-hidden antialiased`}
     >
       <body className="bg-bg text-text min-h-screen overflow-x-hidden" suppressHydrationWarning>
+        <AnalyticsScripts />
         <NextIntlClientProvider>
           {children}
           <WhatsAppButton />
+          <CookieConsentBanner />
         </NextIntlClientProvider>
       </body>
     </html>

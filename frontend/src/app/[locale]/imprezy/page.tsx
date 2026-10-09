@@ -8,7 +8,6 @@ import { EventDriverPricingSection } from "@/components/event-driver-pricing-sec
 import { MarkdownContent } from "@/components/markdown-content";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { WhatsAppButton } from "@/components/whatsapp-button";
 import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import { apiFetch } from "@/lib/api";
@@ -125,7 +124,6 @@ export default async function ImprezyPage({ params }: { params: Promise<{ locale
       </main>
       <EventDriverPricingSection />
       <SiteFooter />
-      <WhatsAppButton />
     </>
   );
 }

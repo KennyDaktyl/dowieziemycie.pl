@@ -366,7 +366,8 @@
     "tagline2": "24/7, including nights and Sundays.",
     "rights": "© {year} dowieziemycie.pl",
     "adminPanel": "Admin panel",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "cookieSettings": "Cookie settings"
   },
   "Auth": {
     "title": "Log in or register",
@@ -515,5 +516,12 @@
     "errorThrottled": "Several inquiries have already been sent from this device. Please call or message us on WhatsApp.",
     "errorGeneric": "Couldn't send the inquiry. Check the fields and try again.",
     "errorNetwork": "No connection. Try again or give us a call."
+  },
+  "CookieConsent": {
+    "title": "Cookie consent",
+    "text": "We use Google Analytics and Google cookies for analytics and advertising, to understand how you use the site and what to improve. Cookies are only stored once you click \"Accept all\" — you can also reject them.",
+    "privacyLinkText": "Terms of Service",
+    "acceptAll": "Accept all",
+    "reject": "Reject"
   }
 }

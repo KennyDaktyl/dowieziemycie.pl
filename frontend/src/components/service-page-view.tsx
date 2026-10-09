@@ -13,7 +13,6 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { TrackedContactLink } from "@/components/tracked-contact-link";
 import { TransportInquiryForm } from "@/components/transport-inquiry-form";
-import { WhatsAppButton } from "@/components/whatsapp-button";
 import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import { apiFetch } from "@/lib/api";
@@ -208,7 +207,6 @@ export async function ServicePageView({
         </div>
       </main>
       <SiteFooter />
-      <WhatsAppButton />
     </>
   );
 }

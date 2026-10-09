@@ -366,7 +366,8 @@
     "tagline2": "24/7, także w nocy i w niedziele.",
     "rights": "© {year} dowieziemycie.pl",
     "adminPanel": "Panel administracyjny",
-    "terms": "Regulamin"
+    "terms": "Regulamin",
+    "cookieSettings": "Ustawienia cookies"
   },
   "Auth": {
     "title": "Zaloguj się albo zarejestruj",
@@ -515,5 +516,12 @@
     "errorThrottled": "Wysłano już kilka zapytań z tego urządzenia. Zadzwoń albo napisz na WhatsApp.",
     "errorGeneric": "Nie udało się wysłać zapytania. Sprawdź pola i spróbuj ponownie.",
     "errorNetwork": "Brak połączenia. Spróbuj ponownie albo zadzwoń."
+  },
+  "CookieConsent": {
+    "title": "Zgoda na cookies",
+    "text": "Używamy Google Analytics oraz plików cookie Google do celów analitycznych i reklamowych, żeby wiedzieć, jak korzystacie ze strony i co warto poprawić. Pliki cookie zapiszemy dopiero, gdy klikniesz „Akceptuj wszystko” — możesz też odrzucić.",
+    "privacyLinkText": "Regulamin",
+    "acceptAll": "Akceptuj wszystko",
+    "reject": "Odrzuć"
   }
 }

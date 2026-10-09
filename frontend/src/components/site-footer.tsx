@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
 
+import { CookieSettingsLink } from "@/components/cookie-settings-link";
+
 import { ObfuscatedEmail } from "@/components/obfuscated-email";
 import { PaymentBadge } from "@/components/payment-badge";
 import { Link } from "@/i18n/navigation";
@@ -39,6 +41,11 @@ export async function SiteFooter() {
             <Link href="/regulamin" className="mt-2.5 inline-block text-[13.5px] text-muted hover:text-text">
               {t("terms")}
             </Link>
+            <br />
+            <CookieSettingsLink
+              label={t("cookieSettings")}
+              className="mt-1.5 inline-block text-[13.5px] text-muted hover:text-text"
+            />
           </div>
           <PaymentBadge label={tPayment("securePayments")} sublabel={tPayment("paymentMethods")} />
         </div>
