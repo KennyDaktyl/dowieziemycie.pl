@@ -1,16 +1,17 @@
 import Script from "next/script";
 
-import { GA_MEASUREMENT_ID } from "@/lib/analytics";
+import { GaDeferredLoader } from "@/components/ga-deferred-loader";
 
 /** Google Consent Mode v2 + GA4, in the order Google requires — and without
  * slowing the page down:
  *
  * 1. Consent default (denied) — a few bytes inline, `beforeInteractive`, so
- *    it runs before any Google tag. Must live in the root layout.
- * 2. gtag.js (~170 KB) and the config call — `lazyOnload`: fetched only
- *    after the page's load event, so it never competes with first paint or
- *    LCP. Consent Mode, not the script tag, decides what may be sent; the
- *    banner (CookieConsentBanner) updates it. */
+ *    it runs before any Google tag and defines gtag() (calls queue in
+ *    dataLayer). Must live in the root layout.
+ * 2. gtag.js + config — GaDeferredLoader, on the first interaction or after
+ *    10 s, so the library never runs inside the window web.dev measures.
+ *    Consent Mode, not the script tag, decides what may be sent; the banner
+ *    (CookieConsentBanner) updates it. */
 export function AnalyticsScripts() {
   return (
     <>
@@ -27,17 +28,7 @@ export function AnalyticsScripts() {
           });
         `}
       </Script>
-      <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} strategy="lazyOnload" />
-      <Script id="ga4-init" strategy="lazyOnload">
-        {`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', '${GA_MEASUREMENT_ID}', {
-            'anonymize_ip': true
-          });
-        `}
-      </Script>
+      <GaDeferredLoader />
     </>
   );
 }
