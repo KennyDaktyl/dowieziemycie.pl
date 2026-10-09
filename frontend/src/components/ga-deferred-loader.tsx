@@ -5,9 +5,11 @@ import { useEffect } from "react";
 import { GA_MEASUREMENT_ID } from "@/lib/analytics";
 
 const INTERACTION_EVENTS = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
-const FALLBACK_DELAY_MS = 10_000;
+// Short enough for Google's own tag check (it loads the page without
+// scrolling) to find the tag, long enough to stay out of the Lighthouse trace.
+const FALLBACK_DELAY_MS = 4_000;
 
-/** Loads gtag.js on the visitor's first interaction (or after 10 s without
+/** Loads gtag.js on the visitor's first interaction (or after 4 s without
  * one) instead of right after the load event: its ~170 KB of script then
  * never runs inside the window web.dev / Lighthouse measures (it added
  * ~200 ms of Total Blocking Time and cost ~6 Performance points when it

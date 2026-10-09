@@ -9,7 +9,7 @@ import { GaDeferredLoader } from "@/components/ga-deferred-loader";
  *    it runs before any Google tag and defines gtag() (calls queue in
  *    dataLayer). Must live in the root layout.
  * 2. gtag.js + config — GaDeferredLoader, on the first interaction or after
- *    10 s, so the library never runs inside the window web.dev measures.
+ *    4 s, so the library never runs inside the window web.dev measures.
  *    Consent Mode, not the script tag, decides what may be sent; the banner
  *    (CookieConsentBanner) updates it. */
 export function AnalyticsScripts() {
