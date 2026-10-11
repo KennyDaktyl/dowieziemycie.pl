@@ -176,7 +176,7 @@ export function TransportInquiryForm({
       <div role="status" className="rounded-xl border border-green/40 bg-panel p-6">
         <h3 className="font-heading text-[20px] font-semibold">{t("successTitle")}</h3>
         <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{t("successBody")}</p>
-        <p className="mt-3 text-[14.5px]">
+        <p data-track-location="inquiry_form" className="mt-3 text-[14.5px]">
           {t("successAlt")}{" "}
           <a href={`tel:${phone}`} className="font-semibold text-amber hover:underline">
             {phone}

@@ -208,6 +208,15 @@ class Coupon(models.Model):
         return max(discounted, 0)
 
 
+REFERRAL_SOURCE_CHOICES = [
+    ("google", "Google (wyszukiwarka)"),
+    ("google_ads", "Reklama Google"),
+    ("ai", "ChatGPT / AI"),
+    ("friends", "Znajomi"),
+    ("other", "Inne"),
+]
+
+
 class Booking(models.Model):
     class Status(models.TextChoices):
         NOWA = "NOWA", "Nowa (oczekuje na potwierdzenie)"
@@ -270,6 +279,10 @@ class Booking(models.Model):
     flight_number = models.CharField(
         max_length=20, blank=True,
         help_text="Opcjonalny numer lotu (transfery lotniskowe) — pozwala dyspozytorowi sprawdzić opóźnienia.",
+    )
+    referral_source = models.CharField(
+        "Skąd o nas wie", max_length=20, choices=REFERRAL_SOURCE_CHOICES, blank=True,
+        help_text="Odpowiedź klienta z formularza rezerwacji (opcjonalna) — puste = nie wybrał.",
     )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOWA)
     distance_km = models.DecimalField(

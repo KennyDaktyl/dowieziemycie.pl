@@ -63,7 +63,7 @@ export default async function NocnyTransferPage({ params }: { params: Promise<{ 
       <main className="mx-auto max-w-[1360px] px-6 py-16">
         <Breadcrumbs items={breadcrumbItems} />
         <h1 className="font-heading mt-3 mb-4 text-[32px] font-semibold md:text-[40px]">{title}</h1>
-        <div className="mb-8 flex flex-wrap gap-3">
+        <div data-track-location="hero" className="mb-8 flex flex-wrap gap-3">
           <Link
             href="/rezerwacja"
             className="rounded-md bg-amber px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)]"

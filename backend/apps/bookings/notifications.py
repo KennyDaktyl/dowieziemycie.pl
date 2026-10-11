@@ -153,8 +153,11 @@ def notify_dispatcher_of_new_booking(booking) -> None:
         if booking.child_seat_ages else ""
     )
     bikes_line = f"\nRowery: {booking.bike_count}." if booking.bike_count else ""
+    referral_line = (
+        f"\nSkąd o nas wie: {booking.get_referral_source_display()}." if booking.referral_source else ""
+    )
     email_body = (
-        f"{text}{flight_line}{child_seats_line}{bikes_line}\n\nCena wyliczona automatycznie: {booking.price} zł.\n"
+        f"{text}{flight_line}{child_seats_line}{bikes_line}{referral_line}\n\nCena wyliczona automatycznie: {booking.price} zł.\n"
         "Potwierdź w Django Admin lub w aplikacji kierowcy."
     )
     _send_email(

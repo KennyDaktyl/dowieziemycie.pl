@@ -140,7 +140,16 @@
     "emailLabel": "Email",
     "emailPlaceholder": "jane@example.com",
     "verifyStepTitle": "Step 2: confirm your phone",
-    "submitVerifyPhone": "Enter your phone number to attach this booking to My trips. After you enter the SMS code, the ride will be saved and shown in your panel."
+    "submitVerifyPhone": "Enter your phone number to attach this booking to My trips. After you enter the SMS code, the ride will be saved and shown in your panel.",
+    "referralLabel": "How did you hear about us?",
+    "referralPlaceholder": "Choose (optional)",
+    "referral": {
+      "google": "Google",
+      "google_ads": "Google ad",
+      "ai": "ChatGPT / AI",
+      "friends": "Friends",
+      "other": "Other"
+    }
   },
   "DriverEta": {
     "title": "Driver ETA",

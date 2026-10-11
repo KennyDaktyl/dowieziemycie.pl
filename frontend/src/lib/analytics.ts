@@ -26,9 +26,12 @@ export function updateAnalyticsConsent(decision: ConsentDecision): void {
   });
 }
 
-/** GA4 custom event (generate_lead, click_call, click_whatsapp). gtag.js
- * applies Consent Mode itself — before consent it sends cookieless pings
- * only. Never pass personal data (name, phone, address) as a parameter. */
+/** The one way to send a GA4 event — generate_lead (booking + goods
+ * transport forms), phone_click / whatsapp_click (ContactClickTracker).
+ * Safe before gtag.js loads: the inline consent-default script defined
+ * gtag(), so the call queues in dataLayer. gtag.js applies Consent Mode
+ * itself — before consent it sends cookieless pings only. Never pass
+ * personal data (name, phone, address) as a parameter. */
 export function trackEvent(name: string, params?: Record<string, string | number | boolean>): void {
   window.gtag?.("event", name, params);
 }

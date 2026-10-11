@@ -103,7 +103,7 @@ export default async function EventOfferPage({
           </p>
         )}
 
-        <div className="mb-8 flex flex-wrap gap-3">
+        <div data-track-location="hero" className="mb-8 flex flex-wrap gap-3">
           <a
             href={`tel:${contact.phone}`}
             className="rounded-md bg-amber px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)]"

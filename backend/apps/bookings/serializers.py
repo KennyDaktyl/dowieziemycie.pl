@@ -205,7 +205,7 @@ class BookingCreateSerializer(serializers.ModelSerializer):
             "pickup_address", "pickup_lat", "pickup_lng",
             "dropoff_address", "dropoff_lat", "dropoff_lng",
             "scheduled_at", "passenger_count", "child_seat_ages", "bike_count", "coupon_code",
-            "customer_name", "customer_email", "language",
+            "customer_name", "customer_email", "language", "referral_source",
         ]
         # Widened here, cut back to the column width by validate_*_address —
         # see _fit_address for why an over-long geocoder label must not 400.

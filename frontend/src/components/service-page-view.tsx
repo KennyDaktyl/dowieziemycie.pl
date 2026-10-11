@@ -11,7 +11,6 @@ import { ServiceGallery } from "@/components/service-gallery";
 import { ServiceJsonLd } from "@/components/service-jsonld";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { TrackedContactLink } from "@/components/tracked-contact-link";
 import { TransportInquiryForm } from "@/components/transport-inquiry-form";
 import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
@@ -85,29 +84,27 @@ export async function ServicePageView({
           </h1>
           {lead && <p className="max-w-[760px] text-[16.5px] leading-relaxed text-muted">{lead}</p>}
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div data-track-location="hero" className="mt-6 flex flex-wrap gap-3">
             <a
               href="#zapytanie"
               className="rounded-md bg-amber px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-[#1a1305] transition-all hover:-translate-y-px hover:shadow-[0_4px_20px_rgba(245,166,35,0.35)]"
             >
               {t("ctaForm")}
             </a>
-            <TrackedContactLink
-              kind="call"
+            <a
               href={`tel:${contact.phone}`}
-              pageSlug={page.slug}
               className="rounded-md border border-amber px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-amber transition-colors hover:bg-amber/10"
             >
               {t("ctaCall", { phone: phoneLabel })}
-            </TrackedContactLink>
-            <TrackedContactLink
-              kind="whatsapp"
+            </a>
+            <a
               href={whatsappHref}
-              pageSlug={page.slug}
+              target="_blank"
+              rel="noopener noreferrer"
               className="rounded-md border border-line px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-text transition-colors hover:border-amber"
             >
               WhatsApp
-            </TrackedContactLink>
+            </a>
           </div>
 
           {page.cover_image && (

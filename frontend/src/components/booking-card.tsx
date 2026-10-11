@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { CustomQuoteCta } from "@/components/custom-quote-cta";
 import { ToastStack } from "@/components/toast";
 import { Link } from "@/i18n/navigation";
+import { trackEvent } from "@/lib/analytics";
 import { publicApiBaseUrl, withSiteHeader } from "@/lib/api";
 import type { AddressSuggestion } from "@/lib/geocode";
 import { reverseGeocode } from "@/lib/geocode";
@@ -18,6 +19,9 @@ import { useToasts } from "@/lib/use-toasts";
 import { AddressSearchField } from "./address-search-field";
 import { PhoneVerifyStep } from "./phone-verify-step";
 import { PriceMeter } from "./price-meter";
+
+// Same keys as Booking.referral_source choices in the backend.
+const REFERRAL_SOURCES = ["google", "google_ads", "ai", "friends", "other"] as const;
 
 const BookingMap = dynamic(() => import("./booking-map").then((m) => m.BookingMap), {
   ssr: false,
@@ -80,6 +84,7 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [phone, setPhone] = useState("+48");
+  const [referralSource, setReferralSource] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error" | "unauthenticated">("idle");
   const [estimate, setEstimate] = useState<RouteEstimate | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -126,6 +131,7 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
           if (saved.customerName) setCustomerName(saved.customerName);
           if (saved.customerEmail) setCustomerEmail(saved.customerEmail);
           if (saved.phone) setPhone(saved.phone);
+          if (saved.referralSource) setReferralSource(saved.referralSource);
         }
       } catch {
         // Corrupt or blocked storage — just start from a blank form.
@@ -146,7 +152,7 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
         JSON.stringify({
           pickup, pickupText, dropoff, dropoffText, date, time,
           passengers, childSeatAges, bikeCount, couponCode,
-          customerName, customerEmail, phone,
+          customerName, customerEmail, phone, referralSource,
         }),
       );
     } catch {
@@ -155,7 +161,7 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
     }
   }, [
     formHydrated, pickup, pickupText, dropoff, dropoffText, date, time,
-    passengers, childSeatAges, bikeCount, couponCode, customerName, customerEmail, phone,
+    passengers, childSeatAges, bikeCount, couponCode, customerName, customerEmail, phone, referralSource,
   ]);
 
   useEffect(() => {
@@ -417,6 +423,7 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
           coupon_code: couponCode || undefined,
           customer_name: customerName,
           customer_email: customerEmail || undefined,
+          referral_source: referralSource || undefined,
           language: locale,
         }),
       });
@@ -427,6 +434,15 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
       setStatus(res.ok ? "success" : "error");
       pushToast(res.ok ? "success" : "error", res.ok ? t("submitSuccessToast") : t("submitErrorToast"));
       if (res.ok) {
+        // No addresses here — a pickup is often the customer's home, i.e.
+        // personal data GA must not receive. Distance stands in for the route.
+        trackEvent("generate_lead", {
+          category: "przewoz_osob",
+          passengers,
+          ...(estimate ? { route_distance_km: estimate.distance_km, pricing_mode: estimate.pricing_mode } : {}),
+          ...(estimate?.price != null ? { value: estimate.price, currency: "PLN" } : {}),
+          ...(referralSource ? { referral_source: referralSource } : {}),
+        });
         try {
           sessionStorage.removeItem(FORM_STORAGE_KEY);
         } catch {
@@ -522,7 +538,7 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
   );
 
   return (
-    <div className="rounded-[14px] border border-line bg-panel p-[22px] lg:p-7">
+    <div data-track-location="booking_form" className="rounded-[14px] border border-line bg-panel p-[22px] lg:p-7">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[400px_1fr] lg:gap-8">
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -874,6 +890,28 @@ export function BookingCard({ contact }: { contact: ContactInfo }) {
                 className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
               />
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label
+              htmlFor="booking-referral-source"
+              className="font-label text-[11.5px] font-semibold tracking-[0.08em] text-muted uppercase"
+            >
+              {t("referralLabel")}
+            </label>
+            <select
+              id="booking-referral-source"
+              value={referralSource}
+              onChange={(e) => setReferralSource(e.target.value)}
+              className="rounded-lg border border-line bg-panel-2 px-3 py-[11px] text-[14.5px] text-text outline-none focus:border-amber"
+            >
+              <option value="">{t("referralPlaceholder")}</option>
+              {REFERRAL_SOURCES.map((source) => (
+                <option key={source} value={source}>
+                  {t(`referral.${source}`)}
+                </option>
+              ))}
+            </select>
           </div>
 
           {priceBox}

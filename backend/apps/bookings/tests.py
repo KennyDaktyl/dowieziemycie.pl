@@ -46,6 +46,36 @@ class BookingAvailabilityGateTests(TestCase):
         self.assertEqual(self.customer.name, "Anna Nowak")
         self.assertEqual(self.customer.email, "anna@example.com")
 
+    def test_referral_source_is_saved_and_shown_in_dispatcher_email(self):
+        from django.core import mail
+
+        from .models import Booking, BookingSettings
+
+        settings_row = BookingSettings.for_site("dowieziemycie")
+        settings_row.dispatcher_email = "dyspozytor@example.com"
+        settings_row.save(update_fields=["dispatcher_email"])
+        body = {
+            **VALID_BOOKING,
+            "scheduled_at": (timezone.now() + timedelta(hours=3)).isoformat(),
+            "referral_source": "google_ads",
+        }
+        res = self.client.post("/api/bookings/", body, format="json")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(Booking.objects.get(id=res.data["id"]).referral_source, "google_ads")
+        self.assertIn("Skąd o nas wie: Reklama Google.", mail.outbox[-1].body)
+
+    def test_referral_source_is_optional_and_validated(self):
+        res = self._post_booking()
+        self.assertEqual(res.status_code, 201)
+        body = {
+            **VALID_BOOKING,
+            "scheduled_at": (timezone.now() + timedelta(days=2)).isoformat(),
+            "referral_source": "tiktok",
+        }
+        res = self.client.post("/api/bookings/", body, format="json")
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("referral_source", res.data)
+
     def test_long_geocoder_address_is_shortened_not_rejected(self):
         # Same Nominatim over-length label that 400'd transfer247.pl's catalog
         # flow — the geo-priced flow shares the 200-char column.

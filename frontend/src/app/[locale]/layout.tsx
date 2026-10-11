@@ -7,6 +7,7 @@ import { Barlow_Condensed, Inter, Space_Grotesk } from "next/font/google";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { routing } from "@/i18n/routing";
 import { AnalyticsScripts } from "@/components/analytics-scripts";
+import { ContactClickTracker } from "@/components/contact-click-tracker";
 import { CookieConsentBanner } from "@/components/cookie-consent-banner";
 import "./globals.css";
 
@@ -71,6 +72,7 @@ export default async function LocaleLayout({
     >
       <body className="bg-bg text-text min-h-screen overflow-x-hidden" suppressHydrationWarning>
         <AnalyticsScripts />
+        <ContactClickTracker />
         <NextIntlClientProvider>
           {children}
           <WhatsAppButton />

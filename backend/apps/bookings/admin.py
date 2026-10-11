@@ -70,7 +70,7 @@ class BookingAdmin(admin.ModelAdmin):
         "child_seat_ages", "bike_count", "status", "distance_km", "pricing_mode", "is_reserved",
         "price", "coupon", "assigned_driver",
     )
-    list_filter = ("status", "pricing_mode", "is_reserved", "assigned_driver")
+    list_filter = ("status", "pricing_mode", "is_reserved", "assigned_driver", "referral_source")
     list_editable = ("price", "assigned_driver")
     search_fields = ("customer__phone", "customer__name", "pickup_address", "dropoff_address", "flight_number")
     date_hierarchy = "scheduled_at"
