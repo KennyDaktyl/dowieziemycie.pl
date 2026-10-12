@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { GA_MEASUREMENT_ID } from "@/lib/analytics";
+import { GA_MEASUREMENT_ID, GOOGLE_ADS_ID } from "@/lib/analytics";
 
 const INTERACTION_EVENTS = ["pointerdown", "keydown", "scroll", "touchstart"] as const;
 // Short enough for Google's own tag check (it loads the page without
@@ -30,6 +30,7 @@ export function GaDeferredLoader() {
       document.head.appendChild(script);
       window.gtag?.("js", new Date());
       window.gtag?.("config", GA_MEASUREMENT_ID, { anonymize_ip: true });
+      window.gtag?.("config", GOOGLE_ADS_ID);
     }
 
     const timer = window.setTimeout(load, FALLBACK_DELAY_MS);
