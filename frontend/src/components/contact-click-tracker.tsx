@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { trackEvent } from "@/lib/analytics";
+import { trackContact } from "@/lib/track";
 
 const WHATSAPP_HREF = /^https?:\/\/(wa\.me|api\.whatsapp\.com)\//i;
 
@@ -19,7 +19,8 @@ function linkLocation(link: Element): string {
 
 /** One delegated click listener for every tel: and WhatsApp link on the
  * site — including ones inside CMS markdown — so no link needs its own
- * onClick. Sends phone_click / whatsapp_click (Google Ads conversions).
+ * onClick. Sends the Google Ads "Kontakt" conversion + phone_click /
+ * whatsapp_click (trackContact). Never calls preventDefault.
  * Costs nothing until a click: no DOM scan, no extra script. */
 export function ContactClickTracker() {
   useEffect(() => {
@@ -27,9 +28,9 @@ export function ContactClickTracker() {
       const link = (event.target as Element | null)?.closest?.("a[href]");
       if (!link) return;
       const href = link.getAttribute("href") ?? "";
-      const name = href.startsWith("tel:") ? "phone_click" : WHATSAPP_HREF.test(href) ? "whatsapp_click" : null;
-      if (!name) return;
-      trackEvent(name, {
+      const kind = href.startsWith("tel:") ? "phone" : WHATSAPP_HREF.test(href) ? "whatsapp" : null;
+      if (!kind) return;
+      trackContact(kind, {
         link_url: href,
         link_location: linkLocation(link),
         page_path: window.location.pathname,
