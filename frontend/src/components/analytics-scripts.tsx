@@ -1,17 +1,17 @@
 import Script from "next/script";
 
-import { GaDeferredLoader } from "@/components/ga-deferred-loader";
+import { GA_MEASUREMENT_ID, GOOGLE_ADS_ID } from "@/lib/analytics";
 
-/** Google Consent Mode v2 + GA4, in the order Google requires — and without
- * slowing the page down:
+/** Google Consent Mode v2 (advanced) + one Google tag for Google Ads and GA4:
  *
  * 1. Consent default (denied) — a few bytes inline, `beforeInteractive`, so
  *    it runs before any Google tag and defines gtag() (calls queue in
  *    dataLayer). Must live in the root layout.
- * 2. gtag.js + config — GaDeferredLoader, on the first interaction or after
- *    4 s, so the library never runs inside the window web.dev measures.
- *    Consent Mode, not the script tag, decides what may be sent; the banner
- *    (CookieConsentBanner) updates it. */
+ * 2. gtag.js (loaded with the Ads ID) + config for Ads and GA4 —
+ *    `afterInteractive`, on every page, whatever the consent state: Google
+ *    Ads' tag check must find it without anyone accepting cookies. Consent
+ *    Mode, not the script tag, decides what may be sent (cookieless pings
+ *    until then); the banner (CookieConsentBanner) only updates consent. */
 export function AnalyticsScripts() {
   return (
     <>
@@ -28,7 +28,20 @@ export function AnalyticsScripts() {
           });
         `}
       </Script>
-      <GaDeferredLoader />
+      <Script
+        id="gtag-js"
+        src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`}
+        strategy="afterInteractive"
+      />
+      <Script id="gtag-config" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${GOOGLE_ADS_ID}');
+          gtag('config', '${GA_MEASUREMENT_ID}', { 'anonymize_ip': true });
+        `}
+      </Script>
     </>
   );
 }

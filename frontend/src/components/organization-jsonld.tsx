@@ -2,12 +2,23 @@ import { apiFetch } from "@/lib/api";
 import type { ContactInfo } from "@/lib/types";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dowieziemycie.pl";
+const AREA_SERVED = [
+  "Rybna",
+  "Czernichów",
+  "Liszki",
+  "Kaszów",
+  "Sanka",
+  "Alwernia",
+  "Przeginia Narodowa",
+  "Kraków",
+];
 
 export async function OrganizationJsonLd() {
   const contact = await apiFetch<ContactInfo>("/api/contact-info/");
   const data = {
     "@context": "https://schema.org",
-    "@type": "TaxiService",
+    "@type": "LocalBusiness",
+    serviceType: "Przewóz osób busem z kierowcą",
     name: "dowieziemycie.pl",
     legalName: contact.legal_name,
     url: SITE_URL,
@@ -23,10 +34,7 @@ export async function OrganizationJsonLd() {
       addressLocality: contact.address_city,
       addressCountry: contact.address_country,
     },
-    areaServed: {
-      "@type": "City",
-      name: "Kraków",
-    },
+    areaServed: AREA_SERVED.map((place) => ({ "@type": "Place", name: place })),
     priceRange: "PLN",
   };
 

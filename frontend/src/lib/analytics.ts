@@ -1,5 +1,6 @@
 export const GA_MEASUREMENT_ID = "G-LFDNRNE2M0";
-// Google Ads tag — configured on the same gtag.js as GA4, never loaded twice.
+// Google Ads tag — gtag.js is loaded with this ID; GA4 is configured on the
+// same script (AnalyticsScripts), never loaded twice.
 export const GOOGLE_ADS_ID = "AW-18492703575";
 
 export const CONSENT_STORAGE_KEY = "dowieziemycie:cookie-consent";
