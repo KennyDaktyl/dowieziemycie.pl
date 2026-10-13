@@ -9,6 +9,7 @@ from .models import (
     EventDriverPricing,
     EventOffer,
     EventOfferPhoto,
+    ExampleFare,
     FixedRoute,
     FixedRoutePhoto,
     FixedRouteVehiclePrice,
@@ -204,6 +205,17 @@ class LocalRouteAdmin(admin.ModelAdmin):
         )}),
         ("Polski", {"fields": ("title_pl", "lead_pl", "body_pl", "seo_title_pl", "seo_description_pl")}),
         ("English", {"fields": ("title_en", "lead_en", "body_en", "seo_title_en", "seo_description_en")}),
+    )
+
+
+@admin.register(ExampleFare)
+class ExampleFareAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "group", "distance_km", "is_published", "order")
+    list_editable = ("is_published", "order")
+    list_filter = ("group", "is_published")
+    fields = (
+        "group", "from_label_pl", "from_label_en", "from_lat", "from_lng",
+        "to_label_pl", "to_label_en", "to_lat", "to_lng", "distance_km", "is_published", "order",
     )
 
 

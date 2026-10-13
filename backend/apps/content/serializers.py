@@ -11,6 +11,7 @@ from .models import (
     EventDriverPricing,
     EventOffer,
     EventOfferPhoto,
+    ExampleFare,
     FixedRoute,
     FixedRoutePhoto,
     FixedRouteVehiclePrice,
@@ -156,6 +157,36 @@ class LocalRouteSerializer(serializers.ModelSerializer):
         if obj.price_from is not None:
             return obj.price_from
         return self._estimate(obj).price
+
+
+class ExampleFareSerializer(serializers.ModelSerializer):
+    price_reserved = serializers.SerializerMethodField()
+    price_on_demand = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExampleFare
+        fields = [
+            "from_label_pl", "from_label_en", "to_label_pl", "to_label_en",
+            "distance_km", "price_reserved", "price_on_demand", "order",
+        ]
+
+    def _tier(self, obj):
+        # Tier table only — never the local per-km fare, which depends on
+        # where a driver happens to be right now and would make the table
+        # flip-flop between visits.
+        if not hasattr(obj, "_cached_tier"):
+            from apps.bookings.models import PricingTier
+
+            obj._cached_tier = PricingTier.find_matching(obj.distance_km)
+        return obj._cached_tier
+
+    def get_price_reserved(self, obj):
+        tier = self._tier(obj)
+        return tier.price_reserved if tier else None
+
+    def get_price_on_demand(self, obj):
+        tier = self._tier(obj)
+        return tier.price_on_demand if tier else None
 
 
 class FixedRoutePhotoSerializer(serializers.ModelSerializer):

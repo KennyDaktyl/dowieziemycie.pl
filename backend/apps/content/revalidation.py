@@ -58,6 +58,7 @@ def _registry():
         ("content", "TourVehiclePrice"): (("tours",), _parent_site("tour")),
         ("content", "TourPhoto"): (("tours",), _parent_site("tour")),
         ("content", "LocalRoute"): (("routes",), _shared),
+        ("content", "ExampleFare"): (("example-fares",), _shared),
         ("content", "FixedRoute"): (("fixed-routes",), _own_site),
         ("content", "FixedRouteVehiclePrice"): (("fixed-routes",), _parent_site("route")),
         ("content", "FixedRoutePhoto"): (("fixed-routes",), _parent_site("route")),
@@ -74,7 +75,8 @@ def _registry():
         ("content", "ServicePagePhoto"): (("service-pages",), _parent_site("page")),
         ("fleet", "Vehicle"): (VEHICLE_TAGS, _shared),
         ("fleet", "VehiclePhoto"): (VEHICLE_TAGS, _shared),
-        ("bookings", "PricingTier"): (("pricing-tiers",), _shared),
+        # Example fares are priced from the tier table at request time.
+        ("bookings", "PricingTier"): (("pricing-tiers", "example-fares"), _shared),
         ("bookings", "LocalFarePolicy"): (("local-fare-policy",), _shared),
     }
 

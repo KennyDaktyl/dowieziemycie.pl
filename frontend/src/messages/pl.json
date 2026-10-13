@@ -57,7 +57,8 @@
     "booking": "Rezerwacja",
     "fleet": "Flota",
     "nocnyTransfer": "Nocny transfer",
-    "lokalnyPrzewoz": "Lokalny przewóz osób"
+    "lokalnyPrzewoz": "Lokalny przewóz osób",
+    "zamiastTaxi": "Zamiast taxi — gmina Czernichów"
   },
   "Blog": {
     "heading": "Blog o lokalnym transporcie pod Krakowem",
@@ -532,5 +533,15 @@
     "privacyLinkText": "Regulamin",
     "acceptAll": "Akceptuj wszystko",
     "reject": "Odrzuć"
+  },
+  "ZamiastTaxi": {
+    "callCta": "Zadzwoń {phone}",
+    "bookCta": "Zarezerwuj online",
+    "pricesTitle": "Przykładowe ceny — znasz je przed kursem",
+    "colRoute": "Trasa",
+    "colReserved": "Z rezerwacją",
+    "colOnDemand": "Na już",
+    "individualQuote": "wycena indywidualna",
+    "pricesNote": "Stała cena za cały bus (do 6 osób), z VAT, bez dopłat w nocy i w weekend. „Z rezerwacją” — kurs zamówiony z wyprzedzeniem. Cenę dla swojego adresu zobaczysz w formularzu rezerwacji."
   }
 }

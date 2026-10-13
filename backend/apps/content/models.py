@@ -295,6 +295,42 @@ class LocalRoute(models.Model):
         return f"Kraków – {self.destination_town}"
 
 
+class ExampleFare(models.Model):
+    """One row of an example price table on a landing page (e.g.
+    /zamiast-taxi-czernichow: "Czernichów → Balice"). No amount is stored —
+    the price comes live from the distance-tier price list (PricingTier,
+    "booked in advance" rate), the same one the booking form charges, so the
+    table never drifts from what a customer actually pays. A route longer
+    than the last tier shows "individual quote"."""
+
+    group = models.SlugField(
+        max_length=140, help_text="Strona, na której wiersz się pokazuje — np. „zamiast-taxi-czernichow”.",
+    )
+    from_label_pl = models.CharField(max_length=80)
+    from_label_en = models.CharField(max_length=80)
+    to_label_pl = models.CharField(max_length=80)
+    to_label_en = models.CharField(max_length=80)
+    from_lat = models.DecimalField(max_digits=9, decimal_places=6)
+    from_lng = models.DecimalField(max_digits=9, decimal_places=6)
+    to_lat = models.DecimalField(max_digits=9, decimal_places=6)
+    to_lng = models.DecimalField(max_digits=9, decimal_places=6)
+    distance_km = models.DecimalField(
+        max_digits=6, decimal_places=1, null=True, blank=True,
+        help_text="Długość trasy po drogach. Puste = policzona automatycznie przy pierwszym wyświetleniu "
+        "(wyczyść po zmianie współrzędnych).",
+    )
+    is_published = models.BooleanField(default=True)
+    order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["group", "order", "id"]
+        verbose_name = "Przykładowa cena trasy"
+        verbose_name_plural = "Przykładowe ceny tras"
+
+    def __str__(self):
+        return f"{self.from_label_pl} → {self.to_label_pl}"
+
+
 class FixedRoute(models.Model):
     """A point-to-point transfer at a fixed price (transfer247.pl) — Balice
     ↔Kraków, Katowice(Pyrzowice)↔Kraków, Balice↔Zakopane, etc. Unlike

@@ -10,6 +10,7 @@ from .models import (
     ContentPage,
     EventDriverPricing,
     EventOffer,
+    ExampleFare,
     FixedRoute,
     HomeContent,
     LocalRoute,
@@ -23,6 +24,7 @@ from .serializers import (
     EventDriverPricingSerializer,
     EventOfferDetailSerializer,
     EventOfferListSerializer,
+    ExampleFareSerializer,
     FixedRouteSerializer,
     HomeContentSerializer,
     LocalRouteSerializer,
@@ -122,6 +124,31 @@ class LocalRouteDetailView(generics.RetrieveAPIView):
     serializer_class = LocalRouteSerializer
     queryset = LocalRoute.objects.filter(is_published=True)
     lookup_field = "slug"
+
+
+class ExampleFareListView(generics.ListAPIView):
+    """GET /api/example-fares/?group=zamiast-taxi-czernichow — a landing
+    page's example price table. A row without a road distance gets it from
+    OSRM once and keeps it, so later requests never wait for routing."""
+
+    permission_classes = [AllowAny]
+    serializer_class = ExampleFareSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        from decimal import Decimal
+
+        from apps.bookings.routing import get_route_distance_km
+
+        rows = list(
+            ExampleFare.objects.filter(is_published=True, group=self.request.query_params.get("group", ""))
+        )
+        for row in rows:
+            if row.distance_km is None:
+                km = get_route_distance_km(row.from_lat, row.from_lng, row.to_lat, row.to_lng)
+                row.distance_km = Decimal(str(round(km, 1)))
+                ExampleFare.objects.filter(pk=row.pk).update(distance_km=row.distance_km)
+        return rows
 
 
 ROUTE_PREFETCH = ("photos", "vehicle_prices__vehicle__photos")

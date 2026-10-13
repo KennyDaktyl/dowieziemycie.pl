@@ -66,6 +66,7 @@ export async function GET() {
     ...localizedUrls("/wynajem-busa-z-kierowca"),
     ...localizedUrls("/nocny-transfer-krakow"),
     ...localizedUrls("/lokalny-przewoz-osob"),
+    ...localizedUrls("/zamiast-taxi-czernichow"),
     ...localizedUrls("/blog"),
     ...routeSlugs.flatMap((slug) => localizedUrls(`/trasa/${slug}`)),
     ...eventSlugs.flatMap((slug) => localizedUrls(`/imprezy/${slug}`)),

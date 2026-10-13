@@ -57,7 +57,8 @@
     "booking": "Booking",
     "fleet": "Fleet",
     "nocnyTransfer": "Night transfer",
-    "lokalnyPrzewoz": "Local passenger transport"
+    "lokalnyPrzewoz": "Local passenger transport",
+    "zamiastTaxi": "Instead of a taxi — Gmina Czernichów"
   },
   "Blog": {
     "heading": "Local transport blog around Kraków",
@@ -532,5 +533,15 @@
     "privacyLinkText": "Terms of Service",
     "acceptAll": "Accept all",
     "reject": "Reject"
+  },
+  "ZamiastTaxi": {
+    "callCta": "Call {phone}",
+    "bookCta": "Book online",
+    "pricesTitle": "Example prices — known before the ride",
+    "colRoute": "Route",
+    "colReserved": "Booked ahead",
+    "colOnDemand": "On demand",
+    "individualQuote": "individual quote",
+    "pricesNote": "Fixed price for the whole minibus (up to 6 people), VAT included, no night or weekend surcharge. “Booked ahead” — a ride booked in advance. See the price for your address in the booking form."
   }
 }

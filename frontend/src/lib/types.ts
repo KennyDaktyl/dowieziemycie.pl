@@ -162,6 +162,19 @@ export interface ContentPage {
   seo_description_en: string;
 }
 
+/** A row of a landing page's example price table — priced live by the
+ * backend from the distance-tier price list; null = individual quote. */
+export interface ExampleFare {
+  from_label_pl: string;
+  from_label_en: string;
+  to_label_pl: string;
+  to_label_en: string;
+  distance_km: string | null;
+  price_reserved: string | number | null;
+  price_on_demand: string | number | null;
+  order: number;
+}
+
 export interface EventOfferPhoto {
   image: string;
   thumbnail: string;
